@@ -1,0 +1,8 @@
+127.0.0.1 - - [31/May/2025 15:39:03] code 500, message Service degraded
+127.0.0.1 - - [31/May/2025 15:39:03] "GET /health HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:39:03] code 500, message Service degraded
+127.0.0.1 - - [31/May/2025 15:39:03] "GET /health HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:41:06] code 500, message Service degraded
+127.0.0.1 - - [31/May/2025 15:41:06] "GET /health HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:43:26] code 500, message Service degraded
+127.0.0.1 - - [31/May/2025 15:43:26] "GET /health HTTP/1.1" 500 -

@@ -1,0 +1,33 @@
+127.0.0.1 - - [31/May/2025 15:39:03] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:39:27] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:39:27] code 500, message Expecting value: line 1 column 1 (char 0)
+127.0.0.1 - - [31/May/2025 15:39:27] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:39:38] "GET /api/slo HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:08] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:24] "GET /api/fail HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:47] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:48] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:49] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:51] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:52] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:53] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:55] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:40:57] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:41:00] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:41:02] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:41:04] "GET /api/fail HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:41:06] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:07] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:43:07] code 500, message Expecting value: line 1 column 1 (char 0)
+127.0.0.1 - - [31/May/2025 15:43:07] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:43:08] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:09] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:10] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:11] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:13] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:15] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:17] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:19] "GET /api/data HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:22] "GET /api/slow HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:24] "GET /api/fail HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:26] "GET /health HTTP/1.1" 200 -

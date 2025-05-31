@@ -1,0 +1,8 @@
+127.0.0.1 - - [31/May/2025 15:39:03] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:39:03] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:39:27] code 500, message Database connection failed
+127.0.0.1 - - [31/May/2025 15:39:27] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:41:06] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [31/May/2025 15:43:07] code 500, message Database connection failed
+127.0.0.1 - - [31/May/2025 15:43:07] "GET /api/data HTTP/1.1" 500 -
+127.0.0.1 - - [31/May/2025 15:43:26] "GET /health HTTP/1.1" 200 -
