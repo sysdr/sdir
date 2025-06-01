@@ -1,0 +1,13 @@
+{
+    "node_id": 0,
+    "port": 8080,
+    "data_file": "/Users/sumedhshende/sysd/sdir/consistency/demo_data/node_0/data.json",
+    "log_file": "/Users/sumedhshende/sysd/sdir/consistency/logs/node_0/node.log",
+    "peers": [
+        {"id": 1, "port": 8081},
+        {"id": 2, "port": 8082}
+    ],
+    "consistency_mode": "strong",
+    "partition_mode": false,
+    "replication_factor": 2
+}
