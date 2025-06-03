@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🐳 Vector Clock Docker Demo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1400px; margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px; padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        h1 { 
+            text-align: center; color: #4a5568; 
+            margin-bottom: 30px; font-size: 2.2em;
+        }
+        .docker-info {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white; padding: 15px; border-radius: 8px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .controls { 
+            text-align: center; margin: 20px 0; 
+            padding: 20px; background: #f8f9fa;
+            border-radius: 10px; border: 2px solid #e9ecef;
+        }
+        button { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; 
+            padding: 12px 24px; margin: 5px; 
+            border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .status { 
+            text-align: center; padding: 15px; 
+            margin: 10px 0; border-radius: 8px;
+            font-weight: 600; font-size: 14px;
+        }
+        .success { 
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+        .error { 
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+        }
+        .processes { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px; margin: 20px 0;
+        }
+        .process { 
+            background: white; padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+            transition: transform 0.2s ease;
+        }
+        .process:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        .process.healthy { border-left-color: #48bb78; }
+        .process.unhealthy { border-left-color: #f56565; }
+        .process h3 { 
+            margin: 0 0 15px 0; color: #2d3748;
+            font-size: 1.3em;
+        }
+        .container-info {
+            font-size: 12px; color: #718096;
+            background: #edf2f7; padding: 8px;
+            border-radius: 4px; margin: 10px 0;
+        }
+        .clock { 
+            font-family: 'Courier New', monospace; 
+            font-size: 20px; color: #667eea; 
+            font-weight: bold; background: #f7fafc;
+            padding: 12px; border-radius: 6px;
+            border: 2px solid #e2e8f0;
+            margin: 10px 0;
+        }
+        .events { 
+            max-height: 220px; overflow-y: auto; 
+            background: #f8f9fa; padding: 15px; 
+            border-radius: 8px; border: 1px solid #e9ecef;
+        }
+        .event { 
+            margin: 8px 0; padding: 10px; 
+            background: white; border-radius: 6px; 
+            font-size: 13px; border-left: 4px solid #48bb78;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .docker-stats {
+            background: #f0f8ff; padding: 15px;
+            border-radius: 8px; margin: 20px 0;
+            border-left: 4px solid #4299e1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐳 Vector Clock Docker Demo</h1>
+        
+        <div class="docker-info">
+            <strong>🐳 Containerized Distributed System</strong><br>
+            Each vector clock process runs in its own Docker container with health monitoring
+        </div>
+        
+        <div class="controls">
+            <button onclick="refreshStatus()">🔄 Refresh Status</button>
+            <button onclick="sendRandomMessage()">📨 Send Random Message</button>
+            <button onclick="triggerLocalEvent()">⚡ Trigger Local Event</button>
+            <button onclick="demonstrateCausality()">🔗 Demonstrate Causality</button>
+            <button onclick="checkHealth()">❤️ Health Check</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="docker-stats">
+            <strong>🏗️ Container Architecture:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>3 Vector Clock processes (containers: vector-clock-process-0,1,2)</li>
+                <li>Nginx web server (container: vector-clock-web)</li>
+                <li>Custom Docker network with health checks</li>
+                <li>Automatic restart and graceful shutdown</li>
+            </ul>
+        </div>
+        
+        <div id="processes" class="processes"></div>
+    </div>
+
+    <script>
+        const NUM_PROCESSES = 3;
+        const BASE_PORT = 8080;
+        let autoRefresh = true;
+
+        async function refreshStatus() {
+            const processesDiv = document.getElementById('processes');
+            processesDiv.innerHTML = '<div style="text-align: center;">🔄 Loading...</div>';
+            
+            let healthyProcesses = 0;
+            const processElements = [];
+            
+            for (let i = 0; i < NUM_PROCESSES; i++) {
+                try {
+                    const response = await fetch(`http://localhost:${BASE_PORT + i}/status`);
+                    const data = await response.json();
+                    healthyProcesses++;
+                    
+                    const processDiv = document.createElement('div');
+                    processDiv.className = 'process healthy';
+                    processDiv.innerHTML = `
+                        <h3>🐳 Container: ${data.containerName}</h3>
+                        <div class="container-info">
+                            Process ID: ${data.processId} | Uptime: ${Math.floor(data.uptime)}s | Port: ${BASE_PORT + i}
+                        </div>
+                        <div class="clock">Vector Clock: ${data.vectorClock}</div>
+                        <h4>📋 Recent Events (${data.eventLog.length}):</h4>
+                        <div class="events">
+                            ${data.eventLog.map(event => `
+                                <div class="event">
+                                    <strong>🔄 ${event.type.replace('_', ' ')}</strong> 
+                                    - Clock: [${event.currentClock.join(', ')}]
+                                    ${event.receivedClock ? `<br>📥 Received: [${event.receivedClock.join(', ')}]` : ''}
+                                    <br><small>⏰ ${new Date(event.timestamp).toLocaleTimeString()}</small>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    processElements.push(processDiv);
+                } catch (error) {
+                    const processDiv = document.createElement('div');
+                    processDiv.className = 'process unhealthy';
+                    processDiv.innerHTML = `
+                        <h3>❌ Container: process-${i} (Unhealthy)</h3>
+                        <div class="container-info">Connection failed - container may be down</div>
+                        <div class="clock">Status: Unreachable</div>
+                        <div class="events">
+                            <div class="event" style="border-left-color: #f56565;">
+                                <strong>ERROR:</strong> Cannot connect to container
+                                <br><small>Check: docker-compose ps</small>
+                            </div>
+                        </div>
+                    `;
+                    processElements.push(processDiv);
+                }
+            }
+            
+            processesDiv.innerHTML = '';
+            processElements.forEach(el => processesDiv.appendChild(el));
+            
+            updateStatus(`✅ Status refreshed - ${healthyProcesses}/${NUM_PROCESSES} containers healthy`, 'success');
+        }
+
+        async function sendRandomMessage() {
+            const sender = Math.floor(Math.random() * NUM_PROCESSES);
+            const receiver = Math.floor(Math.random() * NUM_PROCESSES);
+            
+            if (sender === receiver) return sendRandomMessage();
+            
+            try {
+                const senderResponse = await fetch(`http://localhost:${BASE_PORT + sender}/status`);
+                const senderData = await senderResponse.json();
+                const senderClock = JSON.parse(senderData.vectorClock);
+                
+                const message = {
+                    senderId: sender,
+                    vectorClock: senderClock,
+                    content: `Docker message ${new Date().toISOString()}`,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(`http://localhost:${BASE_PORT + receiver}/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(message)
+                });
+                
+                const result = await response.json();
+                updateStatus(`📨 Message: Container ${sender} → Container ${receiver} | ${result.relationship}`, 'success');
+                setTimeout(refreshStatus, 500);
+            } catch (error) {
+                updateStatus('❌ Error sending message: ' + error.message, 'error');
+            }
+        }
+
+        async function triggerLocalEvent() {
+            const processId = Math.floor(Math.random() * NUM_PROCESSES);
+            
+            try {
+                await fetch(`http://localhost:${BASE_PORT + processId}/local-event`, {
+                    method: 'POST'
+                });
+                
+                updateStatus(`⚡ Local event triggered in Container ${processId}`, 'success');
+                setTimeout(refreshStatus, 500);
+            } catch (error) {
+                updateStatus('❌ Error triggering local event: ' + error.message, 'error');
+            }
+        }
+
+        async function demonstrateCausality() {
+            updateStatus('🔗 Demonstrating Docker container causality...', 'success');
+            
+            try {
+                // Create causal chain across containers
+                await fetch(`http://localhost:8080/local-event`, {method: 'POST'});
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const p0Status = await fetch(`http://localhost:8080/status`);
+                const p0Data = await p0Status.json();
+                await fetch(`http://localhost:8081/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        senderId: 0,
+                        vectorClock: JSON.parse(p0Data.vectorClock),
+                        content: 'Container causal chain step 1'
+                    })
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const p1Status = await fetch(`http://localhost:8081/status`);
+                const p1Data = await p1Status.json();
+                await fetch(`http://localhost:8082/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        senderId: 1,
+                        vectorClock: JSON.parse(p1Data.vectorClock),
+                        content: 'Container causal chain step 2'
+                    })
+                });
+                
+                updateStatus('🔗 Causal chain completed across Docker containers: C0 → C1 → C2', 'success');
+                setTimeout(refreshStatus, 500);
+            } catch (error) {
+                updateStatus('❌ Error in causality demonstration: ' + error.message, 'error');
+            }
+        }
+
+        async function checkHealth() {
+            updateStatus('❤️ Checking container health...', 'success');
+            
+            let healthyCount = 0;
+            for (let i = 0; i < NUM_PROCESSES; i++) {
+                try {
+                    const response = await fetch(`http://localhost:${BASE_PORT + i}/health`);
+                    const data = await response.json();
+                    if (data.status === 'healthy') healthyCount++;
+                } catch (error) {
+                    // Container unhealthy
+                }
+            }
+            
+            updateStatus(`❤️ Health check: ${healthyCount}/${NUM_PROCESSES} containers healthy`, 
+                        healthyCount === NUM_PROCESSES ? 'success' : 'error');
+            setTimeout(refreshStatus, 500);
+        }
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function startAutoRefresh() {
+            if (autoRefresh) {
+                refreshStatus();
+                setTimeout(startAutoRefresh, 5000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshStatus();
+            startAutoRefresh();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            autoRefresh = !document.hidden;
+            if (autoRefresh) startAutoRefresh();
+        });
+    </script>
+</body>
+</html>
