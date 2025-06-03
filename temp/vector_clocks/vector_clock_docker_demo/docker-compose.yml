@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Vector Clock Processes
+  process-0:
+    build: .
+    container_name: vector-clock-process-0
+    environment:
+      - PROCESS_ID=0
+      - NUM_PROCESSES=3
+      - PORT=8080
+      - CONTAINER_NAME=process-0
+    ports:
+      - "8080:8080"
+    networks:
+      - vector-clock-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  process-1:
+    build: .
+    container_name: vector-clock-process-1
+    environment:
+      - PROCESS_ID=1
+      - NUM_PROCESSES=3
+      - PORT=8080
+      - CONTAINER_NAME=process-1
+    ports:
+      - "8081:8080"
+    networks:
+      - vector-clock-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  process-2:
+    build: .
+    container_name: vector-clock-process-2
+    environment:
+      - PROCESS_ID=2
+      - NUM_PROCESSES=3
+      - PORT=8080
+      - CONTAINER_NAME=process-2
+    ports:
+      - "8082:8080"
+    networks:
+      - vector-clock-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Web Interface
+  web-interface:
+    image: nginx:alpine
+    container_name: vector-clock-web
+    ports:
+      - "8090:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - vector-clock-network
+    restart: unless-stopped
+    depends_on:
+      - process-0
+      - process-1
+      - process-2
+
+networks:
+  vector-clock-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
