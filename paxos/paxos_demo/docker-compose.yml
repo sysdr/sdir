@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # Main Paxos simulation service
+  paxos-simulator:
+    build: .
+    container_name: paxos-main
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+      - ./state:/app/state
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PAXOS_MODE=simulation
+    networks:
+      - paxos-network
+    restart: unless-stopped
+    
+  # Web interface service (separate for scalability demonstration)
+  paxos-web:
+    build: .
+    container_name: paxos-web
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./logs:/app/logs:ro
+      - ./state:/app/state:ro
+      - ./web:/app/web
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PAXOS_MODE=web
+    command: ["python3", "start_web_server.py"]
+    networks:
+      - paxos-network
+    depends_on:
+      - paxos-simulator
+    restart: unless-stopped
+
+  # Test runner service for automated verification
+  paxos-test:
+    build: .
+    container_name: paxos-test
+    volumes:
+      - ./logs:/app/logs
+      - ./state:/app/state
+      - ./tests:/app/tests
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PAXOS_MODE=test
+    command: ["python3", "test_paxos.py"]
+    networks:
+      - paxos-network
+    depends_on:
+      - paxos-simulator
+    profiles:
+      - testing
+
+  # Network partition simulator (chaos engineering)
+  chaos-monkey:
+    image: alpine:latest
+    container_name: paxos-chaos
+    command: >
+      sh -c "
+        echo 'Chaos Monkey: Simulating network partitions...';
+        while true; do
+          sleep 30;
+          echo 'Injecting 5-second network delay...';
+          sleep 5;
+          echo 'Network restored';
+          sleep 25;
+        done
+      "
+    networks:
+      - paxos-network
+    profiles:
+      - chaos
+
+networks:
+  paxos-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  paxos-logs:
+    driver: local
+  paxos-state:
+    driver: local

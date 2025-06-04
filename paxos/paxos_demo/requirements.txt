@@ -1,0 +1,2 @@
+# No external dependencies required - using only Python standard library
+# This demonstrates that Paxos core concepts can be implemented with minimal dependencies

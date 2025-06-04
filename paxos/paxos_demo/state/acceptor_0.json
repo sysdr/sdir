@@ -1,0 +1,9 @@
+{
+  "node_id": "0",
+  "max_prepare": 2001,
+  "accepted_proposal": {
+    "proposal_id": 1001,
+    "value": "value_0"
+  },
+  "is_alive": true
+}
