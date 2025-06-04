@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quorum System Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .config {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .config-item {
+            display: inline-block;
+            margin: 0 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .node {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .node.healthy {
+            border-left: 5px solid #27ae60;
+        }
+        
+        .node.failed {
+            border-left: 5px solid #e74c3c;
+            opacity: 0.6;
+        }
+        
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .node-status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .results {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 200px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+        }
+        
+        .result-success {
+            border-left-color: #27ae60;
+            background: #d4edda;
+        }
+        
+        .result-error {
+            border-left-color: #e74c3c;
+            background: #f8d7da;
+        }
+        
+        .result-warning {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 Quorum System Live Demo</h1>
+            <p>Watch quorum consensus, failures, and repair in real-time</p>
+        </div>
+        
+        <div class="config">
+            <div class="config-item">📊 Nodes: <span id="nodeCount">5</span></div>
+            <div class="config-item">📖 Read Quorum: <span id="readQuorum">2</span></div>
+            <div class="config-item">✍️ Write Quorum: <span id="writeQuorum">2</span></div>
+            <div class="config-item">🕐 Auto-refresh: <span id="refreshInterval">3s</span></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="section">
+                <h3>🖥️ Cluster Status</h3>
+                <div class="nodes-grid" id="nodesGrid"></div>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="healthyNodes">-</div>
+                        <div class="metric-label">Healthy Nodes</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="totalRequests">-</div>
+                        <div class="metric-label">Total Requests</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="quorumStatus">-</div>
+                        <div class="metric-label">Quorum Available</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>⚡ Operations</h3>
+                <div class="controls">
+                    <div class="control-group">
+                        <h4>Write Operation</h4>
+                        <div class="input-group">
+                            <label>Key:</label>
+                            <input type="text" id="writeKey" placeholder="user:123" value="user:123">
+                        </div>
+                        <div class="input-group">
+                            <label>Value:</label>
+                            <input type="text" id="writeValue" placeholder="John Doe" value="John Doe">
+                        </div>
+                        <div class="input-group">
+                            <label>Write Quorum:</label>
+                            <select id="writeQuorumSelect">
+                                <option value="1">1 (Weak)</option>
+                                <option value="2" selected>2 (Default)</option>
+                                <option value="3">3 (Strong)</option>
+                                <option value="5">5 (Strongest)</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="performWrite()">🔒 Write</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h4>Read Operation</h4>
+                        <div class="input-group">
+                            <label>Key:</label>
+                            <input type="text" id="readKey" placeholder="user:123" value="user:123">
+                        </div>
+                        <div class="input-group">
+                            <label>Read Quorum:</label>
+                            <select id="readQuorumSelect">
+                                <option value="1">1 (Weak)</option>
+                                <option value="2" selected>2 (Default)</option>
+                                <option value="3">3 (Strong)</option>
+                                <option value="5">5 (Strongest)</option>
+                            </select>
+                        </div>
+                        <br>
+                        <button class="btn" onclick="performRead()">📖 Read</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h4>🧪 Failure Simulation</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button class="btn btn-danger" onclick="simulateFailure()">💥 Fail Random Node</button>
+                        <button class="btn btn-success" onclick="recoverNode()">🔄 Recover Node</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section full-width">
+                <h3>📋 Operation Results & Logs</h3>
+                <div class="results" id="results">
+                    <div class="result-item">
+                        <strong>System ready!</strong> You can now perform read/write operations and simulate failures.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshTimer;
+        let operationCounter = 0;
+        let failedNodes = new Set();
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const resultItem = document.createElement('div');
+            resultItem.className = `result-item result-${type}`;
+            resultItem.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            results.insertBefore(resultItem, results.firstChild);
+            
+            // Keep only last 50 results
+            while (results.children.length > 50) {
+                results.removeChild(results.lastChild);
+            }
+        }
+        
+        async function refreshClusterStatus() {
+            try {
+                const nodes = [8080, 8081, 8082, 8083, 8084];
+                const nodesGrid = document.getElementById('nodesGrid');
+                nodesGrid.innerHTML = '';
+                
+                let healthyCount = 0;
+                let totalRequests = 0;
+                
+                for (const port of nodes) {
+                    try {
+                        const response = await fetch(`http://localhost:${port}/status`);
+                        const status = await response.json();
+                        
+                        if (status.healthy) healthyCount++;
+                        totalRequests += status.request_count;
+                        
+                        const nodeDiv = document.createElement('div');
+                        nodeDiv.className = `node ${status.healthy ? 'healthy' : 'failed'}`;
+                        nodeDiv.innerHTML = `
+                            <div class="node-header">
+                                <strong>Node ${status.node_id}</strong>
+                                <span class="node-status ${status.healthy ? 'status-healthy' : 'status-failed'}">
+                                    ${status.healthy ? 'HEALTHY' : 'FAILED'}
+                                </span>
+                            </div>
+                            <div>Port: ${status.port}</div>
+                            <div>Data items: ${status.data_count}</div>
+                            <div>Requests: ${status.request_count}</div>
+                        `;
+                        
+                        if (!status.healthy) {
+                            failedNodes.add(port);
+                        } else {
+                            failedNodes.delete(port);
+                        }
+                        
+                        nodesGrid.appendChild(nodeDiv);
+                    } catch (error) {
+                        const nodeDiv = document.createElement('div');
+                        nodeDiv.className = 'node failed';
+                        nodeDiv.innerHTML = `
+                            <div class="node-header">
+                                <strong>Node ${port - 8080}</strong>
+                                <span class="node-status status-failed">UNREACHABLE</span>
+                            </div>
+                            <div>Port: ${port}</div>
+                            <div>Status: Connection failed</div>
+                        `;
+                        nodesGrid.appendChild(nodeDiv);
+                        failedNodes.add(port);
+                    }
+                }
+                
+                document.getElementById('healthyNodes').textContent = healthyCount;
+                document.getElementById('totalRequests').textContent = totalRequests;
+                document.getElementById('quorumStatus').textContent = healthyCount >= 2 ? 'YES' : 'NO';
+                
+            } catch (error) {
+                addResult(`Failed to refresh cluster status: ${error.message}`, 'error');
+            }
+        }
+        
+        async function performWrite() {
+            operationCounter++;
+            const key = document.getElementById('writeKey').value;
+            const value = document.getElementById('writeValue').value;
+            const writeQuorum = parseInt(document.getElementById('writeQuorumSelect').value);
+            
+            if (!key || !value) {
+                addResult('Please provide both key and value for write operation', 'error');
+                return;
+            }
+            
+            addResult(`🔒 Starting write operation: ${key} = "${value}" (W=${writeQuorum})`);
+            
+            try {
+                // Use first healthy node as coordinator
+                const nodes = [8080, 8081, 8082, 8083, 8084];
+                let coordinator = null;
+                
+                for (const port of nodes) {
+                    if (!failedNodes.has(port)) {
+                        coordinator = port;
+                        break;
+                    }
+                }
+                
+                if (!coordinator) {
+                    addResult('❌ No healthy coordinator available', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`http://localhost:${coordinator}/coordinate_write`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, value, w: writeQuorum })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    addResult(`✅ Write successful! Quorum achieved (${writeQuorum} nodes responded)`, 'success');
+                    addResult(`📝 Responses: ${result.responses.join(', ')}`);
+                } else {
+                    addResult(`❌ Write failed! Quorum not achieved`, 'error');
+                    addResult(`📝 Responses: ${result.responses.join(', ')}`);
+                }
+                
+                // Refresh status after operation
+                setTimeout(refreshClusterStatus, 500);
+                
+            } catch (error) {
+                addResult(`❌ Write operation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function performRead() {
+            operationCounter++;
+            const key = document.getElementById('readKey').value;
+            const readQuorum = parseInt(document.getElementById('readQuorumSelect').value);
+            
+            if (!key) {
+                addResult('Please provide a key for read operation', 'error');
+                return;
+            }
+            
+            addResult(`📖 Starting read operation: ${key} (R=${readQuorum})`);
+            
+            try {
+                // Use first healthy node as coordinator
+                const nodes = [8080, 8081, 8082, 8083, 8084];
+                let coordinator = null;
+                
+                for (const port of nodes) {
+                    if (!failedNodes.has(port)) {
+                        coordinator = port;
+                        break;
+                    }
+                }
+                
+                if (!coordinator) {
+                    addResult('❌ No healthy coordinator available', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`http://localhost:${coordinator}/coordinate_read?key=${key}&r=${readQuorum}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    addResult(`✅ Read successful! Value: "${result.value}"`, 'success');
+                    if (result.inconsistency_detected) {
+                        addResult(`⚠️ Inconsistency detected and repaired during read`, 'warning');
+                    }
+                    addResult(`📝 Responses: ${result.responses.join(', ')}`);
+                } else {
+                    addResult(`❌ Read failed! Quorum not achieved`, 'error');
+                    addResult(`📝 Responses: ${result.responses.join(', ')}`);
+                }
+                
+            } catch (error) {
+                addResult(`❌ Read operation failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simulateFailure() {
+            const healthyNodes = [8080, 8081, 8082, 8083, 8084].filter(port => !failedNodes.has(port));
+            
+            if (healthyNodes.length === 0) {
+                addResult('❌ No healthy nodes to fail', 'error');
+                return;
+            }
+            
+            const nodeToFail = healthyNodes[Math.floor(Math.random() * healthyNodes.length)];
+            
+            try {
+                await fetch(`http://localhost:${nodeToFail}/fail`);
+                addResult(`💥 Simulated failure of Node ${nodeToFail - 8080} (port ${nodeToFail})`, 'warning');
+                
+                setTimeout(refreshClusterStatus, 500);
+            } catch (error) {
+                addResult(`❌ Failed to simulate node failure: ${error.message}`, 'error');
+            }
+        }
+        
+        async function recoverNode() {
+            const failedNodesArray = Array.from(failedNodes);
+            
+            if (failedNodesArray.length === 0) {
+                addResult('❌ No failed nodes to recover', 'error');
+                return;
+            }
+            
+            const nodeToRecover = failedNodesArray[Math.floor(Math.random() * failedNodesArray.length)];
+            
+            try {
+                await fetch(`http://localhost:${nodeToRecover}/recover`);
+                addResult(`🔄 Recovered Node ${nodeToRecover - 8080} (port ${nodeToRecover})`, 'success');
+                
+                setTimeout(refreshClusterStatus, 500);
+            } catch (error) {
+                addResult(`❌ Failed to recover node: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-refresh cluster status
+        function startAutoRefresh() {
+            refreshClusterStatus();
+            refreshTimer = setInterval(refreshClusterStatus, 3000);
+        }
+        
+        // Start monitoring when page loads
+        window.addEventListener('load', startAutoRefresh);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshTimer) clearInterval(refreshTimer);
+        });
+    </script>
+</body>
+</html>
