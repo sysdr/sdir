@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raft Consensus Algorithm Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .title { color: #2c3e50; font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { color: #7f8c8d; font-size: 1.2em; }
+        
+        .cluster-view { display: flex; justify-content: space-around; margin-bottom: 30px; flex-wrap: wrap; }
+        .node { 
+            background: white; border-radius: 15px; padding: 20px; margin: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width: 180px; text-align: center;
+            transition: all 0.3s ease;
+        }
+        .node.leader { background: linear-gradient(135deg, #e8f8e8, #b8e6b8); border: 2px solid #27ae60; }
+        .node.candidate { background: linear-gradient(135deg, #fff3cd, #ffe69c); border: 2px solid #f39c12; }
+        .node.follower { background: linear-gradient(135deg, #e8f4fd, #b3d9f7); border: 2px solid #3498db; }
+        .node.partitioned { background: linear-gradient(135deg, #ffebee, #ffcdd2); border: 2px dashed #e74c3c; opacity: 0.7; }
+        
+        .node-id { font-size: 1.4em; font-weight: bold; margin-bottom: 10px; }
+        .node-state { font-size: 1em; text-transform: uppercase; margin-bottom: 5px; }
+        .node-term { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+        .node-controls { margin-top: 15px; }
+        .btn { 
+            padding: 8px 16px; margin: 2px; border: none; border-radius: 5px; 
+            cursor: pointer; font-size: 0.85em; transition: all 0.2s;
+        }
+        .btn.partition { background: #e74c3c; color: white; }
+        .btn.reconnect { background: #27ae60; color: white; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        
+        .controls { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .control-group input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 200px; }
+        .btn.primary { background: #3498db; color: white; padding: 10px 20px; font-size: 1em; }
+        
+        .logs { background: #2c3e50; color: #ecf0f1; border-radius: 10px; padding: 20px; height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9em; }
+        .log-entry { margin-bottom: 5px; }
+        .log-info { color: #3498db; }
+        .log-warn { color: #f39c12; }
+        .log-error { color: #e74c3c; }
+        .log-success { color: #27ae60; }
+        
+        .status { margin-top: 20px; }
+        .status-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Raft Consensus Algorithm Demo</h1>
+            <p class="subtitle">Interactive visualization of leader election and log replication</p>
+        </div>
+        
+        <div class="cluster-view" id="cluster-view">
+            <!-- Nodes will be dynamically generated -->
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="log-entry">Add Log Entry:</label>
+                <input type="text" id="log-entry" placeholder="Enter data to replicate">
+                <button class="btn primary" onclick="addEntry()">Add Entry</button>
+            </div>
+        </div>
+        
+        <div class="status">
+            <h3>System Status</h3>
+            <div id="status-display"></div>
+        </div>
+        
+        <div class="logs">
+            <div id="log-output"></div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}`);
+        let nodes = [];
+        
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            
+            switch (message.type) {
+                case 'status':
+                    nodes = message.data;
+                    updateDisplay();
+                    break;
+                case 'stateChange':
+                    updateNodeState(message.data);
+                    break;
+                case 'log':
+                    addLogEntry(message.data);
+                    break;
+                case 'logEntry':
+                    updateStatus();
+                    break;
+                case 'partition':
+                case 'reconnect':
+                    updateStatus();
+                    break;
+            }
+        };
+        
+        function updateDisplay() {
+            const clusterView = document.getElementById('cluster-view');
+            clusterView.innerHTML = '';
+            
+            nodes.forEach(node => {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `node ${node.state} ${node.isPartitioned ? 'partitioned' : ''}`;
+                nodeEl.innerHTML = `
+                    <div class="node-id">Node ${node.nodeId}</div>
+                    <div class="node-state">${node.state}</div>
+                    <div class="node-term">Term: ${node.term}</div>
+                    <div class="node-controls">
+                        ${!node.isPartitioned ? 
+                            `<button class="btn partition" onclick="partitionNode(${node.nodeId})">Partition</button>` :
+                            `<button class="btn reconnect" onclick="reconnectNode(${node.nodeId})">Reconnect</button>`
+                        }
+                    </div>
+                `;
+                clusterView.appendChild(nodeEl);
+            });
+            
+            updateStatus();
+        }
+        
+        function updateNodeState(data) {
+            const node = nodes.find(n => n.nodeId === data.nodeId);
+            if (node) {
+                node.state = data.state;
+                node.term = data.term;
+                updateDisplay();
+            }
+        }
+        
+        function updateStatus() {
+            const statusDisplay = document.getElementById('status-display');
+            const leader = nodes.find(n => n.state === 'leader' && !n.isPartitioned);
+            const followers = nodes.filter(n => n.state === 'follower' && !n.isPartitioned);
+            const candidates = nodes.filter(n => n.state === 'candidate' && !n.isPartitioned);
+            const partitioned = nodes.filter(n => n.isPartitioned);
+            
+            statusDisplay.innerHTML = `
+                <div class="status-item">
+                    <strong>Leader:</strong> ${leader ? `Node ${leader.nodeId} (Term ${leader.term})` : 'None'}
+                </div>
+                <div class="status-item">
+                    <strong>Followers:</strong> ${followers.map(n => `Node ${n.nodeId}`).join(', ') || 'None'}
+                </div>
+                <div class="status-item">
+                    <strong>Candidates:</strong> ${candidates.map(n => `Node ${n.nodeId}`).join(', ') || 'None'}
+                </div>
+                <div class="status-item">
+                    <strong>Partitioned:</strong> ${partitioned.map(n => `Node ${n.nodeId}`).join(', ') || 'None'}
+                </div>
+            `;
+        }
+        
+        function addLogEntry(data) {
+            const logOutput = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${data.level}`;
+            entry.textContent = `${data.timestamp} [Node-${data.nodeId}] ${data.message}`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+        
+        function addEntry() {
+            const input = document.getElementById('log-entry');
+            const data = input.value.trim();
+            if (data) {
+                fetch('/api/entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data })
+                });
+                input.value = '';
+            }
+        }
+        
+        function partitionNode(nodeId) {
+            fetch(`/api/partition/${nodeId}`, { method: 'POST' });
+        }
+        
+        function reconnectNode(nodeId) {
+            fetch(`/api/reconnect/${nodeId}`, { method: 'POST' });
+        }
+        
+        // Initial load
+        updateStatus();
+    </script>
+</body>
+</html>
