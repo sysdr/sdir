@@ -96,18 +96,9 @@ class GossipNode:
         
         @self.app.route('/api/status')
         def status():
-            def member_to_dict(v):
-                return {
-                    'id': v.id,
-                    'host': v.host,
-                    'port': v.port,
-                    'is_alive': v.is_alive,
-                    'last_seen': v.last_seen,
-                    'vector_clock': dict(v.vector_clock)
-                }
             return jsonify({
                 'node_id': self.node_id,
-                'members': {k: member_to_dict(v) for k, v in self.members.items()},
+                'members': {k: asdict(v) for k, v in self.members.items()},
                 'gossip_queue_size': len(self.gossip_queue),
                 'local_data': self.local_data,
                 'stats': self.stats,
@@ -433,7 +424,7 @@ class GossipNode:
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Gossip Node {{ node_id }}</title>
+    <title>Gossip Node ''' + self.node_id + '''</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
@@ -455,7 +446,7 @@ class GossipNode:
 <body>
     <div class="container">
         <div class="header">
-            <h1>🗣️ Gossip Node: ''' + "{{ node_id }}" + '''</h1>
+            <h1>🗣️ Gossip Node: ''' + self.node_id + '''</h1>
             <p>Real-time Gossip Protocol Demonstration</p>
         </div>
         

@@ -41,7 +41,7 @@ def test_gossip_propagation():
     
     # Test 2: Check propagation
     print("\n⏳ Waiting for gossip propagation...")
-    time.sleep(10)  # Wait for gossip rounds
+     time.sleep(10)  # Wait for gossip rounds
     
     print("\n🔍 Checking data propagation across all nodes:")
     propagated_count = 0
