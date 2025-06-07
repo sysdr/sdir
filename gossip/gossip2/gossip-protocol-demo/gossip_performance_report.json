@@ -1,0 +1,81 @@
+{
+  "timestamp": 1749277643.896675,
+  "test_results": {
+    "byzantine_tolerance": {
+      "messages_sent": 10,
+      "messages_received": {
+        "node1": 10,
+        "node2": 0,
+        "node3": 0,
+        "node4": 0,
+        "node5": 0
+      }
+    },
+    "partition_recovery": {
+      "node1": {
+        "alive_members": 1,
+        "failed_pings": 0,
+        "detection_ratio": 0.0
+      },
+      "node2": {
+        "alive_members": 1,
+        "failed_pings": 0,
+        "detection_ratio": 0.0
+      },
+      "node3": {
+        "alive_members": 1,
+        "failed_pings": 0,
+        "detection_ratio": 0.0
+      },
+      "node4": {
+        "alive_members": 1,
+        "failed_pings": 0,
+        "detection_ratio": 0.0
+      },
+      "node5": {
+        "alive_members": 1,
+        "failed_pings": 0,
+        "detection_ratio": 0.0
+      }
+    },
+    "load_performance": {
+      "1": {
+        "messages_sent": 30,
+        "errors": 0,
+        "success_rate": 100.0,
+        "avg_latency": 13.525120417277018,
+        "p95_latency": 22.23720550537109,
+        "p99_latency": 23.86772394180298
+      },
+      "5": {
+        "messages_sent": 150,
+        "errors": 0,
+        "success_rate": 100.0,
+        "avg_latency": 10.61616579691569,
+        "p95_latency": 19.13583278656006,
+        "p99_latency": 27.786829471588113
+      },
+      "10": {
+        "messages_sent": 300,
+        "errors": 0,
+        "success_rate": 100.0,
+        "avg_latency": 9.456115563710531,
+        "p95_latency": 15.07946252822876,
+        "p99_latency": 22.220246791839564
+      },
+      "20": {
+        "messages_sent": 600,
+        "errors": 0,
+        "success_rate": 100.0,
+        "avg_latency": 6.2430596351623535,
+        "p95_latency": 9.295630455017086,
+        "p99_latency": 18.972969055175735
+      }
+    },
+    "failure_detection": {
+      "consistency_score": 0,
+      "total_checks": 0,
+      "consistency_percentage": 0
+    }
+  }
+}
