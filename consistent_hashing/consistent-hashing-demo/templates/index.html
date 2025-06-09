@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistent Hashing Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .section h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        input, button, select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .log-output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .node-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .node-item {
+            background: #ecf0f1;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 2px solid #bdc3c7;
+        }
+        .node-item.active {
+            background: #2ecc71;
+            color: white;
+            border-color: #27ae60;
+        }
+        #chart {
+            margin: 20px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-good { background-color: #2ecc71; }
+        .status-warning { background-color: #f39c12; }
+        .status-error { background-color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Consistent Hashing Interactive Demo</h1>
+        
+        <div class="section">
+            <h2>📊 Ring Status</h2>
+            <div class="metrics" id="metrics">
+                <!-- Metrics will be populated here -->
+            </div>
+            <div class="node-list" id="nodeList">
+                <!-- Node list will be populated here -->
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>⚙️ Node Management</h2>
+            <div class="controls">
+                <input type="text" id="nodeId" placeholder="Node ID (e.g., server-4)" value="server-4">
+                <input type="number" id="nodeWeight" placeholder="Weight" value="1.0" step="0.1" min="0.1" max="10">
+                <button onclick="addNode()">Add Node</button>
+                <button onclick="removeNode()" class="danger">Remove Node</button>
+                <button onclick="resetDemo()">Reset Demo</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Key Lookup</h2>
+            <div class="controls">
+                <input type="text" id="lookupKey" placeholder="Enter key to lookup" value="user:12345">
+                <button onclick="lookupKey()">Find Node</button>
+                <button onclick="simulateLoad()">Simulate Load (1000 keys)</button>
+                <button onclick="runBenchmark()">Run Benchmark</button>
+            </div>
+            <div id="lookupResult" class="log-output" style="margin-top: 15px; min-height: 60px;">
+                Ready for key lookups...
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Load Distribution Visualization</h2>
+            <button onclick="updateVisualization()">Update Chart</button>
+            <div id="chart"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Operation Log</h2>
+            <div id="operationLog" class="log-output">
+                Demo initialized. Ready for operations...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let operationCounter = 0;
+
+        function log(message) {
+            const logElement = document.getElementById('operationLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/ring/info');
+                const data = await response.json();
+                
+                const metricsHtml = `
+                    <div class="metric-card">
+                        <div class="metric-value">${data.nodes.length}</div>
+                        <div class="metric-label">Active Nodes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.total_virtual_nodes}</div>
+                        <div class="metric-label">Virtual Nodes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.lookups}</div>
+                        <div class="metric-label">Total Lookups</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.rebalances}</div>
+                        <div class="metric-label">Rebalances</div>
+                    </div>
+                `;
+                document.getElementById('metrics').innerHTML = metricsHtml;
+                
+                // Update node list
+                const nodeListHtml = data.nodes.map(node => 
+                    `<div class="node-item active">
+                        <span class="status-indicator status-good"></span>
+                        ${node} (weight: ${data.node_weights[node] || 1.0})
+                    </div>`
+                ).join('');
+                document.getElementById('nodeList').innerHTML = nodeListHtml;
+                
+            } catch (error) {
+                log(`Error updating metrics: ${error.message}`);
+            }
+        }
+
+        async function addNode() {
+            const nodeId = document.getElementById('nodeId').value;
+            const weight = parseFloat(document.getElementById('nodeWeight').value) || 1.0;
+            
+            if (!nodeId) {
+                alert('Please enter a node ID');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ring/add_node', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: nodeId, weight: weight })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'added') {
+                    log(`✅ Added node ${nodeId} (weight: ${weight}, virtual nodes: ${result.virtual_nodes}, operation time: ${result.operation_time.toFixed(4)}s)`);
+                    document.getElementById('nodeId').value = `server-${Date.now() % 10000}`;
+                } else {
+                    log(`⚠️ Node ${nodeId} already exists`);
+                }
+                
+                await updateMetrics();
+            } catch (error) {
+                log(`❌ Error adding node: ${error.message}`);
+            }
+        }
+
+        async function removeNode() {
+            const nodeId = document.getElementById('nodeId').value;
+            
+            if (!nodeId) {
+                alert('Please enter a node ID to remove');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ring/remove_node', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: nodeId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'removed') {
+                    log(`🗑️ Removed node ${nodeId} (${result.virtual_nodes_removed} virtual nodes, operation time: ${result.operation_time.toFixed(4)}s)`);
+                } else {
+                    log(`⚠️ Node ${nodeId} not found`);
+                }
+                
+                await updateMetrics();
+            } catch (error) {
+                log(`❌ Error removing node: ${error.message}`);
+            }
+        }
+
+        async function lookupKey() {
+            const key = document.getElementById('lookupKey').value;
+            
+            if (!key) {
+                alert('Please enter a key to lookup');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/ring/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: key })
+                });
+                
+                const result = await response.json();
+                
+                const resultHtml = `
+Key: ${result.key}
+Primary Node: ${result.primary_node || 'No nodes available'}
+Replica Nodes: ${result.replica_nodes.join(', ') || 'No replicas'}
+                `;
+                
+                document.getElementById('lookupResult').textContent = resultHtml;
+                log(`🔍 Lookup: ${key} → ${result.primary_node}`);
+                
+                await updateMetrics();
+            } catch (error) {
+                log(`❌ Error during lookup: ${error.message}`);
+            }
+        }
+
+        async function simulateLoad() {
+            log('📈 Starting load simulation (1000 keys)...');
+            
+            try {
+                const response = await fetch('/api/demo/simulate_load?keys=1000');
+                const result = await response.json();
+                
+                const distribution = Object.entries(result.distribution)
+                    .map(([node, count]) => `${node}: ${count} keys`)
+                    .join(', ');
+                
+                log(`📊 Load simulation complete: ${distribution}`);
+                await updateMetrics();
+                await updateVisualization();
+            } catch (error) {
+                log(`❌ Error during load simulation: ${error.message}`);
+            }
+        }
+
+        async function runBenchmark() {
+            log('⚡ Running performance benchmark...');
+            
+            try {
+                const response = await fetch('/api/demo/benchmark?operations=10000');
+                const result = await response.json();
+                
+                log(`⚡ Benchmark results: ${result.lookups_per_second.toFixed(0)} lookups/sec, node add time: ${(result.node_add_time_seconds * 1000).toFixed(2)}ms`);
+                await updateMetrics();
+            } catch (error) {
+                log(`❌ Error during benchmark: ${error.message}`);
+            }
+        }
+
+        async function updateVisualization() {
+            try {
+                const response = await fetch('/api/visualization/load_distribution');
+                const result = await response.json();
+                
+                if (result.chart_data) {
+                    Plotly.newPlot('chart', result.chart_data.data, result.chart_data.layout);
+                } else {
+                    document.getElementById('chart').innerHTML = '<p>No data available for visualization. Try simulating some load first.</p>';
+                }
+            } catch (error) {
+                log(`❌ Error updating visualization: ${error.message}`);
+            }
+        }
+
+        async function resetDemo() {
+            try {
+                const response = await fetch('/api/demo/reset');
+                const result = await response.json();
+                
+                log('🔄 Demo reset to initial state');
+                document.getElementById('lookupResult').textContent = 'Ready for key lookups...';
+                document.getElementById('chart').innerHTML = '';
+                
+                await updateMetrics();
+            } catch (error) {
+                log(`❌ Error resetting demo: ${error.message}`);
+            }
+        }
+
+        // Initialize the demo
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMetrics();
+            log('🚀 Consistent Hashing Demo loaded');
+        });
+
+        // Auto-update metrics every 5 seconds
+        setInterval(updateMetrics, 5000);
+    </script>
+</body>
+</html>

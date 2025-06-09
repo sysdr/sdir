@@ -1,0 +1,47 @@
+2025-06-09 11:17:27,259 - INFO - Added node server-1 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,259 - INFO - Added node server-2 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,260 - INFO - Added node server-3 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,298 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.3:5000
+2025-06-09 11:17:27,298 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-09 11:17:27,298 - INFO -  * Restarting with stat
+2025-06-09 11:17:27,440 - INFO - Added node server-1 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,440 - INFO - Added node server-2 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,440 - INFO - Added node server-3 (weight: 1.0, vnodes: 150, keys_moved: 150, time: 0.0001s)
+2025-06-09 11:17:27,447 - WARNING -  * Debugger is active!
+2025-06-09 11:17:27,447 - INFO -  * Debugger PIN: 607-543-688
+2025-06-09 11:17:45,950 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:45] "GET / HTTP/1.1" 200 -
+2025-06-09 11:17:47,085 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:47] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:17:47,139 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:47] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-09 11:17:51,987 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:51] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:17:54,414 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:54] "GET /api/visualization/load_distribution HTTP/1.1" 200 -
+2025-06-09 11:17:57,019 - INFO - 192.168.65.1 - - [09/Jun/2025 11:17:57] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:02,565 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:02] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:07,555 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:07] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:12,553 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:12] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:17,547 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:17] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:22,548 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:22] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:27,552 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:27] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:32,553 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:32] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:37,552 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:37] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:42,549 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:42] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:47,553 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:47] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:52,549 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:52] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:18:57,548 - INFO - 192.168.65.1 - - [09/Jun/2025 11:18:57] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:19:35,611 - INFO - 192.168.65.1 - - [09/Jun/2025 11:19:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:20:35,562 - INFO - 192.168.65.1 - - [09/Jun/2025 11:20:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:21:35,561 - INFO - 192.168.65.1 - - [09/Jun/2025 11:21:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:22:35,554 - INFO - 192.168.65.1 - - [09/Jun/2025 11:22:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:23:35,565 - INFO - 192.168.65.1 - - [09/Jun/2025 11:23:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:24:35,567 - INFO - 192.168.65.1 - - [09/Jun/2025 11:24:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:25:35,555 - INFO - 192.168.65.1 - - [09/Jun/2025 11:25:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:26:35,554 - INFO - 192.168.65.1 - - [09/Jun/2025 11:26:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:27:35,600 - INFO - 192.168.65.1 - - [09/Jun/2025 11:27:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:28:35,552 - INFO - 192.168.65.1 - - [09/Jun/2025 11:28:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:29:35,556 - INFO - 192.168.65.1 - - [09/Jun/2025 11:29:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:30:35,604 - INFO - 192.168.65.1 - - [09/Jun/2025 11:30:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:31:35,536 - INFO - 192.168.65.1 - - [09/Jun/2025 11:31:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:32:35,533 - INFO - 192.168.65.1 - - [09/Jun/2025 11:32:35] "GET /api/ring/info HTTP/1.1" 200 -
+2025-06-09 11:33:35,543 - INFO - 192.168.65.1 - - [09/Jun/2025 11:33:35] "GET /api/ring/info HTTP/1.1" 200 -
