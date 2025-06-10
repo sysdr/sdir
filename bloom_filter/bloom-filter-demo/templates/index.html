@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom Filter Production Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="text"], input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(243, 156, 18, 0.3);
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ecf0f1;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+        
+        .stat-value {
+            color: #2c3e50;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #f39c12;
+            margin: 20px 0;
+        }
+        
+        .highlight h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌸 Bloom Filter Production Demo</h1>
+            <p>Interactive System Design Learning Platform</p>
+        </div>
+        
+        <div class="content">
+            <!-- Add Items Section -->
+            <div class="section">
+                <h3>📝 Add Items to Bloom Filter</h3>
+                <p>Add items to both single and distributed Bloom filters. Items are automatically distributed across nodes using consistent hashing.</p>
+                <div class="input-group">
+                    <input type="text" id="addItem" placeholder="Enter item (e.g., user@example.com)" />
+                    <button class="btn btn-primary" onclick="addItem()">Add Item</button>
+                    <button class="btn btn-success" onclick="generateData()">Generate 100 Random Items</button>
+                </div>
+                <div id="addResult"></div>
+            </div>
+            
+            <!-- Check Items Section -->
+            <div class="section">
+                <h3>🔍 Check Item Existence</h3>
+                <p>Query the Bloom filter to check if an item might exist. Compare results between probabilistic and exact storage.</p>
+                <div class="input-group">
+                    <input type="text" id="checkItem" placeholder="Enter item to check" />
+                    <button class="btn btn-primary" onclick="checkItem()">Check Item</button>
+                </div>
+                <div id="checkResult"></div>
+            </div>
+            
+            <!-- Performance Test Section -->
+            <div class="section">
+                <h3>⚡ Performance Testing</h3>
+                <p>Run performance tests to analyze insertion speed, lookup speed, and false positive rates.</p>
+                <div class="input-group">
+                    <input type="number" id="testSize" placeholder="Test size (max: 100,000)" value="10000" min="1000" max="100000" />
+                    <button class="btn btn-warning" onclick="runPerformanceTest()">Run Performance Test</button>
+                </div>
+                <div id="performanceResult"></div>
+                <div class="loading" id="performanceLoading">
+                    <div class="spinner"></div>
+                    <p>Running performance test...</p>
+                </div>
+            </div>
+            
+            <!-- Statistics Section -->
+            <div class="section">
+                <h3>📊 Real-time Statistics</h3>
+                <button class="btn btn-primary" onclick="updateStatistics()">Refresh Statistics</button>
+                <div class="stats-grid" id="statisticsContainer">
+                    <!-- Statistics will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Educational Insights -->
+            <div class="highlight">
+                <h4>🎓 Key Learning Points</h4>
+                <ul>
+                    <li><strong>Space Efficiency:</strong> Bloom filters use fixed memory regardless of elements added</li>
+                    <li><strong>Probabilistic Nature:</strong> False positives possible, false negatives impossible</li>
+                    <li><strong>Distributed Architecture:</strong> Multiple filters can work together for horizontal scaling</li>
+                    <li><strong>Production Trade-offs:</strong> Memory vs accuracy vs query performance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API helper function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(endpoint, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'API call failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+        
+        // Add item to filter
+        async function addItem() {
+            const item = document.getElementById('addItem').value.trim();
+            const resultDiv = document.getElementById('addResult');
+            
+            if (!item) {
+                resultDiv.innerHTML = '<div class="result error">Please enter an item</div>';
+                return;
+            }
+            
+            try {
+                const result = await apiCall('/api/filter/add', 'POST', { item: item });
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Added successfully!</strong><br>
+                        Item: ${result.item}<br>
+                        Assigned to: ${result.assigned_node}<br>
+                        Timestamp: ${new Date(result.timestamp * 1000).toLocaleString()}
+                    </div>
+                `;
+                document.getElementById('addItem').value = '';
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Check item in filter
+        async function checkItem() {
+            const item = document.getElementById('checkItem').value.trim();
+            const resultDiv = document.getElementById('checkResult');
+            
+            if (!item) {
+                resultDiv.innerHTML = '<div class="result error">Please enter an item to check</div>';
+                return;
+            }
+            
+            try {
+                const result = await apiCall('/api/filter/check', 'POST', { item: item });
+                
+                let resultClass = 'info';
+                let icon = '🔍';
+                let interpretation = '';
+                
+                if (result.is_false_positive) {
+                    resultClass = 'error';
+                    icon = '⚠️';
+                    interpretation = 'FALSE POSITIVE detected! Bloom filter says "might exist" but item not in actual storage.';
+                } else if (result.single_filter_result && result.redis_actual_exists) {
+                    resultClass = 'success';
+                    icon = '✅';
+                    interpretation = 'TRUE POSITIVE: Item exists in both filter and actual storage.';
+                } else if (!result.single_filter_result) {
+                    resultClass = 'success';
+                    icon = '❌';
+                    interpretation = 'DEFINITE NEGATIVE: Item definitely not in the set.';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result ${resultClass}">
+                        <strong>${icon} Check Result for "${result.item}"</strong><br><br>
+                        <strong>Single Filter Result:</strong> ${result.single_filter_result ? 'Might exist' : 'Definitely not present'}<br>
+                        <strong>Distributed Filter:</strong> Node ${result.distributed_filter_result.assigned_node}<br>
+                        <strong>Actual Storage (Redis):</strong> ${result.redis_actual_exists ? 'EXISTS' : 'NOT EXISTS'}<br>
+                        <strong>Recommendation:</strong> ${result.distributed_filter_result.recommendation}<br><br>
+                        <em>${interpretation}</em>
+                    </div>
+                `;
+                document.getElementById('checkItem').value = '';
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Generate test data
+        async function generateData() {
+            const resultDiv = document.getElementById('addResult');
+            
+            try {
+                resultDiv.innerHTML = '<div class="result info">🎲 Generating random test data...</div>';
+                const result = await apiCall('/api/generate-data', 'POST', { count: 100 });
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>✅ Generated ${result.generated_count} random items!</strong><br>
+                        Sample items: ${result.items.join(', ')}...
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Run performance test
+        async function runPerformanceTest() {
+            const testSize = parseInt(document.getElementById('testSize').value);
+            const resultDiv = document.getElementById('performanceResult');
+            const loadingDiv = document.getElementById('performanceLoading');
+            
+            if (testSize < 1000 || testSize > 100000) {
+                resultDiv.innerHTML = '<div class="result error">Test size must be between 1,000 and 100,000</div>';
+                return;
+            }
+            
+            try {
+                loadingDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+                
+                const result = await apiCall('/api/performance-test', 'POST', { test_size: testSize });
+                const perf = result.results;
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>⚡ Performance Test Results (${perf.test_size} operations)</strong><br><br>
+                        <strong>Insertion Performance:</strong><br>
+                        • Total time: ${perf.insertion_time_seconds.toFixed(3)} seconds<br>
+                        • Rate: ${Math.round(perf.insertions_per_second).toLocaleString()} insertions/second<br><br>
+                        
+                        <strong>Memory Efficiency:</strong><br>
+                        • Memory usage: ${perf.memory_usage_mb.toFixed(2)} MB<br>
+                        • Bytes per element: ${((perf.memory_usage_mb * 1024 * 1024) / perf.test_size).toFixed(1)} bytes<br><br>
+                        
+                        <strong>False Positive Analysis:</strong><br>
+                        • Theoretical FP rate: ${(perf.theoretical_fp_rate * 100).toFixed(3)}%<br>
+                        • Actual FP rate: ${(perf.actual_fp_rate * 100).toFixed(3)}%<br>
+                        • False positives found: ${perf.false_positive_count}<br><br>
+                        
+                        <strong>Lookup Performance:</strong><br>
+                        • True positive lookups: ${perf.lookup_time_tp_seconds.toFixed(3)}s<br>
+                        • False positive lookups: ${perf.lookup_time_fp_seconds.toFixed(3)}s
+                    </div>
+                `;
+                loadingDiv.style.display = 'none';
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Update statistics
+        async function updateStatistics() {
+            const container = document.getElementById('statisticsContainer');
+            
+            try {
+                container.innerHTML = '<div class="result info">📊 Loading statistics...</div>';
+                const result = await apiCall('/api/statistics');
+                
+                container.innerHTML = `
+                    <div class="stat-card">
+                        <h4>Single Bloom Filter</h4>
+                        <div class="stat-item">
+                            <span class="stat-label">Elements Added:</span>
+                            <span class="stat-value">${result.single_filter.elements_added.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Bit Array Size:</span>
+                            <span class="stat-value">${result.single_filter.bit_array_size.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Hash Functions:</span>
+                            <span class="stat-value">${result.single_filter.num_hash_functions}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Memory Usage:</span>
+                            <span class="stat-value">${result.single_filter.memory_usage_mb.toFixed(2)} MB</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Current FP Rate:</span>
+                            <span class="stat-value">${(result.single_filter.current_fp_rate * 100).toFixed(3)}%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Fill Ratio:</span>
+                            <span class="stat-value">${(result.single_filter.fill_ratio * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h4>Distributed Filter Cluster</h4>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Elements:</span>
+                            <span class="stat-value">${result.distributed_filter.total_elements.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Number of Nodes:</span>
+                            <span class="stat-value">${result.distributed_filter.num_nodes}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Elements/Node:</span>
+                            <span class="stat-value">${Math.round(result.distributed_filter.average_elements_per_node).toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Global Filter Memory:</span>
+                            <span class="stat-value">${result.distributed_filter.global_filter_statistics.memory_usage_mb.toFixed(2)} MB</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h4>Storage Comparison</h4>
+                        <div class="stat-item">
+                            <span class="stat-label">Redis Items:</span>
+                            <span class="stat-value">${result.redis.total_items || 'N/A'}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Redis Memory:</span>
+                            <span class="stat-value">${result.redis.memory_usage ? (result.redis.memory_usage / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Space Savings:</span>
+                            <span class="stat-value">${result.redis.memory_usage ? 
+                                ((1 - (result.single_filter.memory_usage_mb * 1024 * 1024) / result.redis.memory_usage) * 100).toFixed(1) + '%' : 
+                                'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `<div class="result error">❌ Error loading statistics: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-refresh statistics every 10 seconds
+        setInterval(updateStatistics, 10000);
+        
+        // Load initial statistics
+        updateStatistics();
+        
+        // Enter key support
+        document.getElementById('addItem').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addItem();
+        });
+        
+        document.getElementById('checkItem').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkItem();
+        });
+    </script>
+</body>
+</html>
