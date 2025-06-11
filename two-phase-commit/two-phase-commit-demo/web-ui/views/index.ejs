@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Phase Commit Protocol Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-healthy { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .transaction-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .log-success { background-color: #d4edda; color: #155724; }
+        .log-error { background-color: #f8d7da; color: #721c24; }
+        .log-info { background-color: #d1ecf1; color: #0c5460; }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .real-time-updates {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid #667eea;
+            max-width: 300px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .real-time-updates {
+                position: static;
+                margin: 20px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Two-Phase Commit Protocol</h1>
+            <p>Interactive Demo & Monitoring Dashboard</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- System Status -->
+            <div class="section">
+                <h2>📊 System Status</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Coordinator Status</h3>
+                        <div id="coordinator-status">
+                            <span class="status-indicator <%= systemStatus.error ? 'status-error' : 'status-healthy' %>"></span>
+                            <%= systemStatus.error || 'Healthy' %>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Active Transactions</h3>
+                        <div class="metric-value" id="active-transactions">
+                            <%= systemStatus.active_transactions || 0 %>
+                        </div>
+                        <div class="metric-label">Currently Running</div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Registered Participants</h3>
+                        <div class="metric-value" id="participant-count">
+                            <%= systemStatus.registered_participants || 0 %>
+                        </div>
+                        <div class="metric-label">Services Available</div>
+                    </div>
+                </div>
+                
+                <% if (systemStatus.participants) { %>
+                <h3>Participant Services</h3>
+                <div class="grid">
+                    <% Object.entries(systemStatus.participants).forEach(([name, info]) => { %>
+                    <div class="card">
+                        <h4><%= name %></h4>
+                        <p><strong>URL:</strong> <%= info.url %></p>
+                        <p><strong>Status:</strong> 
+                            <span class="status-indicator <%= info.status === 'active' ? 'status-healthy' : 'status-error' %>"></span>
+                            <%= info.status %>
+                        </p>
+                        <% if (info.last_seen) { %>
+                        <p><strong>Last Seen:</strong> <%= new Date(info.last_seen).toLocaleString() %></p>
+                        <% } %>
+                        <% if (info.response_time_ms) { %>
+                        <p><strong>Response Time:</strong> <%= Math.round(info.response_time_ms) %>ms</p>
+                        <% } %>
+                    </div>
+                    <% }); %>
+                </div>
+                <% } %>
+            </div>
+            
+            <!-- Transaction Control -->
+            <div class="section">
+                <h2>🚀 Start New Transaction</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Transaction Configuration</h3>
+                        <form id="transaction-form">
+                            <div class="form-group">
+                                <label>Participants</label>
+                                <select id="participants" multiple>
+                                    <option value="payment-service" selected>Payment Service</option>
+                                    <option value="inventory-service" selected>Inventory Service</option>
+                                    <option value="shipping-service" selected>Shipping Service</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Purchase Amount ($)</label>
+                                <input type="number" id="amount" value="150" min="1" max="10000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Product</label>
+                                <select id="product">
+                                    <option value="laptop">Laptop</option>
+                                    <option value="phone">Phone</option>
+                                    <option value="tablet">Tablet</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" id="quantity" value="1" min="1" max="10">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Shipping Address</label>
+                                <textarea id="shipping-address" rows="3">123 Main Street, Anytown, ST 12345</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn">Start Transaction</button>
+                        </form>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Test Scenarios</h3>
+                        <button class="btn btn-success" onclick="runSuccessScenario()">✅ Success Scenario</button>
+                        <button class="btn btn-danger" onclick="runFailureScenario()">❌ Failure Scenario</button>
+                        <button class="btn" onclick="runStressTest()">⚡ Stress Test</button>
+                        <button class="btn" onclick="simulateNetworkPartition()">🌐 Network Partition</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transaction Monitor -->
+            <div class="section">
+                <h2>📈 Transaction Monitor</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Recent Transactions</h3>
+                        <div id="transaction-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Transaction Details</h3>
+                        <div id="transaction-details">
+                            <p>Select a transaction to view details</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Live Transaction Log</h3>
+                    <div id="transaction-log" class="transaction-log">
+                        <!-- Live updates will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="real-time-updates">
+        <h4>🔄 Real-time Updates</h4>
+        <div id="live-status">
+            System monitoring active...
+        </div>
+    </div>
+
+    <script>
+        let transactionHistory = [];
+        let activeTransactions = new Map();
+        
+        // Form submission
+        document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const participants = Array.from(document.getElementById('participants').selectedOptions)
+                .map(option => option.value);
+            
+            const operationData = {
+                amount: parseFloat(document.getElementById('amount').value),
+                product: document.getElementById('product').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                shipping_address: document.getElementById('shipping-address').value
+            };
+            
+            try {
+                addLogEntry('info', `Starting transaction with participants: ${participants.join(', ')}`);
+                
+                const response = await fetch('/transaction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        participants: participants,
+                        operation_data: operationData
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addLogEntry('success', `Transaction started: ${result.transaction_id}`);
+                    monitorTransaction(result.transaction_id);
+                } else {
+                    addLogEntry('error', `Failed to start transaction: ${result.error}`);
+                }
+            } catch (error) {
+                addLogEntry('error', `Network error: ${error.message}`);
+            }
+        });
+        
+        // Monitor transaction progress
+        async function monitorTransaction(transactionId) {
+            activeTransactions.set(transactionId, { id: transactionId, startTime: Date.now() });
+            updateTransactionList();
+            
+            const maxAttempts = 60; // 30 seconds with 500ms intervals
+            let attempts = 0;
+            
+            const monitor = async () => {
+                try {
+                    const response = await fetch(`/transaction/${transactionId}`);
+                    const status = await response.json();
+                    
+                    if (response.ok) {
+                        activeTransactions.set(transactionId, {
+                            ...activeTransactions.get(transactionId),
+                            ...status
+                        });
+                        
+                        updateTransactionDetails(status);
+                        addLogEntry('info', `Transaction ${transactionId}: ${status.state}`);
+                        
+                        if (status.state === 'committed' || status.state === 'aborted') {
+                            const finalStatus = status.state === 'committed' ? 'success' : 'error';
+                            addLogEntry(finalStatus, `Transaction ${transactionId} ${status.state}`);
+                            
+                            // Move to history
+                            transactionHistory.unshift({
+                                ...status,
+                                completedAt: Date.now()
+                            });
+                            activeTransactions.delete(transactionId);
+                            updateTransactionList();
+                            return;
+                        }
+                    }
+                    
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        setTimeout(monitor, 500);
+                    } else {
+                        addLogEntry('error', `Transaction ${transactionId} monitoring timeout`);
+                        activeTransactions.delete(transactionId);
+                        updateTransactionList();
+                    }
+                } catch (error) {
+                    addLogEntry('error', `Monitoring error for ${transactionId}: ${error.message}`);
+                }
+            };
+            
+            monitor();
+        }
+        
+        function updateTransactionList() {
+            const listElement = document.getElementById('transaction-list');
+            const activeList = Array.from(activeTransactions.values());
+            const recentHistory = transactionHistory.slice(0, 10);
+            
+            listElement.innerHTML = `
+                ${activeList.length > 0 ? `
+                    <h4>Active (${activeList.length})</h4>
+                    ${activeList.map(tx => `
+                        <div class="log-entry log-info" onclick="showTransactionDetails('${tx.id}')">
+                            <strong>${tx.id.substring(0, 8)}...</strong><br>
+                            State: ${tx.state || 'starting'}<br>
+                            Duration: ${Math.round((Date.now() - tx.startTime) / 1000)}s
+                        </div>
+                    `).join('')}
+                ` : ''}
+                
+                ${recentHistory.length > 0 ? `
+                    <h4>Recent History</h4>
+                    ${recentHistory.map(tx => `
+                        <div class="log-entry ${tx.state === 'committed' ? 'log-success' : 'log-error'}" 
+                             onclick="showTransactionDetails('${tx.transaction_id}')">
+                            <strong>${tx.transaction_id.substring(0, 8)}...</strong><br>
+                            ${tx.state.toUpperCase()}<br>
+                            ${new Date(tx.completedAt).toLocaleTimeString()}
+                        </div>
+                    `).join('')}
+                ` : ''}
+            `;
+        }
+        
+        function showTransactionDetails(transactionId) {
+            const tx = activeTransactions.get(transactionId) || 
+                      transactionHistory.find(t => t.transaction_id === transactionId);
+            
+            if (!tx) return;
+            
+            const detailsElement = document.getElementById('transaction-details');
+            detailsElement.innerHTML = `
+                <h4>Transaction: ${transactionId.substring(0, 8)}...</h4>
+                <p><strong>State:</strong> ${tx.state || 'starting'}</p>
+                <p><strong>Participants:</strong> ${tx.participants ? tx.participants.join(', ') : 'N/A'}</p>
+                ${tx.prepare_votes ? `
+                    <p><strong>Prepare Votes:</strong></p>
+                    <ul>
+                        ${Object.entries(tx.prepare_votes).map(([participant, vote]) => 
+                            `<li>${participant}: ${vote}</li>`
+                        ).join('')}
+                    </ul>
+                ` : ''}
+                ${tx.decision ? `<p><strong>Decision:</strong> ${tx.decision}</p>` : ''}
+                ${tx.start_time ? `<p><strong>Started:</strong> ${new Date(tx.start_time).toLocaleString()}</p>` : ''}
+            `;
+        }
+        
+        function updateTransactionDetails(status) {
+            showTransactionDetails(status.transaction_id);
+        }
+        
+        function addLogEntry(type, message) {
+            const logElement = document.getElementById('transaction-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logElement.insertBefore(entry, logElement.firstChild);
+            
+            // Keep only last 50 entries
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.lastChild);
+            }
+        }
+        
+        // Test scenarios
+        async function runSuccessScenario() {
+            addLogEntry('info', 'Running success scenario...');
+            document.getElementById('amount').value = '50';
+            document.getElementById('quantity').value = '1';
+            document.getElementById('transaction-form').dispatchEvent(new Event('submit'));
+        }
+        
+        async function runFailureScenario() {
+            addLogEntry('info', 'Running failure scenario (high amount to trigger insufficient funds)...');
+            document.getElementById('amount').value = '99999';
+            document.getElementById('quantity').value = '100';
+            document.getElementById('transaction-form').dispatchEvent(new Event('submit'));
+        }
+        
+        async function runStressTest() {
+            addLogEntry('info', 'Running stress test (10 concurrent transactions)...');
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    document.getElementById('amount').value = Math.floor(Math.random() * 500) + 50;
+                    document.getElementById('quantity').value = Math.floor(Math.random() * 3) + 1;
+                    document.getElementById('transaction-form').dispatchEvent(new Event('submit'));
+                }, i * 100);
+            }
+        }
+        
+        async function simulateNetworkPartition() {
+            addLogEntry('info', 'Simulating network partition (this would require external tools in real deployment)...');
+            alert('Network partition simulation requires Docker network tools. Check the demo script for implementation.');
+        }
+        
+        // Real-time status updates
+        async function updateSystemStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                document.getElementById('active-transactions').textContent = status.active_transactions || 0;
+                document.getElementById('participant-count').textContent = status.registered_participants || 0;
+                
+                document.getElementById('live-status').innerHTML = `
+                    Last update: ${new Date().toLocaleTimeString()}<br>
+                    Active: ${status.active_transactions || 0} transactions<br>
+                    Participants: ${status.registered_participants || 0} services
+                `;
+            } catch (error) {
+                document.getElementById('live-status').innerHTML = `
+                    <span style="color: red;">Connection error</span><br>
+                    ${new Date().toLocaleTimeString()}
+                `;
+            }
+        }
+        
+        // Start real-time updates
+        setInterval(updateSystemStatus, 2000);
+        updateSystemStatus();
+        
+        // Initialize
+        addLogEntry('info', 'Two-Phase Commit Demo UI initialized');
+        updateTransactionList();
+    </script>
+</body>
+</html>
