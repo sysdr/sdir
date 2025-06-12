@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SAGA Pattern Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .demo-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #0056b3; }
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+        .log-area { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 4px; height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 SAGA Pattern Demo</h1>
+        
+        <div class="demo-section">
+            <h2>Create Order (SAGA Transaction)</h2>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>Customer ID:</label>
+                        <input type="text" id="customer_id" value="customer-123">
+                    </div>
+                    <div class="form-group">
+                        <label>Product ID:</label>
+                        <select id="product_id">
+                            <option value="product-1">Product 1</option>
+                            <option value="product-2">Product 2</option>
+                            <option value="product-3">Product 3</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity:</label>
+                        <input type="number" id="quantity" value="2" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount ($):</label>
+                        <input type="number" id="amount" value="99.99" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Failure Scenario:</label>
+                        <select id="should_fail">
+                            <option value="none">✅ Success</option>
+                            <option value="inventory">❌ Inventory Failure</option>
+                            <option value="payment">❌ Payment Failure</option>
+                            <option value="shipping">❌ Shipping Failure</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <h3>Test Scenarios:</h3>
+                    <button onclick="runSuccess()">🎯 Success</button>
+                    <button onclick="runPaymentFailure()" class="danger">💳 Payment Fail</button>
+                    <button onclick="runInventoryFailure()" class="danger">📦 Inventory Fail</button>
+                    <button onclick="runShippingFailure()" class="danger">🚚 Shipping Fail</button>
+                    <br><br>
+                    <button onclick="createOrder()">🚀 Create Order</button>
+                    <button onclick="checkInventory()">📊 Check Inventory</button>
+                    <button onclick="clearLogs()">🧹 Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔍 SAGA Execution Logs</h2>
+            <div id="logs" class="log-area">Ready...\n</div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📈 Status</h2>
+            <div id="status" class="status success">System ready</div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.textContent += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+        }
+
+        async function createOrder() {
+            const orderData = {
+                customer_id: document.getElementById('customer_id').value,
+                product_id: document.getElementById('product_id').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                amount: parseFloat(document.getElementById('amount').value),
+                should_fail: document.getElementById('should_fail').value
+            };
+
+            log(`🚀 Creating order: ${JSON.stringify(orderData)}`);
+            updateStatus('Creating order...', 'warning');
+
+            try {
+                const response = await fetch('/create-order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    updateStatus(`❌ Error: ${result.error}`, 'error');
+                    log(`❌ Error: ${result.error}`);
+                    return;
+                }
+
+                const saga = result.saga_result;
+                if (saga.status === 'COMPLETED') {
+                    updateStatus(`✅ SAGA completed: ${result.transaction_id}`, 'success');
+                    log('✅ All steps completed');
+                } else {
+                    updateStatus(`❌ SAGA failed: ${result.transaction_id}`, 'error');
+                    log('❌ SAGA failed - compensation executed');
+                }
+
+                saga.steps.forEach((step, index) => {
+                    log(`  Step ${index + 1} (${step.service}): ${step.status}`);
+                    if (step.error) log(`    Error: ${step.error}`);
+                    if (step.compensation_status) log(`    Compensation: ${step.compensation_status}`);
+                });
+
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`);
+                updateStatus('Network error', 'error');
+            }
+        }
+
+        async function checkInventory() {
+            try {
+                const response = await fetch('/inventory');
+                const result = await response.json();
+                
+                if (result.error) {
+                    log(`❌ Error: ${result.error}`);
+                } else {
+                    log(`📦 Inventory: ${JSON.stringify(result.inventory)}`);
+                    updateStatus('Inventory retrieved', 'success');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+            }
+        }
+
+        function runSuccess() {
+            document.getElementById('should_fail').value = 'none';
+            log('🎯 Running SUCCESS scenario');
+            createOrder();
+        }
+
+        function runPaymentFailure() {
+            document.getElementById('should_fail').value = 'payment';
+            log('💳 Running PAYMENT FAILURE scenario');
+            createOrder();
+        }
+
+        function runInventoryFailure() {
+            document.getElementById('should_fail').value = 'inventory';
+            log('📦 Running INVENTORY FAILURE scenario');
+            createOrder();
+        }
+
+        function runShippingFailure() {
+            document.getElementById('should_fail').value = 'shipping';
+            log('🚚 Running SHIPPING FAILURE scenario');
+            createOrder();
+        }
+
+        log('🔄 SAGA Pattern Demo ready');
+    </script>
+</body>
+</html>

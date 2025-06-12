@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./shared:/app/shared
+    environment:
+      - PYTHONPATH=/app/shared
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./shared:/app/shared
+    environment:
+      - PYTHONPATH=/app/shared
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./shared:/app/shared
+    environment:
+      - PYTHONPATH=/app/shared
+
+  shipping-service:
+    build:
+      context: .
+      dockerfile: shipping-service/Dockerfile
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./shared:/app/shared
+    environment:
+      - PYTHONPATH=/app/shared
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: web-ui/Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - order-service
+      - payment-service
+      - inventory-service
+      - shipping-service
+    
