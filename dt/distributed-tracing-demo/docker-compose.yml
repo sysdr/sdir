@@ -1,0 +1,132 @@
+services:
+  # Jaeger - Distributed Tracing Backend
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+      - "6831:6831/udp"  # Jaeger agent UDP
+      - "6832:6832/udp"  # Jaeger agent UDP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - tracing-network
+
+  # Redis for inter-service communication and caching
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - tracing-network
+
+  # API Gateway Service
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_NAME=api-gateway
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - REDIS_URL=redis://redis:6379
+      - ORDER_SERVICE_URL=http://order-service:8001
+    depends_on:
+      - jaeger
+      - redis
+      - order-service
+    networks:
+      - tracing-network
+
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.order-service
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=order-service
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - REDIS_URL=redis://redis:6379
+      - PAYMENT_SERVICE_URL=http://payment-service:8002
+      - INVENTORY_SERVICE_URL=http://inventory-service:8003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8004
+    depends_on:
+      - jaeger
+      - redis
+      - payment-service
+      - inventory-service
+      - notification-service
+    networks:
+      - tracing-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.payment-service
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=payment-service
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - jaeger
+      - redis
+    networks:
+      - tracing-network
+
+  # Inventory Service
+  inventory-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inventory-service
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=inventory-service
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - jaeger
+      - redis
+    networks:
+      - tracing-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.notification-service
+    ports:
+      - "8004:8004"
+    environment:
+      - SERVICE_NAME=notification-service
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - jaeger
+      - redis
+    networks:
+      - tracing-network
+
+  # Web Interface
+  web-interface:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8000
+    depends_on:
+      - api-gateway
+    networks:
+      - tracing-network
+
+networks:
+  tracing-network:
+    driver: bridge
