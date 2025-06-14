@@ -1,0 +1,4 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+python-consul==1.1.0
+aiohttp==3.9.0

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Discovery Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .service-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .health-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .health-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .health-unhealthy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .health-unknown {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .service-details {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .instance-id {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .tags {
+            margin-top: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-buttons {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .test-button:hover {
+            background: #5a6fd8;
+        }
+
+        .api-response {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Service Discovery Dashboard</h1>
+            <p>Real-time monitoring of distributed service instances</p>
+        </div>
+
+        <div class="connection-status" id="connectionStatus">
+            Connecting...
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalServices">-</div>
+                <div class="stat-label">Total Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="healthyInstances">-</div>
+                <div class="stat-label">Healthy Instances</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="unhealthyInstances">-</div>
+                <div class="stat-label">Unhealthy Instances</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastUpdate">-</div>
+                <div class="stat-label">Last Update</div>
+            </div>
+        </div>
+
+        <div class="test-buttons">
+            <button class="test-button" onclick="testAPICall('/api/users')">Test User Service</button>
+            <button class="test-button" onclick="testAPICall('/api/orders')">Test Order Service</button>
+            <button class="test-button" onclick="testAPICall('/api/discovery/services')">Test Discovery</button>
+        </div>
+
+        <div id="apiResponse" class="api-response" style="display: none;"></div>
+
+        <div class="services-grid" id="servicesGrid">
+            <!-- Services will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let services = [];
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = function() {
+                updateConnectionStatus(true);
+                console.log('Connected to dashboard');
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                if (message.type === 'services_update') {
+                    services = message.data;
+                    updateDashboard();
+                }
+            };
+
+            ws.onclose = function() {
+                updateConnectionStatus(false);
+                console.log('Disconnected from dashboard');
+                // Reconnect after 5 seconds
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateConnectionStatus(false);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (connected) {
+                statusElement.textContent = '🟢 Connected';
+                statusElement.className = 'connection-status connected';
+            } else {
+                statusElement.textContent = '🔴 Disconnected';
+                statusElement.className = 'connection-status disconnected';
+            }
+        }
+
+        function updateDashboard() {
+            updateStats();
+            updateServicesGrid();
+        }
+
+        function updateStats() {
+            const totalServices = new Set(services.map(s => s.name)).size;
+            const healthyInstances = services.filter(s => s.health === 'healthy').length;
+            const unhealthyInstances = services.filter(s => s.health !== 'healthy').length;
+
+            document.getElementById('totalServices').textContent = totalServices;
+            document.getElementById('healthyInstances').textContent = healthyInstances;
+            document.getElementById('unhealthyInstances').textContent = unhealthyInstances;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateServicesGrid() {
+            const grid = document.getElementById('servicesGrid');
+            grid.innerHTML = '';
+
+            services.forEach(service => {
+                const card = document.createElement('div');
+                card.className = 'service-card';
+                
+                const healthClass = `health-${service.health}`;
+                const tags = service.tags ? service.tags.map(tag => 
+                    `<span class="tag">${tag}</span>`).join('') : '';
+
+                card.innerHTML = `
+                    <div class="service-header">
+                        <div class="service-name">${service.name}</div>
+                        <div class="health-status ${healthClass}">${service.health}</div>
+                    </div>
+                    <div class="service-details">
+                        <div><strong>Instance:</strong> <span class="instance-id">${service.id}</span></div>
+                        <div><strong>Address:</strong> ${service.address}:${service.port}</div>
+                        <div class="tags">${tags}</div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        async function testAPICall(endpoint) {
+            const responseDiv = document.getElementById('apiResponse');
+            responseDiv.style.display = 'block';
+            responseDiv.textContent = 'Loading...';
+
+            try {
+                const response = await fetch(`http://localhost:8000${endpoint}`);
+                const data = await response.json();
+                responseDiv.textContent = `Status: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Initialize dashboard
+        connectWebSocket();
+    </script>
+</body>
+</html>

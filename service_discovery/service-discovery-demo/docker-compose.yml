@@ -1,0 +1,106 @@
+services:
+  consul:
+    image: hashicorp/consul:1.15
+    container_name: consul-server
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    volumes:
+      - consul-data:/consul/data
+    command: >
+      consul agent -server -ui -node=server-1 -bootstrap-expect=1 
+      -client=0.0.0.0 -log-level=INFO -data-dir=/consul/data
+    networks:
+      - discovery-net
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  user-service-1:
+    build: ./services/user-service
+    container_name: user-service-1
+    environment:
+      - SERVICE_NAME=user-service
+      - SERVICE_ID=user-service-1
+      - SERVICE_PORT=8001
+      - CONSUL_HOST=consul
+      - FAILURE_RATE=0.0
+    ports:
+      - "8001:8001"
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - discovery-net
+
+  user-service-2:
+    build: ./services/user-service
+    container_name: user-service-2
+    environment:
+      - SERVICE_NAME=user-service
+      - SERVICE_ID=user-service-2
+      - SERVICE_PORT=8002
+      - CONSUL_HOST=consul
+      - FAILURE_RATE=0.1
+    ports:
+      - "8002:8002"
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - discovery-net
+
+  order-service-1:
+    build: ./services/order-service
+    container_name: order-service-1
+    environment:
+      - SERVICE_NAME=order-service
+      - SERVICE_ID=order-service-1
+      - SERVICE_PORT=8003
+      - CONSUL_HOST=consul
+      - FAILURE_RATE=0.0
+    ports:
+      - "8003:8003"
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - discovery-net
+
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: api-gateway
+    environment:
+      - CONSUL_HOST=consul
+      - GATEWAY_PORT=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - discovery-net
+
+  web-dashboard:
+    build: ./web-dashboard
+    container_name: web-dashboard
+    environment:
+      - CONSUL_HOST=consul
+    ports:
+      - "3000:3000"
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - discovery-net
+
+networks:
+  discovery-net:
+    driver: bridge
+
+volumes:
+  consul-data:
