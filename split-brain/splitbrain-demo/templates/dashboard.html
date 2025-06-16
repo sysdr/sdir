@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split-Brain Prevention Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --gcp-blue: #1a73e8;
+            --gcp-blue-hover: #1557b0;
+            --gcp-gray-50: #f8f9fa;
+            --gcp-gray-100: #f1f3f4;
+            --gcp-gray-200: #e8eaed;
+            --gcp-gray-300: #dadce0;
+            --gcp-gray-700: #5f6368;
+            --gcp-gray-900: #202124;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .cluster-view {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .cluster-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+        
+        .nodes-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .node {
+            width: 180px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .node:hover {
+            transform: translateY(-5px);
+        }
+        
+        .node.follower {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border: 2px solid #3b82f6;
+        }
+        
+        .node.candidate {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            animation: pulse 2s infinite;
+        }
+        
+        .node.leader {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border: 2px solid #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .node.isolated {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border: 2px solid #ef4444;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .node-id {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .node-state {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        
+        .node-details {
+            font-size: 0.8em;
+            line-height: 1.4;
+            color: #555;
+        }
+        
+        .partition-indicator {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .partition-a {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .partition-b {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
+        .status-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .status-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .status-card h4 {
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        
+        .log-entry {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        
+        .network-diagram {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .connection-line {
+            stroke: #22c55e;
+            stroke-width: 2;
+        }
+        
+        .connection-line.broken {
+            stroke: #ef4444;
+            stroke-dasharray: 5,5;
+        }
+        
+        .scenario-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+        
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+        
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🧠 Split-Brain Prevention Demo</h1>
+            <p>Interactive demonstration of distributed consensus and split-brain prevention mechanisms</p>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn btn-primary" onclick="createCluster()">🚀 Create Cluster</button>
+                <button class="btn btn-danger" onclick="simulatePartition()">🔌 Simulate Partition</button>
+                <button class="btn btn-success" onclick="healPartition()">🔗 Heal Partition</button>
+            </div>
+            
+            <div class="scenario-buttons">
+                <button class="btn btn-warning" onclick="scenario1()">Scenario 1: Simple Split</button>
+                <button class="btn btn-warning" onclick="scenario2()">Scenario 2: Minority Partition</button>
+                <button class="btn btn-warning" onclick="scenario3()">Scenario 3: Even Split</button>
+            </div>
+        </div>
+        
+        <!-- Status Alert -->
+        <div id="statusAlert" class="alert alert-info" style="display: none;"></div>
+        
+        <!-- Cluster View -->
+        <div class="cluster-view">
+            <h2 class="cluster-title">🏘️ Cluster Status</h2>
+            <div id="nodesContainer" class="nodes-container">
+                <p>Click "Create Cluster" to initialize nodes</p>
+            </div>
+        </div>
+        
+        <!-- Detailed Status -->
+        <div class="status-panel">
+            <h2 class="cluster-title">📊 Detailed Status</h2>
+            <div id="statusGrid" class="status-grid">
+                <p>No data available</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let clusterStatus = {};
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connected');
+                showAlert('Connected to server', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'status_update') {
+                    clusterStatus = data.data;
+                    updateDisplay();
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                showAlert('Disconnected from server', 'danger');
+                // Reconnect after 3 seconds
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                showAlert('Connection error', 'danger');
+            };
+        }
+        
+        // API Functions
+        async function createCluster() {
+            try {
+                const response = await fetch('/api/cluster/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({node_count: 5})
+                });
+                const result = await response.json();
+                showAlert(result.message, 'success');
+            } catch (error) {
+                showAlert('Failed to create cluster', 'danger');
+            }
+        }
+        
+        async function simulatePartition() {
+            try {
+                const response = await fetch('/api/cluster/partition', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        group_a: ['node1', 'node2', 'node3'],
+                        group_b: ['node4', 'node5']
+                    })
+                });
+                const result = await response.json();
+                showAlert(result.message + ' (3-2 split)', 'warning');
+            } catch (error) {
+                showAlert('Failed to simulate partition', 'danger');
+            }
+        }
+        
+        async function healPartition() {
+            try {
+                const response = await fetch('/api/cluster/heal', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                showAlert(result.message, 'success');
+            } catch (error) {
+                showAlert('Failed to heal partition', 'danger');
+            }
+        }
+        
+        // Scenario Functions
+        async function scenario1() {
+            await createCluster();
+            setTimeout(async () => {
+                await fetch('/api/cluster/partition', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        group_a: ['node1', 'node2', 'node3'],
+                        group_b: ['node4', 'node5']
+                    })
+                });
+                showAlert('Scenario 1: Simple 3-2 partition. Majority group stays active.', 'info');
+            }, 1000);
+        }
+        
+        async function scenario2() {
+            await createCluster();
+            setTimeout(async () => {
+                await fetch('/api/cluster/partition', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        group_a: ['node1', 'node2'],
+                        group_b: ['node3', 'node4', 'node5']
+                    })
+                });
+                showAlert('Scenario 2: 2-3 partition. Minority loses quorum.', 'info');
+            }, 1000);
+        }
+        
+        async function scenario3() {
+            // Create 4 node cluster for even split
+            try {
+                await fetch('/api/cluster/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({node_count: 4})
+                });
+                setTimeout(async () => {
+                    await fetch('/api/cluster/partition', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            group_a: ['node1', 'node2'],
+                            group_b: ['node3', 'node4']
+                        })
+                    });
+                    showAlert('Scenario 3: Even 2-2 split. No group has majority!', 'warning');
+                }, 1000);
+            } catch (error) {
+                showAlert('Failed to create scenario', 'danger');
+            }
+        }
+        
+        // Display Functions
+        function updateDisplay() {
+            updateNodesDisplay();
+            updateStatusGrid();
+            updateNetworkStatus();
+        }
+        
+        function updateNodesDisplay() {
+            const container = document.getElementById('nodesContainer');
+            
+            if (Object.keys(clusterStatus).length === 0) {
+                container.innerHTML = '<p>No nodes available</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            Object.entries(clusterStatus).forEach(([nodeId, status]) => {
+                const nodeElement = document.createElement('div');
+                nodeElement.className = `node ${status.state}`;
+                
+                let partitionBadge = '';
+                if (status.is_partitioned && status.partition_group) {
+                    partitionBadge = `<span class="partition-indicator partition-${status.partition_group.toLowerCase()}">Partition ${status.partition_group}</span>`;
+                }
+                
+                const quorumStatus = status.can_form_quorum ? '✅' : '❌';
+                const heartbeatAge = status.last_heartbeat_age.toFixed(1);
+                
+                nodeElement.innerHTML = `
+                    <div class="node-id">${nodeId}</div>
+                    <div class="node-state">${status.state}</div>
+                    <div class="node-details">
+                        Term: ${status.term}<br>
+                        Log: ${status.log_length} entries<br>
+                        Heartbeat: ${heartbeatAge}s ago<br>
+                        Quorum: ${quorumStatus}<br>
+                        ${status.voted_for ? `Voted: ${status.voted_for}<br>` : ''}
+                    </div>
+                    ${partitionBadge}
+                `;
+                
+                container.appendChild(nodeElement);
+            });
+        }
+        
+        function updateStatusGrid() {
+            const grid = document.getElementById('statusGrid');
+            
+            if (Object.keys(clusterStatus).length === 0) {
+                grid.innerHTML = '<p>No data available</p>';
+                return;
+            }
+            
+            const leaders = Object.entries(clusterStatus).filter(([_, status]) => status.state === 'leader');
+            const partitioned = Object.entries(clusterStatus).filter(([_, status]) => status.is_partitioned);
+            const totalNodes = Object.keys(clusterStatus).length;
+            
+            let analysis = '';
+            if (leaders.length === 0) {
+                analysis = '⚠️ No leader elected (likely no quorum)';
+            } else if (leaders.length === 1) {
+                analysis = '✅ Single leader - healthy state';
+            } else {
+                analysis = '🚨 Split-Brain detected - multiple leaders!';
+            }
+            
+            grid.innerHTML = `
+                <div class="status-card">
+                    <h4>🎯 Consensus Status</h4>
+                    <p><strong>Leaders:</strong> ${leaders.length}</p>
+                    <p><strong>Total Nodes:</strong> ${totalNodes}</p>
+                    <p><strong>Partitioned:</strong> ${partitioned.length}</p>
+                    <p><strong>Analysis:</strong> ${analysis}</p>
+                </div>
+                
+                <div class="status-card">
+                    <h4>🔗 Network Status</h4>
+                    ${partitioned.length > 0 ? `
+                        <p><strong>Partition Active:</strong> Yes</p>
+                        <p><strong>Groups:</strong> ${getPartitionGroups()}</p>
+                    ` : '<p><strong>Partition Active:</strong> No</p>'}
+                </div>
+                
+                <div class="status-card">
+                    <h4>🗳️ Election Details</h4>
+                    ${getElectionDetails()}
+                </div>
+                
+                <div class="status-card">
+                    <h4>📋 Key Insights</h4>
+                    ${getKeyInsights()}
+                </div>
+            `;
+        }
+        
+        function getPartitionGroups() {
+            const groups = {};
+            Object.entries(clusterStatus).forEach(([nodeId, status]) => {
+                if (status.partition_group) {
+                    if (!groups[status.partition_group]) groups[status.partition_group] = [];
+                    groups[status.partition_group].push(nodeId);
+                }
+            });
+            
+            return Object.entries(groups)
+                .map(([group, nodes]) => `${group}: [${nodes.join(', ')}]`)
+                .join(', ');
+        }
+        
+        function getElectionDetails() {
+            const currentTerms = Object.values(clusterStatus).map(s => s.term);
+            const maxTerm = Math.max(...currentTerms);
+            const votes = Object.entries(clusterStatus)
+                .map(([nodeId, status]) => `${nodeId}: ${status.votes_received.length} votes`)
+                .join('<br>');
+            
+            return `
+                <p><strong>Current Term:</strong> ${maxTerm}</p>
+                <p><strong>Vote Counts:</strong></p>
+                <div style="font-size: 0.9em; margin-top: 5px;">${votes}</div>
+            `;
+        }
+        
+        function getKeyInsights() {
+            const leaders = Object.entries(clusterStatus).filter(([_, status]) => status.state === 'leader');
+            const candidates = Object.entries(clusterStatus).filter(([_, status]) => status.state === 'candidate');
+            const isolated = Object.entries(clusterStatus).filter(([_, status]) => status.state === 'isolated');
+            
+            let insights = [];
+            
+            if (leaders.length > 1) {
+                insights.push('🚨 Multiple leaders indicate split-brain');
+            }
+            if (candidates.length > 0) {
+                insights.push('🗳️ Election in progress');
+            }
+            if (isolated.length > 0) {
+                insights.push('📵 Some nodes are isolated (no quorum)');
+            }
+            if (leaders.length === 1) {
+                insights.push('✅ Healthy consensus achieved');
+            }
+            
+            return insights.length > 0 ? insights.join('<br>') : 'System operating normally';
+        }
+        
+        function updateNetworkStatus() {
+            const partitioned = Object.values(clusterStatus).some(s => s.is_partitioned);
+            const leaders = Object.values(clusterStatus).filter(s => s.state === 'leader').length;
+            
+            let alertType = 'info';
+            let message = 'Cluster is healthy';
+            
+            if (partitioned && leaders > 1) {
+                alertType = 'danger';
+                message = '🚨 SPLIT-BRAIN DETECTED: Multiple leaders in partitioned network!';
+            } else if (partitioned && leaders === 0) {
+                alertType = 'warning';
+                message = '⚠️ Network partition active - no leader elected (quorum lost)';
+            } else if (partitioned && leaders === 1) {
+                alertType = 'info';
+                message = '✅ Network partition active but split-brain prevented by quorum';
+            } else if (leaders === 1) {
+                alertType = 'success';
+                message = '✅ Healthy cluster with single leader';
+            }
+            
+            showAlert(message, alertType, false);
+        }
+        
+        function showAlert(message, type, autohide = true) {
+            const alert = document.getElementById('statusAlert');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            if (autohide) {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initWebSocket();
+        });
+    </script>
+</body>
+</html>

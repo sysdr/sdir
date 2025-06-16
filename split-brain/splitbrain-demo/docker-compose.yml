@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  splitbrain-demo:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    driver: bridge
