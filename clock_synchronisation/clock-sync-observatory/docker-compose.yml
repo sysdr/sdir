@@ -1,0 +1,76 @@
+version: '3.8'
+services:
+  clock-node-1:
+    build: .
+    command: python src/clock_node.py --node-id=1 --port=8001 --drift-rate=0.001
+    ports:
+      - "8001:8001"
+    environment:
+      - NODE_ID=1
+      - DRIFT_RATE=0.001
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+
+  clock-node-2:
+    build: .
+    command: python src/clock_node.py --node-id=2 --port=8002 --drift-rate=-0.0005
+    ports:
+      - "8002:8002"
+    environment:
+      - NODE_ID=2
+      - DRIFT_RATE=-0.0005
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+
+  clock-node-3:
+    build: .
+    command: python src/clock_node.py --node-id=3 --port=8003 --drift-rate=0.0015
+    ports:
+      - "8003:8003"
+    environment:
+      - NODE_ID=3
+      - DRIFT_RATE=0.0015
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+
+  vector-clock-service:
+    build: .
+    command: python src/vector_clock_service.py
+    ports:
+      - "8004:8004"
+    depends_on:
+      - clock-node-1
+      - clock-node-2
+      - clock-node-3
+    volumes:
+      - ./logs:/app/logs
+
+  truetime-simulator:
+    build: .
+    command: python src/truetime_simulator.py
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./logs:/app/logs
+
+  web-dashboard:
+    build: .
+    command: python src/web_dashboard.py
+    ports:
+      - "3000:3000"
+    depends_on:
+      - clock-node-1
+      - clock-node-2
+      - clock-node-3
+      - vector-clock-service
+      - truetime-simulator
+    volumes:
+      - ./web:/app/web
+      - ./logs:/app/logs
+
+volumes:
+  logs_data:
+  config_data:
