@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Sourcing Banking Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .section {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .section h2 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .accounts-list {
+            margin-bottom: 20px;
+        }
+        
+        .account-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+        
+        .account-card:hover {
+            border-color: #4f46e5;
+        }
+        
+        .account-number {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.1em;
+        }
+        
+        .account-balance {
+            color: #059669;
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        
+        .account-id {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+            font-family: monospace;
+        }
+        
+        .events-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .event-item {
+            background: white;
+            border-left: 4px solid #4f46e5;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .event-type {
+            font-weight: 600;
+            color: #1e293b;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        
+        .event-data {
+            margin-top: 5px;
+            color: #374151;
+        }
+        
+        .event-timestamp {
+            color: #6b7280;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        
+        .temporal-query {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .temporal-query h3 {
+            color: #92400e;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 Event Sourcing Banking Demo</h1>
+            <p>Experience how event sourcing enables time travel through your data</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Left Column: Actions -->
+            <div class="section">
+                <h2>💰 Account Operations</h2>
+                
+                <!-- Create Account Form -->
+                <form id="createAccountForm">
+                    <div class="form-group">
+                        <label>Create New Account</label>
+                        <input type="text" id="accountNumber" placeholder="Enter account number" required>
+                        <button type="submit" class="btn">Create Account</button>
+                    </div>
+                </form>
+                
+                <!-- Transaction Forms -->
+                <form id="depositForm">
+                    <div class="form-group">
+                        <label>Deposit Money</label>
+                        <select id="depositAccount" required>
+                            <option value="">Select Account</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.account_id }}">{{ account.account_number }} ({{ account.account_id[:8] }}...)</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" id="depositAmount" placeholder="Amount" step="0.01" min="0.01" required>
+                        <input type="text" id="depositDescription" placeholder="Description (optional)">
+                        <button type="submit" class="btn">Deposit</button>
+                    </div>
+                </form>
+                
+                <form id="withdrawForm">
+                    <div class="form-group">
+                        <label>Withdraw Money</label>
+                        <select id="withdrawAccount" required>
+                            <option value="">Select Account</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.account_id }}">{{ account.account_number }} ({{ account.account_id[:8] }}...)</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" id="withdrawAmount" placeholder="Amount" step="0.01" min="0.01" required>
+                        <input type="text" id="withdrawDescription" placeholder="Description (optional)">
+                        <button type="submit" class="btn">Withdraw</button>
+                    </div>
+                </form>
+                
+                <!-- Temporal Query Section -->
+                <div class="temporal-query">
+                    <h3>⏰ Time Travel Query</h3>
+                    <div class="form-group">
+                        <select id="historyAccount">
+                            <option value="">Select Account</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.account_id }}">{{ account.account_number }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" id="hoursAgo" placeholder="Hours ago" min="1" max="168">
+                        <button type="button" class="btn" onclick="queryHistory()">View Historical Balance</button>
+                    </div>
+                </div>
+                
+                <div id="messages"></div>
+            </div>
+            
+            <!-- Right Column: Current State -->
+            <div class="section">
+                <h2>📊 Current State & Event Stream</h2>
+                
+                <!-- Accounts List -->
+                <div class="accounts-list">
+                    <h3>Active Accounts</h3>
+                    {% for account in accounts %}
+                    <div class="account-card">
+                        <div class="account-number">Account: {{ account.account_number }}</div>
+                        <div class="account-balance">${{ "%.2f"|format(account.balance) }}</div>
+                        <div class="account-id">ID: {{ account.account_id }}</div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not accounts %}
+                    <p style="color: #6b7280; text-align: center; padding: 20px;">
+                        No accounts yet. Create your first account to begin!
+                    </p>
+                    {% endif %}
+                </div>
+                
+                <!-- Recent Events -->
+                <div class="events-list">
+                    <h3>Recent Events (Latest First)</h3>
+                    {% for event in recent_events %}
+                    <div class="event-item">
+                        <div class="event-type">{{ event.event_type.value.replace('_', ' ') }}</div>
+                        <div class="event-data">
+                            {% if event.event_data.amount %}
+                                Amount: ${{ "%.2f"|format(event.event_data.amount) }}
+                            {% endif %}
+                            {% if event.event_data.account_number %}
+                                Account: {{ event.event_data.account_number }}
+                            {% endif %}
+                            {% if event.event_data.description %}
+                                - {{ event.event_data.description }}
+                            {% endif %}
+                        </div>
+                        <div class="event-timestamp">
+                            {{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} | 
+                            Account: {{ event.aggregate_id[:8] }}... | 
+                            Version: {{ event.version }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not recent_events %}
+                    <p style="color: #6b7280; text-align: center; padding: 20px;">
+                        No events yet. Start by creating an account!
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showMessage(message, type = 'success') {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = message;
+            messagesDiv.appendChild(messageEl);
+            
+            setTimeout(() => {
+                messageEl.remove();
+            }, 5000);
+        }
+        
+        // Create Account Form
+        document.getElementById('createAccountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const accountNumber = document.getElementById('accountNumber').value;
+            
+            try {
+                const response = await fetch('/create-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `account_number=${encodeURIComponent(accountNumber)}`
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.detail || 'Error creating account', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        });
+        
+        // Deposit Form
+        document.getElementById('depositForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const accountId = document.getElementById('depositAccount').value;
+            const amount = document.getElementById('depositAmount').value;
+            const description = document.getElementById('depositDescription').value;
+            
+            try {
+                const response = await fetch('/deposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `account_id=${accountId}&amount=${amount}&description=${encodeURIComponent(description)}`
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.detail || 'Error processing deposit', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        });
+        
+        // Withdraw Form
+        document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const accountId = document.getElementById('withdrawAccount').value;
+            const amount = document.getElementById('withdrawAmount').value;
+            const description = document.getElementById('withdrawDescription').value;
+            
+            try {
+                const response = await fetch('/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `account_id=${accountId}&amount=${amount}&description=${encodeURIComponent(description)}`
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.detail || 'Error processing withdrawal', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        });
+        
+        // Temporal Query
+        async function queryHistory() {
+            const accountId = document.getElementById('historyAccount').value;
+            const hoursAgo = document.getElementById('hoursAgo').value;
+            
+            if (!accountId || !hoursAgo) {
+                showMessage('Please select an account and specify hours ago', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/account/${accountId}/history?hours_ago=${hoursAgo}`);
+                const result = await response.json();
+                
+                if (result.current) {
+                    let message = `Current balance: $${result.current.balance.toFixed(2)}`;
+                    if (result.historical) {
+                        message += ` | Balance ${hoursAgo} hours ago: $${result.historical.balance.toFixed(2)}`;
+                        const change = result.current.balance - result.historical.balance;
+                        message += ` | Change: ${change >= 0 ? '+' : ''}$${change.toFixed(2)}`;
+                    }
+                    showMessage(message);
+                } else {
+                    showMessage('Account not found', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-refresh every 10 seconds to show new events
+        setTimeout(() => {
+            location.reload();
+        }, 10000);
+    </script>
+</body>
+</html>
