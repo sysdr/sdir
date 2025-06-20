@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CQRS Pattern Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 CQRS Pattern Demo</h1>
+            <p>Command Query Responsibility Segregation in Action</p>
+        </header>
+
+        <div class="services-status">
+            <div class="service-card" id="command-status">
+                <h3>⚡ Command Service</h3>
+                <div class="status-indicator" id="command-indicator">Checking...</div>
+                <div class="stats" id="command-stats"></div>
+            </div>
+            <div class="service-card" id="query-status">
+                <h3>🔍 Query Service</h3>
+                <div class="status-indicator" id="query-indicator">Checking...</div>
+                <div class="stats" id="query-stats"></div>
+            </div>
+        </div>
+
+        <div class="demo-sections">
+            <!-- Command Section -->
+            <div class="section">
+                <h2>📝 Commands (Write Operations)</h2>
+                
+                <div class="command-form">
+                    <h3>Create Product</h3>
+                    <form id="product-form">
+                        <input type="text" id="product-name" placeholder="Product Name" required>
+                        <textarea id="product-description" placeholder="Description"></textarea>
+                        <input type="number" id="product-price" placeholder="Price" step="0.01" required>
+                        <input type="number" id="product-stock" placeholder="Stock Quantity" required>
+                        <input type="text" id="product-category" placeholder="Category">
+                        <button type="submit">Create Product</button>
+                    </form>
+                </div>
+
+                <div class="command-form">
+                    <h3>Update Stock</h3>
+                    <form id="stock-form">
+                        <input type="number" id="stock-product-id" placeholder="Product ID" required>
+                        <input type="number" id="stock-quantity" placeholder="New Quantity" required>
+                        <button type="submit">Update Stock</button>
+                    </form>
+                </div>
+
+                <div class="command-form">
+                    <h3>Create Order</h3>
+                    <form id="order-form">
+                        <input type="text" id="order-customer-id" placeholder="Customer ID" required>
+                        <input type="number" id="order-product-id" placeholder="Product ID" required>
+                        <input type="number" id="order-quantity" placeholder="Quantity" required>
+                        <button type="submit">Create Order</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Query Section -->
+            <div class="section">
+                <h2>📊 Queries (Read Operations)</h2>
+                
+                <div class="query-controls">
+                    <button onclick="loadProducts()">Load Products</button>
+                    <button onclick="loadOrders()">Load Orders</button>
+                    <button onclick="loadStats()">Load Statistics</button>
+                </div>
+
+                <div class="results">
+                    <div class="result-section">
+                        <h3>Products</h3>
+                        <div id="products-list" class="data-grid"></div>
+                    </div>
+                    
+                    <div class="result-section">
+                        <h3>Orders</h3>
+                        <div id="orders-list" class="data-grid"></div>
+                    </div>
+                    
+                    <div class="result-section">
+                        <h3>Statistics</h3>
+                        <div id="stats-display" class="stats-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <h2>📋 Real-time Logs</h2>
+            <div id="logs" class="logs-container"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
