@@ -1,0 +1,21 @@
+{
+  "name": "zero-downtime-demo",
+  "version": "1.0.0",
+  "description": "This demo showcases three critical deployment strategies for distributed systems:",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test dashboard-ui.spec.js",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "install-browsers": "playwright install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
