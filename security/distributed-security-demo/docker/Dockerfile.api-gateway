@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    openssl \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Clean up build dependencies to reduce image size
+RUN apt-get purge -y gcc python3-dev && apt-get autoremove -y && apt-get clean
+
+COPY src/ ./src/
+COPY certs/ ./certs/
+
+EXPOSE 8000
+
+CMD ["python", "-m", "src.services.api_gateway"]
