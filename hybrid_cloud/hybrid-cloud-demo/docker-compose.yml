@@ -1,0 +1,55 @@
+
+
+services:
+  private-cloud:
+    build: ./private-cloud
+    container_name: hybrid-private
+    ports:
+      - "5001:5001"
+    volumes:
+      - private_data:/app
+    networks:
+      - hybrid-network
+    restart: unless-stopped
+
+  public-cloud:
+    build: ./public-cloud
+    container_name: hybrid-public
+    ports:
+      - "5002:5002"
+    depends_on:
+      - redis
+    networks:
+      - hybrid-network
+    restart: unless-stopped
+
+  gateway:
+    build: ./gateway
+    container_name: hybrid-gateway
+    ports:
+      - "5000:5000"
+    depends_on:
+      - private-cloud
+      - public-cloud
+    networks:
+      - hybrid-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hybrid-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hybrid-network
+    restart: unless-stopped
+
+volumes:
+  private_data:
+  redis_data:
+
+networks:
+  hybrid-network:
+    driver: bridge
