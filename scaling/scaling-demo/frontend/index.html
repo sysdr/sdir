@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scaling to 1M Users - Interactive Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: #1976d2;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .metrics-panel, .architecture-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            color: #1976d2;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+
+        .metric-card {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #1976d2;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1976d2;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .architecture-stage {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .architecture-stage.active {
+            border-color: #1976d2;
+            background: #e3f2fd;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+        }
+
+        .stage-title {
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+        }
+
+        .stage-description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .controls {
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #1565c0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1976d2, #42a5f5);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .architecture-visual {
+            margin-top: 1rem;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #ddd;
+            flex-wrap: wrap;
+        }
+
+        .component {
+            background: #1976d2;
+            color: white;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Scaling to Your First Million Users - Interactive Demo</h1>
+    </div>
+
+    <div class="container">
+        <div class="metrics-panel">
+            <h2 class="panel-title">📊 System Metrics</h2>
+            
+            <div class="metric-card">
+                <div class="metric-value" id="userCount">1</div>
+                <div class="metric-label">Active Users</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="responseTime">150ms</div>
+                <div class="metric-label">Response Time (P95)</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="throughput">10</div>
+                <div class="metric-label">Requests/Second</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-value" id="errorRate">0.1%</div>
+                <div class="metric-label">Error Rate</div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="capacityProgress" style="width: 5%"></div>
+            </div>
+            <div style="text-align: center; font-size: 0.9rem; color: #666;">System Capacity Utilization</div>
+        </div>
+
+        <div class="architecture-panel">
+            <h2 class="panel-title">🏗️ Architecture Evolution</h2>
+            
+            <div class="architecture-stage active" data-stage="1">
+                <div class="stage-title">Stage 1: Single Server (1-1K users)</div>
+                <div class="stage-description">Everything on one machine. Simple, fast to develop, perfect for getting started.</div>
+                <div class="architecture-visual">
+                    <span class="component">Web Server + Database</span>
+                </div>
+            </div>
+
+            <div class="architecture-stage" data-stage="2">
+                <div class="stage-title">Stage 2: Separate Database (1K-10K users)</div>
+                <div class="stage-description">Separate concerns for better resource utilization and failure isolation.</div>
+                <div class="architecture-visual">
+                    <span class="component">Web Server</span>
+                    <span class="component">Database</span>
+                </div>
+            </div>
+
+            <div class="architecture-stage" data-stage="3">
+                <div class="stage-title">Stage 3: Load Balancer (10K-100K users)</div>
+                <div class="stage-description">Horizontal scaling with multiple application servers.</div>
+                <div class="architecture-visual">
+                    <span class="component">Load Balancer</span>
+                    <span class="component">App Server 1</span>
+                    <span class="component">App Server 2</span>
+                    <span class="component">Database</span>
+                </div>
+            </div>
+
+            <div class="architecture-stage" data-stage="4">
+                <div class="stage-title">Stage 4: Caching & CDN (100K-500K users)</div>
+                <div class="stage-description">Add caching layers and content delivery for performance.</div>
+                <div class="architecture-visual">
+                    <span class="component">CDN</span>
+                    <span class="component">Load Balancer</span>
+                    <span class="component">Cache</span>
+                    <span class="component">App Servers</span>
+                    <span class="component">DB + Replicas</span>
+                </div>
+            </div>
+
+            <div class="architecture-stage" data-stage="5">
+                <div class="stage-title">Stage 5: Microservices (500K+ users)</div>
+                <div class="stage-description">Service decomposition for team autonomy and fault isolation.</div>
+                <div class="architecture-visual">
+                    <span class="component">API Gateway</span>
+                    <span class="component">User Service</span>
+                    <span class="component">Order Service</span>
+                    <span class="component">Payment Service</span>
+                    <span class="component">Message Queue</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2 class="panel-title">🎮 Load Testing Controls</h2>
+            
+            <div class="alert" id="scalingAlert">
+                <strong>Scaling Decision Required!</strong> <span id="alertMessage"></span>
+            </div>
+
+            <div>
+                <button class="btn" onclick="startLoadTest()">🚀 Start Load Test</button>
+                <button class="btn" onclick="triggerTrafficSpike()">⚡ Traffic Spike</button>
+                <button class="btn" onclick="scaleUp()">📈 Scale Up</button>
+                <button class="btn" onclick="resetDemo()">🔄 Reset Demo</button>
+            </div>
+
+            <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="color: #1976d2; margin-bottom: 1rem;">💡 Current Insight</h3>
+                <p id="currentInsight">Start with a simple architecture. Premature optimization is the root of all evil in startups.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API base URL
+        const API_BASE = '';
+        
+        // Load metrics on page load and periodically
+        function loadMetrics() {
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('userCount').textContent = data.user_count.toLocaleString();
+                    document.getElementById('responseTime').textContent = data.response_time + 'ms';
+                    document.getElementById('throughput').textContent = data.throughput.toLocaleString();
+                    document.getElementById('errorRate').textContent = data.error_rate + '%';
+                    document.getElementById('capacityProgress').style.width = data.capacity_utilization + '%';
+                    
+                    updateArchitectureStage(data.current_stage);
+                })
+                .catch(error => console.error('Error loading metrics:', error));
+        }
+
+        function updateArchitectureStage(stage) {
+            document.querySelectorAll('.architecture-stage').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            const activeStage = document.querySelector(`[data-stage="${stage}"]`);
+            if (activeStage) {
+                activeStage.classList.add('active');
+            }
+        }
+
+        function startLoadTest() {
+            fetch('/api/load-test/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Load test started:', data);
+                })
+                .catch(error => console.error('Error starting load test:', error));
+        }
+
+        function triggerTrafficSpike() {
+            fetch('/api/traffic-spike', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Traffic spike triggered:', data);
+                    loadMetrics();
+                })
+                .catch(error => console.error('Error triggering traffic spike:', error));
+        }
+
+        function scaleUp() {
+            fetch('/api/scale-up', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Scaled up:', data);
+                    loadMetrics();
+                    updateInsight(data.new_stage);
+                })
+                .catch(error => console.error('Error scaling up:', error));
+        }
+
+        function resetDemo() {
+            fetch('/api/reset', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Demo reset:', data);
+                    loadMetrics();
+                    document.getElementById('currentInsight').textContent = 
+                        'Start with a simple architecture. Premature optimization is the root of all evil in startups.';
+                })
+                .catch(error => console.error('Error resetting demo:', error));
+        }
+
+        function updateInsight(stage) {
+            const insights = {
+                1: "Start with a simple architecture. Premature optimization is the root of all evil in startups.",
+                2: "Separate your database when resource contention becomes an issue. This provides failure isolation.",
+                3: "Horizontal scaling requires stateless applications. Session management becomes crucial here.",
+                4: "Caching solves read-heavy workloads. But cache invalidation is one of the hardest problems in CS.",
+                5: "Microservices solve organizational problems as much as technical ones. Conway's Law applies."
+            };
+            
+            document.getElementById('currentInsight').textContent = insights[stage] || insights[1];
+        }
+
+        // Load metrics every 2 seconds
+        setInterval(loadMetrics, 2000);
+        
+        // Initial load
+        loadMetrics();
+    </script>
+</body>
+</html>
