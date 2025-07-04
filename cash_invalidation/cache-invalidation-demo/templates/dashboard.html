@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Invalidation Strategies Demo</title>
+    <style>
+        /* Google Cloud Skills Boost inspired styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8f0fe 100%);
+            color: #202124;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e8eaed;
+            box-shadow: 0 1px 3px rgba(60,64,67,0.1);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #1a73e8;
+            font-size: 1.5rem;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(60,64,67,0.1);
+            border: 1px solid #e8eaed;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(60,64,67,0.15);
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            color: #1a73e8;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #5f6368;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+        }
+
+        button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+        }
+
+        button.secondary {
+            background: #f8f9fa;
+            color: #5f6368;
+            border: 1px solid #dadce0;
+        }
+
+        button.secondary:hover {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        button.danger {
+            background: #ea4335;
+        }
+
+        button.danger:hover {
+            background: #d33b2c;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #e8f0fe 0%, #f8f9fa 100%);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #1a73e8;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a73e8;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #5f6368;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #e8eaed;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .log-info {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        .log-success {
+            background: #e8f5e8;
+            border-left: 3px solid #4caf50;
+        }
+
+        .log-warning {
+            background: #fff3e0;
+            border-left: 3px solid #ff9800;
+        }
+
+        .log-error {
+            background: #ffebee;
+            border-left: 3px solid #f44336;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-connected {
+            background: #4caf50;
+        }
+
+        .status-disconnected {
+            background: #f44336;
+        }
+
+        .strategy-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .strategy-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-badge.ttl {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+
+        .strategy-badge.event_driven {
+            background: #e8f5e8;
+            color: #388e3c;
+            border: 1px solid #c8e6c9;
+        }
+
+        .strategy-badge.lazy {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffcc02;
+        }
+
+        .strategy-badge.hybrid {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px solid #ce93d8;
+        }
+
+        .strategy-badge.active {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transform: scale(1.05);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Cache Invalidation Strategies Demo</h1>
+        <div style="margin-top: 0.5rem; color: #5f6368;">
+            System Design Interview Roadmap - Issue #86
+            <span class="status-indicator" id="connectionStatus"></span>
+            <span id="connectionText">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Cache Operations -->
+        <div class="card">
+            <h2>🎯 Cache Operations</h2>
+            
+            <div class="strategy-badges">
+                <div class="strategy-badge ttl" onclick="selectStrategy('ttl')">TTL Strategy</div>
+                <div class="strategy-badge event_driven" onclick="selectStrategy('event_driven')">Event-Driven</div>
+                <div class="strategy-badge lazy" onclick="selectStrategy('lazy')">Lazy Invalidation</div>
+                <div class="strategy-badge hybrid" onclick="selectStrategy('hybrid')">Hybrid (Multi-tier)</div>
+            </div>
+
+            <div class="form-group">
+                <label for="cacheKey">Cache Key:</label>
+                <input type="text" id="cacheKey" value="user:profile:123" placeholder="e.g., user:profile:123">
+            </div>
+
+            <div class="form-group">
+                <label for="cacheData">Cache Data (JSON):</label>
+                <textarea id="cacheData" rows="4" placeholder='{"name": "John Doe", "email": "john@example.com", "type": "user_profile"}'>{
+  "name": "John Doe",
+  "email": "john@example.com", 
+  "type": "user_profile",
+  "last_updated": "2025-03-08T10:30:00Z"
+}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="ttlValue">TTL (seconds):</label>
+                <input type="number" id="ttlValue" value="60" min="1" max="3600">
+            </div>
+
+            <div class="form-group">
+                <label for="strategySelect">Invalidation Strategy:</label>
+                <select id="strategySelect">
+                    <option value="ttl">TTL-based Expiration</option>
+                    <option value="event_driven">Event-Driven Invalidation</option>
+                    <option value="lazy">Lazy Invalidation (Facebook TAO)</option>
+                    <option value="hybrid">Hybrid Multi-tier (Instagram)</option>
+                </select>
+            </div>
+
+            <button onclick="setCacheData()">💾 Set Cache Data</button>
+            <button onclick="getCacheData()" class="secondary">🔍 Get Cache Data</button>
+            <button onclick="invalidateCache()" class="danger">🗑️ Invalidate Cache</button>
+        </div>
+
+        <!-- Cache Metrics -->
+        <div class="card">
+            <h2>📊 Cache Metrics</h2>
+            <div class="metrics-grid" id="metricsGrid">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalOps">0</div>
+                    <div class="metric-label">Total Operations</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="cacheHits">0</div>
+                    <div class="metric-label">Cache Hits</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="cacheMisses">0</div>
+                    <div class="metric-label">Cache Misses</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="invalidations">0</div>
+                    <div class="metric-label">Invalidations</div>
+                </div>
+            </div>
+            
+            <button onclick="loadTestCache()" style="margin-top: 1rem;">⚡ Run Load Test (100 ops)</button>
+            <button onclick="simulateCacheAvalanche()" class="secondary">🌊 Simulate Cache Avalanche</button>
+        </div>
+
+        <!-- Real-time Logs -->
+        <div class="card full-width">
+            <h2>📝 Real-time Activity Logs</h2>
+            <button onclick="clearLogs()" class="secondary" style="float: right;">Clear Logs</button>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">System initialized. Waiting for cache operations...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let currentStrategy = 'ttl';
+        let logCount = 0;
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                updateConnectionStatus(true);
+                addLog('WebSocket connected successfully', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = function() {
+                updateConnectionStatus(false);
+                addLog('WebSocket connection lost. Attempting to reconnect...', 'warning');
+                setTimeout(initWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                addLog(`WebSocket error: ${error}`, 'error');
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                indicator.className = 'status-indicator status-connected';
+                text.textContent = 'Connected';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'cache_set':
+                    addLog(`✅ Cache SET: ${data.key} using ${data.strategy} strategy`, 'success');
+                    break;
+                case 'cache_get':
+                    const status = data.found ? 'HIT' : 'MISS';
+                    const logType = data.found ? 'success' : 'warning';
+                    addLog(`🔍 Cache ${status}: ${data.key} using ${data.strategy} strategy`, logType);
+                    break;
+                case 'cache_invalidated':
+                    addLog(`🗑️ Cache INVALIDATED: ${data.key} using ${data.strategy} strategy`, 'info');
+                    break;
+                case 'pong':
+                    // Connection keepalive
+                    break;
+            }
+            
+            // Refresh metrics after any operation
+            loadMetrics();
+        }
+
+        function selectStrategy(strategy) {
+            currentStrategy = strategy;
+            document.getElementById('strategySelect').value = strategy;
+            
+            // Update visual selection
+            document.querySelectorAll('.strategy-badge').forEach(badge => {
+                badge.classList.remove('active');
+            });
+            document.querySelector(`.strategy-badge.${strategy}`).classList.add('active');
+            
+            addLog(`Strategy changed to: ${strategy}`, 'info');
+        }
+
+        async function setCacheData() {
+            const key = document.getElementById('cacheKey').value;
+            const dataText = document.getElementById('cacheData').value;
+            const ttl = parseInt(document.getElementById('ttlValue').value);
+            const strategy = document.getElementById('strategySelect').value;
+
+            if (!key || !dataText) {
+                addLog('❌ Please provide both key and data', 'error');
+                return;
+            }
+
+            try {
+                const data = JSON.parse(dataText);
+                
+                const response = await fetch('/api/cache/set', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        key: key,
+                        data: data,
+                        strategy: strategy,
+                        ttl: ttl
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const ttlInfo = result.ttl_used ? ` (TTL: ${result.ttl_used}s)` : '';
+                    addLog(`✅ Cache data set successfully using ${strategy} strategy${ttlInfo}`, 'success');
+                } else {
+                    addLog('❌ Failed to set cache data', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getCacheData() {
+            const key = document.getElementById('cacheKey').value;
+            const strategy = document.getElementById('strategySelect').value;
+
+            if (!key) {
+                addLog('❌ Please provide a cache key', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cache/get/${key}?strategy=${strategy}`);
+                const result = await response.json();
+
+                if (result.found) {
+                    addLog(`🎯 Cache HIT for key: ${key}`, 'success');
+                    addLog(`📦 Data: ${JSON.stringify(result.data, null, 2)}`, 'info');
+                } else {
+                    addLog(`❌ Cache MISS for key: ${key}`, 'warning');
+                }
+            } catch (error) {
+                addLog(`❌ Error retrieving cache: ${error.message}`, 'error');
+            }
+        }
+
+        async function invalidateCache() {
+            const key = document.getElementById('cacheKey').value;
+            const strategy = document.getElementById('strategySelect').value;
+
+            if (!key) {
+                addLog('❌ Please provide a cache key', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cache/invalidate/${key}?strategy=${strategy}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog(`🗑️ Cache invalidated successfully for key: ${key}`, 'info');
+                } else {
+                    addLog('❌ Failed to invalidate cache', 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Error invalidating cache: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadTestCache() {
+            addLog('⚡ Starting load test with 100 cache operations...', 'info');
+            
+            const operations = [];
+            const strategies = ['ttl', 'event_driven', 'lazy', 'hybrid'];
+            
+            for (let i = 0; i < 100; i++) {
+                const strategy = strategies[i % strategies.length];
+                const key = `load_test:${i}`;
+                const data = {
+                    id: i,
+                    value: `test_value_${i}`,
+                    timestamp: new Date().toISOString(),
+                    type: 'load_test'
+                };
+                
+                operations.push(
+                    fetch('/api/cache/set', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            key: key,
+                            data: data,
+                            strategy: strategy,
+                            ttl: 60
+                        })
+                    })
+                );
+            }
+            
+            try {
+                const startTime = Date.now();
+                await Promise.all(operations);
+                const endTime = Date.now();
+                
+                addLog(`✅ Load test completed! 100 operations in ${endTime - startTime}ms`, 'success');
+                addLog(`📊 Average: ${(endTime - startTime) / 100}ms per operation`, 'info');
+            } catch (error) {
+                addLog(`❌ Load test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateCacheAvalanche() {
+            addLog('🌊 Simulating cache avalanche scenario...', 'warning');
+            
+            // Set multiple cache entries with the same short TTL
+            const keys = [];
+            for (let i = 0; i < 20; i++) {
+                keys.push(`avalanche:${i}`);
+            }
+            
+            // Set all entries to expire at the same time (5 seconds)
+            const setPromises = keys.map(key => 
+                fetch('/api/cache/set', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        key: key,
+                        data: { value: `data_${key}`, type: 'avalanche_test' },
+                        strategy: 'ttl',
+                        ttl: 5
+                    })
+                })
+            );
+            
+            await Promise.all(setPromises);
+            addLog('⏰ Set 20 cache entries to expire in 5 seconds...', 'warning');
+            
+            // Wait for expiration and then try to read all at once
+            setTimeout(async () => {
+                addLog('💥 Cache entries expired! Attempting simultaneous reads...', 'warning');
+                
+                const readPromises = keys.map(key => 
+                    fetch(`/api/cache/get/${key}?strategy=ttl`)
+                );
+                
+                try {
+                    const results = await Promise.all(readPromises);
+                    const misses = results.filter(r => !r.ok).length;
+                    addLog(`📊 Avalanche simulation complete: ${misses}/20 cache misses`, 'info');
+                } catch (error) {
+                    addLog(`❌ Avalanche simulation error: ${error.message}`, 'error');
+                }
+            }, 6000);
+        }
+
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const metrics = await response.json();
+                
+                if (metrics.cache_metrics) {
+                    const cacheMetrics = metrics.cache_metrics;
+                    
+                    document.getElementById('totalOps').textContent = cacheMetrics.total_operations || 0;
+                    
+                    // Calculate hits and misses
+                    const hits = (cacheMetrics.ttl_hit || 0) + 
+                                (cacheMetrics.event_driven_hit || 0) + 
+                                (cacheMetrics.lazy_hit || 0) + 
+                                (cacheMetrics.l1_hit || 0) + 
+                                (cacheMetrics.l2_hit || 0) + 
+                                (cacheMetrics.l3_hit || 0);
+                    
+                    document.getElementById('cacheHits').textContent = hits;
+                    document.getElementById('cacheMisses').textContent = cacheMetrics.cache_miss || 0;
+                    document.getElementById('invalidations').textContent = cacheMetrics.cache_invalidated || 0;
+                }
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+            }
+        }
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            logCount++;
+            
+            // Limit log entries to prevent memory issues
+            if (logCount > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+                logCount--;
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            logCount = 0;
+            addLog('Logs cleared', 'info');
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initWebSocket();
+            loadMetrics();
+            
+            // Set default strategy
+            selectStrategy('ttl');
+            
+            // Refresh metrics every 5 seconds
+            setInterval(loadMetrics, 5000);
+            
+            addLog('🚀 Cache Invalidation Demo initialized successfully!', 'success');
+        });
+    </script>
+</body>
+</html>
