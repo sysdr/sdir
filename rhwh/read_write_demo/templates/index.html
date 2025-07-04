@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read-Heavy vs Write-Heavy Systems Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4facfe 100%);
+            min-height: 100vh;
+            color: #202124;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            background: linear-gradient(135deg, #1e3c72 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(30, 60, 114, 0.15);
+            border: 1px solid rgba(79, 172, 254, 0.2);
+        }
+
+        .card h2 {
+            background: linear-gradient(135deg, #1e3c72 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-group {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(79, 172, 254, 0.05) 100%);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(79, 172, 254, 0.2);
+        }
+
+        .control-group h3 {
+            background: linear-gradient(135deg, #1e3c72 0%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #1e3c72 0%, #4facfe 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin: 0.25rem;
+        }
+
+        .button:hover {
+            background: linear-gradient(135deg, #0f2a5a 0%, #3a8be8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.4);
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #2196F3 0%, #21CBF3 100%);
+        }
+
+        .button.secondary:hover {
+            background: linear-gradient(135deg, #1976D2 0%, #00BCD4 100%);
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .button.danger:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4facfe 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(30, 60, 114, 0.3);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            animation: pulse 2s infinite;
+        }
+
+        .status-inactive {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .log-container {
+            background: #202124;
+            color: #e8eaed;
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin: 1rem 0;
+        }
+
+        .load-test-panel {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.1) 0%, rgba(79, 172, 254, 0.1) 100%);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .input-group {
+            margin: 0.5rem 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: #5f6368;
+            font-weight: 500;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .performance-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Read-Heavy vs Write-Heavy Systems Optimization Demo</h1>
+    </div>
+
+    <div class="container">
+        <!-- System Status -->
+        <div class="card">
+            <h2>System Status</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="current-mode">Read-Heavy</div>
+                    <div class="metric-label">Current Mode</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="cache-status">Enabled</div>
+                    <div class="metric-label">Cache Status</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="total-operations">0</div>
+                    <div class="metric-label">Total Operations</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="cache-hit-ratio">0%</div>
+                    <div class="metric-label">Cache Hit Ratio</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="card">
+            <h2>Control Panel</h2>
+            <div class="control-panel">
+                <div class="control-group">
+                    <h3>Optimization Strategy</h3>
+                    <button class="button" onclick="toggleStrategy()">Toggle Mode</button>
+                    <button class="button secondary" onclick="toggleCache()">Toggle Cache</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Test Operations</h3>
+                    <button class="button" onclick="testRead()">Test Read</button>
+                    <button class="button" onclick="testWrite()">Test Write</button>
+                    <button class="button secondary" onclick="testBulkRead()">Bulk Read</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Performance Analysis</h3>
+                    <button class="button" onclick="clearMetrics()">Clear Metrics</button>
+                    <button class="button secondary" onclick="updateMetrics()">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="card">
+            <h2>Performance Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="avg-read-time">0ms</div>
+                    <div class="metric-label">Avg Read Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avg-write-time">0ms</div>
+                    <div class="metric-label">Avg Write Time</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="total-reads">0</div>
+                    <div class="metric-label">Total Reads</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="total-writes">0</div>
+                    <div class="metric-label">Total Writes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load Testing -->
+        <div class="card">
+            <h2>Load Testing</h2>
+            <div class="load-test-panel">
+                <div class="input-group">
+                    <label>Test Type:</label>
+                    <select id="test-type">
+                        <option value="read">Read-Heavy Test</option>
+                        <option value="write">Write-Heavy Test</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Duration (seconds):</label>
+                    <input type="number" id="test-duration" value="10" min="1" max="60">
+                </div>
+                <div class="input-group">
+                    <label>Concurrent Users:</label>
+                    <input type="number" id="concurrent-users" value="5" min="1" max="50">
+                </div>
+                <button class="button" onclick="runLoadTest()" id="load-test-btn">Run Load Test</button>
+            </div>
+            
+            <div id="load-test-results" style="display: none;">
+                <h3>Load Test Results</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="ops-per-second">0</div>
+                        <div class="metric-label">Ops/Second</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-latency">0ms</div>
+                        <div class="metric-label">Avg Latency</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="p95-latency">0ms</div>
+                        <div class="metric-label">P95 Latency</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="p99-latency">0ms</div>
+                        <div class="metric-label">P99 Latency</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+            <h2>Activity Log</h2>
+            <div class="log-container" id="activity-log">
+                <div>🚀 System initialized - Ready for testing</div>
+                <div>📊 Monitoring performance metrics...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentMode = 'read-heavy';
+        let cacheEnabled = true;
+
+        // Utility functions
+        function log(message) {
+            const logContainer = document.getElementById('activity-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateUI() {
+            document.getElementById('current-mode').textContent = currentMode;
+            document.getElementById('cache-status').textContent = cacheEnabled ? 'Enabled' : 'Disabled';
+        }
+
+        // API calls
+        async function toggleStrategy() {
+            try {
+                const response = await fetch('/api/strategy/toggle', { method: 'POST' });
+                const data = await response.json();
+                currentMode = data.mode;
+                updateUI();
+                log(`Switched to ${currentMode} mode`);
+            } catch (error) {
+                log(`Error toggling strategy: ${error.message}`);
+            }
+        }
+
+        async function toggleCache() {
+            try {
+                cacheEnabled = !cacheEnabled;
+                const response = await fetch(`/api/strategy/cache/${cacheEnabled}`);
+                const data = await response.json();
+                updateUI();
+                log(`Cache ${cacheEnabled ? 'enabled' : 'disabled'}`);
+            } catch (error) {
+                log(`Error toggling cache: ${error.message}`);
+            }
+        }
+
+        async function testRead() {
+            try {
+                const productId = Math.floor(Math.random() * 100) + 1;
+                const start = performance.now();
+                const response = await fetch(`/api/products/${productId}`);
+                const data = await response.json();
+                const duration = (performance.now() - start).toFixed(2);
+                log(`Read test completed in ${duration}ms - Product: ${data?.name || 'Not found'}`);
+                updateMetrics();
+            } catch (error) {
+                log(`Read test error: ${error.message}`);
+            }
+        }
+
+        async function testWrite() {
+            try {
+                const start = performance.now();
+                const response = await fetch('/api/activity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: Math.floor(Math.random() * 1000),
+                        activity_type: 'view',
+                        product_id: Math.floor(Math.random() * 100) + 1,
+                        metadata: { test: true }
+                    })
+                });
+                const duration = (performance.now() - start).toFixed(2);
+                log(`Write test completed in ${duration}ms`);
+                updateMetrics();
+            } catch (error) {
+                log(`Write test error: ${error.message}`);
+            }
+        }
+
+        async function testBulkRead() {
+            try {
+                const start = performance.now();
+                const response = await fetch('/api/products');
+                const data = await response.json();
+                const duration = (performance.now() - start).toFixed(2);
+                log(`Bulk read completed in ${duration}ms - ${data.length} products loaded`);
+                updateMetrics();
+            } catch (error) {
+                log(`Bulk read error: ${error.message}`);
+            }
+        }
+
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const metrics = await response.json();
+                
+                document.getElementById('avg-read-time').textContent = 
+                    (metrics.avg_read_time * 1000).toFixed(2) + 'ms';
+                document.getElementById('avg-write-time').textContent = 
+                    (metrics.avg_write_time * 1000).toFixed(2) + 'ms';
+                document.getElementById('total-reads').textContent = metrics.total_reads;
+                document.getElementById('total-writes').textContent = metrics.total_writes;
+                document.getElementById('total-operations').textContent = 
+                    metrics.total_reads + metrics.total_writes;
+                document.getElementById('cache-hit-ratio').textContent = 
+                    (metrics.cache_hit_ratio * 100).toFixed(1) + '%';
+            } catch (error) {
+                log(`Error updating metrics: ${error.message}`);
+            }
+        }
+
+        async function runLoadTest() {
+            const button = document.getElementById('load-test-btn');
+            const resultsDiv = document.getElementById('load-test-results');
+            
+            try {
+                button.disabled = true;
+                button.textContent = 'Running Test...';
+                
+                const testType = document.getElementById('test-type').value;
+                const duration = parseInt(document.getElementById('test-duration').value);
+                const concurrentUsers = parseInt(document.getElementById('concurrent-users').value);
+                
+                log(`Starting ${testType} load test: ${concurrentUsers} users for ${duration}s`);
+                
+                const response = await fetch('/api/load-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: testType,
+                        duration: duration,
+                        concurrent_users: concurrentUsers
+                    })
+                });
+                
+                const results = await response.json();
+                
+                // Display results
+                document.getElementById('ops-per-second').textContent = 
+                    results.operations_per_second.toFixed(2);
+                document.getElementById('avg-latency').textContent = 
+                    (results.avg_latency * 1000).toFixed(2) + 'ms';
+                document.getElementById('p95-latency').textContent = 
+                    (results.p95_latency * 1000).toFixed(2) + 'ms';
+                document.getElementById('p99-latency').textContent = 
+                    (results.p99_latency * 1000).toFixed(2) + 'ms';
+                
+                resultsDiv.style.display = 'block';
+                
+                log(`Load test completed: ${results.total_operations} operations, ` +
+                    `${results.operations_per_second.toFixed(2)} ops/sec`);
+                
+                updateMetrics();
+                
+            } catch (error) {
+                log(`Load test error: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Run Load Test';
+            }
+        }
+
+        function clearMetrics() {
+            // Clear activity log
+            const logContainer = document.getElementById('activity-log');
+            logContainer.innerHTML = '<div>🧹 Metrics cleared</div>';
+            
+            // Reset metric displays
+            document.getElementById('avg-read-time').textContent = '0ms';
+            document.getElementById('avg-write-time').textContent = '0ms';
+            document.getElementById('total-reads').textContent = '0';
+            document.getElementById('total-writes').textContent = '0';
+            document.getElementById('total-operations').textContent = '0';
+            document.getElementById('cache-hit-ratio').textContent = '0%';
+            
+            log('Metrics cleared and reset');
+        }
+
+        // Auto-update metrics every 5 seconds
+        setInterval(updateMetrics, 5000);
+
+        // Initialize UI
+        updateUI();
+        updateMetrics();
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://demo:demo123@postgres:5432/readwrite_demo
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - .:/app
+    command: python app.py
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=readwrite_demo
+      - POSTGRES_USER=demo
+      - POSTGRES_PASSWORD=demo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
