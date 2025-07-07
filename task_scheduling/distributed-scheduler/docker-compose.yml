@@ -1,0 +1,87 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  scheduler:
+    build: .
+    command: python src/scheduler.py
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_TYPE=scheduler
+      - NODE_ID=scheduler-1
+    depends_on:
+      - redis
+    volumes:
+      - ./logs:/app/logs
+
+  worker1:
+    build: .
+    command: python src/worker.py
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_TYPE=worker
+      - NODE_ID=worker-1
+      - WORKER_PORT=8001
+    depends_on:
+      - redis
+      - scheduler
+    volumes:
+      - ./logs:/app/logs
+
+  worker2:
+    build: .
+    command: python src/worker.py
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_TYPE=worker
+      - NODE_ID=worker-2
+      - WORKER_PORT=8002
+    depends_on:
+      - redis
+      - scheduler
+    volumes:
+      - ./logs:/app/logs
+
+  worker3:
+    build: .
+    command: python src/worker.py
+    ports:
+      - "8003:8003"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_TYPE=worker
+      - NODE_ID=worker-3
+      - WORKER_PORT=8003
+    depends_on:
+      - redis
+      - scheduler
+    volumes:
+      - ./logs:/app/logs
+
+  web-ui:
+    build: .
+    command: python src/web_ui.py
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - scheduler
+    volumes:
+      - ./templates:/app/templates
+      - ./static:/app/static
+
+volumes:
+  redis_data:
