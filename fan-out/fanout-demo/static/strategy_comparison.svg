@@ -1,0 +1,102 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#666" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="24" font-weight="bold" fill="#1976d2">
+    Fan-Out Strategy Comparison
+  </text>
+  
+  <!-- Fan-Out on Write Section -->
+  <g transform="translate(50, 80)">
+    <rect width="300" height="200" rx="15" fill="#e8f5e8" stroke="#4caf50" stroke-width="3" filter="url(#shadow)"/>
+    <text x="150" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#4caf50">Fan-Out on Write</text>
+    
+    <!-- Write time -->
+    <rect x="20" y="50" width="80" height="30" rx="5" fill="#4caf50" opacity="0.7"/>
+    <text x="60" y="70" text-anchor="middle" font-size="12" fill="white">Write Time</text>
+    
+    <!-- High cost bar -->
+    <rect x="20" y="90" width="200" height="15" rx="3" fill="#f44336"/>
+    <text x="230" y="102" font-size="12" fill="#f44336">High Cost</text>
+    
+    <!-- Read time -->
+    <rect x="20" y="120" width="80" height="30" rx="5" fill="#4caf50" opacity="0.7"/>
+    <text x="60" y="140" text-anchor="middle" font-size="12" fill="white">Read Time</text>
+    
+    <!-- Low latency bar -->
+    <rect x="20" y="160" width="60" height="15" rx="3" fill="#4caf50"/>
+    <text x="90" y="172" font-size="12" fill="#4caf50">Low Latency</text>
+  </g>
+  
+  <!-- Fan-Out on Read Section -->
+  <g transform="translate(450, 80)">
+    <rect width="300" height="200" rx="15" fill="#fff3e0" stroke="#ff9800" stroke-width="3" filter="url(#shadow)"/>
+    <text x="150" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#ff9800">Fan-Out on Read</text>
+    
+    <!-- Write time -->
+    <rect x="20" y="50" width="80" height="30" rx="5" fill="#ff9800" opacity="0.7"/>
+    <text x="60" y="70" text-anchor="middle" font-size="12" fill="white">Write Time</text>
+    
+    <!-- Low cost bar -->
+    <rect x="20" y="90" width="60" height="15" rx="3" fill="#4caf50"/>
+    <text x="90" y="102" font-size="12" fill="#4caf50">Low Cost</text>
+    
+    <!-- Read time -->
+    <rect x="20" y="120" width="80" height="30" rx="5" fill="#ff9800" opacity="0.7"/>
+    <text x="60" y="140" text-anchor="middle" font-size="12" fill="white">Read Time</text>
+    
+    <!-- High latency bar -->
+    <rect x="20" y="160" width="180" height="15" rx="3" fill="#f44336"/>
+    <text x="210" y="172" font-size="12" fill="#f44336">High Latency</text>
+  </g>
+  
+  <!-- User Types Section -->
+  <text x="400" y="340" text-anchor="middle" font-size="18" font-weight="bold" fill="#1976d2">
+    Recommended Strategy by User Type
+  </text>
+  
+  <!-- Regular Users -->
+  <g transform="translate(100, 370)">
+    <circle cx="60" cy="60" r="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="3" filter="url(#shadow)"/>
+    <text x="60" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#1976d2">Regular</text>
+    <text x="60" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#1976d2">Users</text>
+    <text x="60" y="80" text-anchor="middle" font-size="10" fill="#1976d2">&lt; 10K followers</text>
+    
+    <rect x="10" y="140" width="100" height="25" rx="5" fill="#4caf50"/>
+    <text x="60" y="157" text-anchor="middle" font-size="12" fill="white">Write Strategy</text>
+  </g>
+  
+  <!-- Celebrity Users -->
+  <g transform="translate(300, 370)">
+    <circle cx="60" cy="60" r="50" fill="#fff3e0" stroke="#ff9800" stroke-width="3" filter="url(#shadow)"/>
+    <text x="60" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#ff9800">Celebrity</text>
+    <text x="60" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#ff9800">Users</text>
+    <text x="60" y="80" text-anchor="middle" font-size="10" fill="#ff9800">&gt; 10K followers</text>
+    
+    <rect x="10" y="140" width="100" height="25" rx="5" fill="#ff9800"/>
+    <text x="60" y="157" text-anchor="middle" font-size="12" fill="white">Read Strategy</text>
+  </g>
+  
+  <!-- Hybrid Approach -->
+  <g transform="translate(500, 370)">
+    <circle cx="60" cy="60" r="50" fill="#f3e5f5" stroke="#9c27b0" stroke-width="3" filter="url(#shadow)"/>
+    <text x="60" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#9c27b0">Hybrid</text>
+    <text x="60" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#9c27b0">System</text>
+    <text x="60" y="80" text-anchor="middle" font-size="10" fill="#9c27b0">Adaptive</text>
+    
+    <rect x="10" y="140" width="100" height="25" rx="5" fill="#9c27b0"/>
+    <text x="60" y="157" text-anchor="middle" font-size="12" fill="white">Best of Both</text>
+  </g>
+  
+  <!-- Performance Metrics -->
+  <text x="400" y="540" text-anchor="middle" font-size="16" font-weight="bold" fill="#666">
+    Choose strategy based on user follower count, system load, and latency requirements
+  </text>
+</svg>
