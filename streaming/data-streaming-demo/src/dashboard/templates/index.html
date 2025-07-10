@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Streaming Architecture Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #1a73e8;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .header p {
+            color: #5f6368;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #1a73e8;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #5f6368;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #1a73e8;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-healthy {
+            background: #34a853;
+        }
+
+        .status-warning {
+            background: #fbbc04;
+        }
+
+        .status-error {
+            background: #ea4335;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .controls h3 {
+            color: #1a73e8;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #1557b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(26, 115, 232, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #1a73e8;
+            border: 1px solid #dadce0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8f0fe;
+            border-color: #1a73e8;
+        }
+
+        .notifications-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .notifications-panel h3 {
+            color: #1a73e8;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 500;
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #1a73e8;
+        }
+
+        .notification-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .notification-message {
+            color: #5f6368;
+            font-size: 0.9em;
+        }
+
+        .notification-time {
+            color: #9aa0a6;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 10px 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .updating {
+            animation: pulse 1s infinite;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Data Streaming Architecture Dashboard</h1>
+            <p>Real-time monitoring of Kafka streaming pipeline with Lambda architecture pattern. 
+               Monitor producers, consumers, and system metrics in real-time.</p>
+        </div>
+
+        <div class="connection-status">
+            <span class="status-indicator" id="connectionStatus"></span>
+            <span id="connectionText">Connecting...</span>
+        </div>
+
+        <div class="controls">
+            <h3>System Controls</h3>
+            <div class="button-group">
+                <button class="btn" onclick="simulateTrafficSpike()">
+                    📈 Simulate Traffic Spike
+                </button>
+                <button class="btn btn-secondary" onclick="simulateConsumerFailure()">
+                    ⚠️ Simulate Consumer Failure
+                </button>
+                <button class="btn btn-secondary" onclick="refreshStats()">
+                    🔄 Refresh Stats
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Analytics Consumer</h3>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="analyticsStatus">
+                        <span class="status-indicator status-healthy"></span>Active
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Processed Events</span>
+                    <span class="metric-value" id="analyticsProcessed">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Processing Time</span>
+                    <span class="metric-value" id="analyticsProcessingTime">0ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Processed</span>
+                    <span class="metric-value" id="analyticsLastProcessed">Never</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Recommendations Consumer</h3>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="recommendationsStatus">
+                        <span class="status-indicator status-healthy"></span>Active
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Processed Events</span>
+                    <span class="metric-value" id="recommendationsProcessed">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Generated Recommendations</span>
+                    <span class="metric-value" id="recommendationsGenerated">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Processed</span>
+                    <span class="metric-value" id="recommendationsLastProcessed">Never</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Notifications Consumer</h3>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="notificationsStatus">
+                        <span class="status-indicator status-healthy"></span>Active
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Processed Events</span>
+                    <span class="metric-value" id="notificationsProcessed">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Notifications Sent</span>
+                    <span class="metric-value" id="notificationsSent">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Processed</span>
+                    <span class="metric-value" id="notificationsLastProcessed">Never</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Business Analytics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Purchases</span>
+                    <span class="metric-value" id="totalPurchases">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Revenue</span>
+                    <span class="metric-value" id="totalRevenue">$0.00</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Stream Processing Rate</span>
+                    <span class="metric-value" id="processingRate">0 events/sec</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">System Uptime</span>
+                    <span class="metric-value" id="systemUptime">0m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notifications-panel">
+            <h3>Recent Notifications</h3>
+            <div id="notificationsList">
+                <div class="loading">Loading notifications...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let startTime = Date.now();
+        let lastEventCounts = {};
+
+        socket.on('connect', function() {
+            document.getElementById('connectionStatus').className = 'status-indicator status-healthy';
+            document.getElementById('connectionText').textContent = 'Connected';
+        });
+
+        socket.on('disconnect', function() {
+            document.getElementById('connectionStatus').className = 'status-indicator status-error';
+            document.getElementById('connectionText').textContent = 'Disconnected';
+        });
+
+        socket.on('stats_update', function(data) {
+            updateStats(data);
+        });
+
+        function updateStats(data) {
+            try {
+                const consumers = data.consumers || {};
+                const analytics = data.analytics || {};
+                const notifications = data.recent_notifications || [];
+
+                // Update analytics consumer
+                if (consumers.analytics) {
+                    document.getElementById('analyticsProcessed').textContent = 
+                        consumers.analytics.processed_events || '0';
+                    document.getElementById('analyticsProcessingTime').textContent = 
+                        `${Math.round(parseFloat(consumers.analytics.avg_processing_time || 0) * 1000)}ms`;
+                    document.getElementById('analyticsLastProcessed').textContent = 
+                        formatTime(consumers.analytics.last_processed);
+                }
+
+                // Update recommendations consumer
+                if (consumers.recommendations) {
+                    document.getElementById('recommendationsProcessed').textContent = 
+                        consumers.recommendations.processed_events || '0';
+                    document.getElementById('recommendationsGenerated').textContent = 
+                        consumers.recommendations.recommendations_generated || '0';
+                    document.getElementById('recommendationsLastProcessed').textContent = 
+                        formatTime(consumers.recommendations.last_processed);
+                }
+
+                // Update notifications consumer
+                if (consumers.notifications) {
+                    document.getElementById('notificationsProcessed').textContent = 
+                        consumers.notifications.processed_events || '0';
+                    document.getElementById('notificationsSent').textContent = 
+                        consumers.notifications.notifications_sent || '0';
+                    document.getElementById('notificationsLastProcessed').textContent = 
+                        formatTime(consumers.notifications.last_processed);
+                }
+
+                // Update business analytics
+                document.getElementById('totalPurchases').textContent = analytics.total_purchases || '0';
+                document.getElementById('totalRevenue').textContent = 
+                    `$${(analytics.total_revenue || 0).toFixed(2)}`;
+
+                // Calculate processing rate
+                const currentTotal = parseInt(consumers.analytics?.processed_events || 0) +
+                                   parseInt(consumers.recommendations?.processed_events || 0) +
+                                   parseInt(consumers.notifications?.processed_events || 0);
+                const lastTotal = lastEventCounts.total || 0;
+                const rate = Math.max(0, currentTotal - lastTotal) / 2; // 2 second intervals
+                document.getElementById('processingRate').textContent = `${rate.toFixed(1)} events/sec`;
+                lastEventCounts.total = currentTotal;
+
+                // Update system uptime
+                const uptime = Math.floor((Date.now() - startTime) / 1000 / 60);
+                document.getElementById('systemUptime').textContent = `${uptime}m`;
+
+                // Update notifications
+                updateNotificationsList(notifications);
+
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        function updateNotificationsList(notifications) {
+            const container = document.getElementById('notificationsList');
+            
+            if (notifications.length === 0) {
+                container.innerHTML = '<div class="loading">No recent notifications</div>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(notification => `
+                <div class="notification-item">
+                    <div class="notification-title">${notification.title || 'Notification'}</div>
+                    <div class="notification-message">${notification.message || 'No message'}</div>
+                    <div class="notification-time">${formatTime(notification.timestamp)}</div>
+                </div>
+            `).join('');
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Never';
+            
+            try {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                
+                if (diff < 60000) {
+                    return 'Just now';
+                } else if (diff < 3600000) {
+                    return `${Math.floor(diff / 60000)}m ago`;
+                } else {
+                    return date.toLocaleTimeString();
+                }
+            } catch (error) {
+                return 'Invalid time';
+            }
+        }
+
+        function simulateTrafficSpike() {
+            fetch('/api/simulate/traffic_spike')
+                .then(response => response.json())
+                .then(data => {
+                    alert('Traffic spike simulated! Watch the processing rates increase.');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to simulate traffic spike');
+                });
+        }
+
+        function simulateConsumerFailure() {
+            fetch('/api/simulate/consumer_failure')
+                .then(response => response.json())
+                .then(data => {
+                    alert('Consumer failure simulated! Observe the recovery behavior.');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to simulate consumer failure');
+                });
+        }
+
+        function refreshStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    updateStats(data);
+                })
+                .catch(error => {
+                    console.error('Error refreshing stats:', error);
+                });
+        }
+
+        // Initial load
+        refreshStats();
+    </script>
+</body>
+</html>
