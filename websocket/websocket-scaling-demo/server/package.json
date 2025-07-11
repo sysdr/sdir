@@ -1,0 +1,26 @@
+{
+  "name": "websocket-scaling-server",
+  "version": "1.0.0",
+  "description": "Scalable WebSocket server demonstration",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "express": "^4.18.2",
+    "redis": "^4.6.8",
+    "uuid": "^9.0.0",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "helmet": "^7.0.0",
+    "cluster": "^0.7.7",
+    "prom-client": "^14.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.2"
+  }
+}

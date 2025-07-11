@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Scaling Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="material-icons">speed</span>
+                <h1>WebSocket Scaling Demo</h1>
+            </div>
+            <div class="connection-status" id="connectionStatus">
+                <span class="material-icons">wifi_off</span>
+                <span>Disconnected</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="grid">
+            <!-- Connection Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="material-icons">link</span> Connection</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="serverUrl">Server URL:</label>
+                        <input type="text" id="serverUrl" value="ws://localhost:8080" placeholder="ws://localhost:8080">
+                    </div>
+                    <div class="button-group">
+                        <button id="connectBtn" class="btn btn-primary">
+                            <span class="material-icons">power</span>
+                            Connect
+                        </button>
+                        <button id="disconnectBtn" class="btn btn-secondary" disabled>
+                            <span class="material-icons">power_off</span>
+                            Disconnect
+                        </button>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="material-icons">timer</span>
+                            <div>
+                                <label>Uptime:</label>
+                                <span id="uptime">00:00:00</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="material-icons">swap_vert</span>
+                            <div>
+                                <label>Messages:</label>
+                                <span id="messageCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Load Testing Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="material-icons">trending_up</span> Load Testing</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="connectionCount">Concurrent Connections:</label>
+                        <input type="number" id="connectionCount" value="100" min="1" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="messageRate">Messages per Second:</label>
+                        <input type="number" id="messageRate" value="10" min="1" max="100">
+                    </div>
+                    <div class="button-group">
+                        <button id="startLoadTest" class="btn btn-warning">
+                            <span class="material-icons">play_arrow</span>
+                            Start Load Test
+                        </button>
+                        <button id="stopLoadTest" class="btn btn-secondary" disabled>
+                            <span class="material-icons">stop</span>
+                            Stop Test
+                        </button>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="loadProgress"></div>
+                        </div>
+                        <span id="loadStatus">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messaging Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><span class="material-icons">chat</span> Messaging</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="messageType">Message Type:</label>
+                        <select id="messageType">
+                            <option value="broadcast">Broadcast</option>
+                            <option value="room_message">Room Message</option>
+                            <option value="ping">Ping</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="roomGroup" style="display: none;">
+                        <label for="roomName">Room Name:</label>
+                        <input type="text" id="roomName" placeholder="Enter room name">
+                    </div>
+                    <div class="form-group">
+                        <label for="messageContent">Message:</label>
+                        <textarea id="messageContent" placeholder="Enter your message here..."></textarea>
+                    </div>
+                    <button id="sendMessage" class="btn btn-primary" disabled>
+                        <span class="material-icons">send</span>
+                        Send Message
+                    </button>
+                </div>
+            </div>
+
+            <!-- Server Metrics Panel -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2><span class="material-icons">analytics</span> Server Metrics</h2>
+                    <button id="refreshMetrics" class="btn btn-icon">
+                        <span class="material-icons">refresh</span>
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <span class="material-icons">people</span>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="activeConnections">-</div>
+                                <div class="metric-label">Active Connections</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <span class="material-icons">memory</span>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="memoryUsage">-</div>
+                                <div class="metric-label">Memory Usage (MB)</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <span class="material-icons">speed</span>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="messagesPerSecond">-</div>
+                                <div class="metric-label">Messages/sec</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <span class="material-icons">schedule</span>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="serverUptime">-</div>
+                                <div class="metric-label">Server Uptime</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Log Panel -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h2><span class="material-icons">list_alt</span> Message Log</h2>
+                    <button id="clearLog" class="btn btn-icon">
+                        <span class="material-icons">clear_all</span>
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="log-container" id="messageLog">
+                        <div class="log-entry system">
+                            <span class="timestamp">[00:00:00]</span>
+                            <span class="message">System ready. Click Connect to start.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
