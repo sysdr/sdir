@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scale Cube Demo - Testing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #202124;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            display: inline-block;
+            opacity: 0.9;
+        }
+        
+        .back-btn:hover {
+            opacity: 1;
+        }
+        
+        .main-content {
+            padding: 3rem 0;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .test-card {
+            border: 2px solid #e8eaed;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .test-card:hover {
+            border-color: #4285f4;
+        }
+        
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        
+        .btn:hover {
+            background: #3367d6;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .results {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            color: #fbbc04;
+        }
+        
+        .success {
+            color: #34a853;
+        }
+        
+        .error {
+            color: #ea4335;
+        }
+        
+        input, select {
+            padding: 0.75rem;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4285f4;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            color: #5f6368;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+            <h1>Scale Cube Testing</h1>
+            <p>Interactive testing of X, Y, and Z-axis scaling behaviors</p>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="container">
+            <div class="test-grid">
+                <!-- X-Axis Testing -->
+                <div class="test-section">
+                    <h3>🔄 X-Axis Load Testing</h3>
+                    <p>Test load balancing across multiple gateway instances</p>
+                    
+                    <div style="margin: 1rem 0;">
+                        <label>Number of requests:</label>
+                        <select id="requestCount">
+                            <option value="10">10</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn" onclick="testXAxisScaling()">Start Load Test</button>
+                    <button class="btn btn-small" onclick="checkInstances()">Check Instances</button>
+                    
+                    <div class="results" id="xAxisResults">
+                        Ready to test X-axis scaling (horizontal duplication)...
+                    </div>
+                    
+                    <div class="metrics" id="xAxisMetrics" style="display:none;">
+                        <div class="metric">
+                            <div class="metric-value" id="totalRequests">0</div>
+                            <div class="metric-label">Total Requests</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="avgLatency">0ms</div>
+                            <div class="metric-label">Avg Latency</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="instanceCount">0</div>
+                            <div class="metric-label">Instances</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Y-Axis Testing -->
+                <div class="test-section">
+                    <h3>🔀 Y-Axis Service Testing</h3>
+                    <p>Test functional decomposition across microservices</p>
+                    
+                    <div style="margin: 1rem 0;">
+                        <label>Service to test:</label>
+                        <select id="serviceType">
+                            <option value="users">User Service</option>
+                            <option value="products">Product Service</option>
+                            <option value="orders">Order Service</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn" onclick="testYAxisScaling()">Test Service</button>
+                    <button class="btn btn-small" onclick="testAllServices()">Test All Services</button>
+                    
+                    <div class="results" id="yAxisResults">
+                        Ready to test Y-axis scaling (functional decomposition)...
+                    </div>
+                </div>
+                
+                <!-- Z-Axis Testing -->
+                <div class="test-section">
+                    <h3>🗄️ Z-Axis Sharding Testing</h3>
+                    <p>Test data partitioning across database shards</p>
+                    
+                    <div style="margin: 1rem 0;">
+                        <label>Test user ID:</label>
+                        <input type="number" id="userId" value="123" min="1" max="9999">
+                    </div>
+                    
+                    <button class="btn" onclick="testZAxisScaling()">Test Sharding</button>
+                    <button class="btn btn-small" onclick="createTestUsers()">Create Test Users</button>
+                    
+                    <div class="results" id="zAxisResults">
+                        Ready to test Z-axis scaling (data partitioning)...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+        
+        async function testXAxisScaling() {
+            const requestCount = parseInt(document.getElementById('requestCount').value);
+            const resultsElement = document.getElementById('xAxisResults');
+            const metricsElement = document.getElementById('xAxisMetrics');
+            
+            resultsElement.innerHTML = '';
+            metricsElement.style.display = 'none';
+            
+            log('xAxisResults', `Starting load test with ${requestCount} requests...`, 'info');
+            
+            const startTime = performance.now();
+            let successCount = 0;
+            let latencies = [];
+            let instances = new Set();
+            
+            try {
+                const promises = [];
+                for (let i = 0; i < requestCount; i++) {
+                    promises.push(
+                        fetch('/api/scaling-info')
+                            .then(response => response.json())
+                            .then(data => {
+                                successCount++;
+                                const latency = performance.now() - startTime;
+                                latencies.push(latency);
+                                if (data.scale_cube && data.scale_cube.x_axis) {
+                                    instances.add(data.scale_cube.x_axis.current_instance);
+                                }
+                                return data;
+                            })
+                    );
+                }
+                
+                await Promise.all(promises);
+                
+                const avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+                
+                log('xAxisResults', `✅ Load test completed successfully!`, 'success');
+                log('xAxisResults', `📊 Results: ${successCount}/${requestCount} requests successful`, 'success');
+                log('xAxisResults', `⚡ Average latency: ${avgLatency.toFixed(2)}ms`, 'info');
+                log('xAxisResults', `🏗️ Load balanced across ${instances.size} instances: ${Array.from(instances).join(', ')}`, 'info');
+                
+                // Update metrics
+                document.getElementById('totalRequests').textContent = successCount;
+                document.getElementById('avgLatency').textContent = avgLatency.toFixed(0) + 'ms';
+                document.getElementById('instanceCount').textContent = instances.size;
+                metricsElement.style.display = 'grid';
+                
+            } catch (error) {
+                log('xAxisResults', `❌ Load test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkInstances() {
+            log('xAxisResults', 'Checking available instances...', 'info');
+            try {
+                const response = await fetch('/api/scaling-info');
+                const data = await response.json();
+                log('xAxisResults', `📍 Current instance: ${data.scale_cube.x_axis.current_instance}`, 'success');
+            } catch (error) {
+                log('xAxisResults', `❌ Failed to check instances: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testYAxisScaling() {
+            const serviceType = document.getElementById('serviceType').value;
+            log('yAxisResults', `Testing ${serviceType} service...`, 'info');
+            
+            try {
+                const response = await fetch(`/api/${serviceType}/`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('yAxisResults', `✅ ${serviceType} service responded successfully`, 'success');
+                    log('yAxisResults', `📄 Response: ${JSON.stringify(data, null, 2)}`, 'info');
+                } else {
+                    log('yAxisResults', `⚠️ ${serviceType} service returned error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('yAxisResults', `❌ Failed to connect to ${serviceType} service: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAllServices() {
+            const services = ['users', 'products', 'orders'];
+            log('yAxisResults', 'Testing all microservices...', 'info');
+            
+            for (const service of services) {
+                try {
+                    const response = await fetch(`/api/${service}/`);
+                    if (response.ok) {
+                        log('yAxisResults', `✅ ${service} service: OK`, 'success');
+                    } else {
+                        log('yAxisResults', `❌ ${service} service: ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    log('yAxisResults', `❌ ${service} service: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        async function testZAxisScaling() {
+            const userId = parseInt(document.getElementById('userId').value);
+            log('zAxisResults', `Testing Z-axis sharding for user ID: ${userId}...`, 'info');
+            
+            // Calculate expected shard (same logic as backend)
+            const expectedShard = (userId % 2) + 1;
+            log('zAxisResults', `🧮 Expected shard for user ${userId}: ${expectedShard}`, 'info');
+            
+            try {
+                // Create user to test sharding
+                const createResponse = await fetch('/api/users/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: `user_${userId}`,
+                        email: `user_${userId}@example.com`,
+                        full_name: `Test User ${userId}`
+                    })
+                });
+                
+                if (createResponse.ok) {
+                    const userData = await createResponse.json();
+                    log('zAxisResults', `✅ User created successfully`, 'success');
+                    log('zAxisResults', `🗄️ Stored in shard: ${userData.shard_id}`, 'success');
+                    
+                    if (userData.shard_id === expectedShard) {
+                        log('zAxisResults', `✅ Sharding working correctly!`, 'success');
+                    } else {
+                        log('zAxisResults', `⚠️ Shard mismatch - expected ${expectedShard}, got ${userData.shard_id}`, 'error');
+                    }
+                } else {
+                    log('zAxisResults', `❌ Failed to create user: ${createResponse.status}`, 'error');
+                }
+            } catch (error) {
+                log('zAxisResults', `❌ Sharding test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function createTestUsers() {
+            log('zAxisResults', 'Creating test users across shards...', 'info');
+            
+            const testUsers = [1, 2, 3, 4, 5];
+            for (const userId of testUsers) {
+                try {
+                    const response = await fetch('/api/users/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: `testuser_${userId}`,
+                            email: `testuser_${userId}@example.com`,
+                            full_name: `Test User ${userId}`
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        log('zAxisResults', `✅ User ${userId} → Shard ${userData.shard_id}`, 'success');
+                    }
+                } catch (error) {
+                    log('zAxisResults', `❌ Failed to create user ${userId}`, 'error');
+                }
+            }
+        }
+        
+        // Auto-refresh instance info every 5 seconds
+        setInterval(checkInstances, 5000);
+    </script>
+</body>
+</html>

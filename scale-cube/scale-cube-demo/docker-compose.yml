@@ -1,0 +1,163 @@
+
+
+services:
+  # Redis for session management and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # PostgreSQL databases for each service (Y-axis) and sharding (Z-axis)
+  user_db_1:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: user_service_1
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - user_db_1_data:/var/lib/postgresql/data
+
+  user_db_2:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: user_service_2
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_db_2_data:/var/lib/postgresql/data
+
+  product_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: product_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - product_db_data:/var/lib/postgresql/data
+
+  order_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: order_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+
+  # Load balancer (nginx)
+  load_balancer:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - gateway_1
+      - gateway_2
+
+  # API Gateway instances (X-axis scaling)
+  gateway_1:
+    build: .
+    command: python services/gateway/main.py
+    environment:
+      - SERVICE_PORT=8000
+      - INSTANCE_ID=gateway_1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - user_service_1
+      - user_service_2
+      - product_service
+      - order_service
+
+  gateway_2:
+    build: .
+    command: python services/gateway/main.py
+    environment:
+      - SERVICE_PORT=8000
+      - INSTANCE_ID=gateway_2
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - user_service_1
+      - user_service_2
+      - product_service
+      - order_service
+
+  # User Service instances (Y-axis scaling with Z-axis sharding)
+  user_service_1:
+    build: .
+    command: python services/user/main.py
+    environment:
+      - SERVICE_PORT=8001
+      - SHARD_ID=1
+      - DATABASE_URL=postgresql://postgres:password@user_db_1:5432/user_service_1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - user_db_1
+      - redis
+
+  user_service_2:
+    build: .
+    command: python services/user/main.py
+    environment:
+      - SERVICE_PORT=8001
+      - SHARD_ID=2
+      - DATABASE_URL=postgresql://postgres:password@user_db_2:5432/user_service_2
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - user_db_2
+      - redis
+
+  # Product Service (Y-axis scaling)
+  product_service:
+    build: .
+    command: python services/product/main.py
+    environment:
+      - SERVICE_PORT=8002
+      - DATABASE_URL=postgresql://postgres:password@product_db:5432/product_service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - product_db
+      - redis
+
+  # Order Service (Y-axis scaling)
+  order_service:
+    build: .
+    command: python services/order/main.py
+    environment:
+      - SERVICE_PORT=8003
+      - DATABASE_URL=postgresql://postgres:password@order_db:5432/order_service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - order_db
+      - redis
+
+  # Web UI
+  web_ui:
+    build: .
+    command: python web/main.py
+    ports:
+      - "3000:3000"
+    environment:
+      - GATEWAY_URL=http://load_balancer
+    depends_on:
+      - load_balancer
+
+volumes:
+  redis_data:
+  user_db_1_data:
+  user_db_2_data:
+  product_db_data:
+  order_db_data:
