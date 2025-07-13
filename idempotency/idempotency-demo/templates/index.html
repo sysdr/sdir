@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idempotency in Distributed Systems - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #202124;
+        }
+
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 500;
+            color: #1a73e8;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: #1a73e8;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #5f6368;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dadce0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 12px;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #5f6368;
+            border: 2px solid #dadce0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8eaed;
+        }
+
+        .results {
+            margin-top: 24px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            border-left: 4px solid #34a853;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .result-item.error {
+            border-left-color: #ea4335;
+        }
+
+        .result-item.cached {
+            border-left-color: #fbbc04;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .status-number {
+            font-size: 32px;
+            font-weight: 500;
+            color: #1a73e8;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #5f6368;
+            margin-top: 4px;
+        }
+
+        .scenario-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .highlight {
+            background: #e3f2fd;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid #1a73e8;
+        }
+
+        .code {
+            background: #263238;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🔄 Idempotency Demo</div>
+        <div>System Design Interview Roadmap - Issue #94</div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-title">Understanding Idempotency in Action</div>
+            <div class="highlight">
+                <strong>Idempotency Guarantee:</strong> No matter how many times you retry the same operation, 
+                the result will be identical. This prevents duplicate charges, double processing, 
+                and maintains system consistency during network failures.
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Payment Processing Demo</div>
+            
+            <div class="form-group">
+                <label>Amount (USD)</label>
+                <input type="number" id="amount" value="100.00" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label>Customer ID</label>
+                <input type="text" id="customerId" value="customer_123">
+            </div>
+            
+            <div class="form-group">
+                <label>Currency</label>
+                <select id="currency">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="simulateFailure"> 
+                    Simulate payment failure (for amounts > $1000)
+                </label>
+            </div>
+
+            <div class="scenario-buttons">
+                <button class="btn" onclick="processPayment()">Process Payment</button>
+                <button class="btn btn-secondary" onclick="simulateRetry()">Simulate Network Retry (3x)</button>
+                <button class="btn btn-secondary" onclick="simulateDoubleClick()">Simulate Double-Click</button>
+                <button class="btn btn-secondary" onclick="demonstrateTimeWindow()">Time Window Test</button>
+            </div>
+
+            <div id="results" class="results"></div>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-number" id="totalPayments">0</div>
+                <div class="status-label">Total Payments</div>
+            </div>
+            <div class="status-card">
+                <div class="status-number" id="cachedOperations">0</div>
+                <div class="status-label">Cached Operations</div>
+            </div>
+            <div class="status-card">
+                <div class="status-number" id="redisKeys">0</div>
+                <div class="status-label">Redis Keys</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Recent Payments</div>
+            <div id="paymentsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let requestCount = 0;
+
+        async function makeRequest(url, data) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        }
+
+        async function processPayment() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const customerId = document.getElementById('customerId').value;
+            const currency = document.getElementById('currency').value;
+            const simulateFailure = document.getElementById('simulateFailure').checked;
+
+            const data = {
+                amount,
+                customer_id: customerId,
+                currency,
+                simulate_failure: simulateFailure
+            };
+
+            try {
+                showLoading();
+                const result = await makeRequest('/api/payment', data);
+                displayResult('Single Payment', [result]);
+                await updateStats();
+                await loadPayments();
+            } catch (error) {
+                displayError('Payment processing failed: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function simulateRetry() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const customerId = document.getElementById('customerId').value;
+            const currency = document.getElementById('currency').value;
+            const simulateFailure = document.getElementById('simulateFailure').checked;
+
+            const data = {
+                amount,
+                customer_id: customerId,
+                currency,
+                simulate_failure: simulateFailure,
+                retry_count: 3
+            };
+
+            try {
+                showLoading();
+                const result = await makeRequest('/api/simulate-retry', data);
+                displayResult('Network Retry Simulation', result.results, result.all_identical);
+                await updateStats();
+                await loadPayments();
+            } catch (error) {
+                displayError('Retry simulation failed: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function simulateDoubleClick() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const customerId = document.getElementById('customerId').value;
+            const currency = document.getElementById('currency').value;
+
+            const data = {
+                amount,
+                customer_id: customerId,
+                currency,
+                idempotency_key: 'double-click-' + Date.now()
+            };
+
+            try {
+                showLoading();
+                // Simulate rapid double-click
+                const promises = [
+                    makeRequest('/api/payment', data),
+                    makeRequest('/api/payment', data)
+                ];
+                
+                const results = await Promise.all(promises);
+                displayResult('Double-Click Simulation', results, 
+                    results[0].payment_id === results[1].payment_id);
+                await updateStats();
+                await loadPayments();
+            } catch (error) {
+                displayError('Double-click simulation failed: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function demonstrateTimeWindow() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const customerId = document.getElementById('customerId').value;
+            const currency = document.getElementById('currency').value;
+
+            try {
+                showLoading();
+                
+                // First payment
+                const result1 = await makeRequest('/api/payment', {
+                    amount,
+                    customer_id: customerId,
+                    currency
+                });
+
+                // Wait a moment, then try the same payment (should be idempotent)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const result2 = await makeRequest('/api/payment', {
+                    amount,
+                    customer_id: customerId,
+                    currency
+                });
+
+                displayResult('Time Window Test', [result1, result2], 
+                    result1.payment_id === result2.payment_id);
+                await updateStats();
+                await loadPayments();
+            } catch (error) {
+                displayError('Time window test failed: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResult(title, results, allIdentical = null) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `<h3>${title}</h3>`;
+            
+            if (allIdentical !== null) {
+                html += `<div class="highlight">
+                    <strong>Idempotency Check:</strong> ${allIdentical ? '✅ All results identical' : '❌ Results differ'}
+                </div>`;
+            }
+
+            results.forEach((result, index) => {
+                const isCached = result.was_cached || index > 0;
+                const cssClass = result.status === 'failed' ? 'error' : (isCached ? 'cached' : '');
+                
+                html += `<div class="result-item ${cssClass}">
+                    <strong>Attempt ${index + 1}:</strong><br>
+                    Status: ${result.status}<br>
+                    ${result.payment_id ? `Payment ID: ${result.payment_id}<br>` : ''}
+                    ${result.amount ? `Amount: $${result.amount}<br>` : ''}
+                    ${result.error ? `Error: ${result.error}<br>` : ''}
+                    Idempotency Key: ${result.idempotency_key}<br>
+                    ${isCached ? '<em>🔄 Returned from cache (idempotent)</em>' : '<em>✨ New operation processed</em>'}
+                </div>`;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function displayError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="result-item error">${message}</div>`;
+        }
+
+        function showLoading() {
+            document.body.classList.add('loading');
+        }
+
+        function hideLoading() {
+            document.body.classList.remove('loading');
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalPayments').textContent = stats.total_payments;
+                document.getElementById('cachedOperations').textContent = stats.cached_operations;
+                document.getElementById('redisKeys').textContent = stats.redis_keys;
+            } catch (error) {
+                console.error('Failed to update stats:', error);
+            }
+        }
+
+        async function loadPayments() {
+            try {
+                const response = await fetch('/api/payments');
+                const payments = await response.json();
+                
+                const paymentsDiv = document.getElementById('paymentsList');
+                let html = '';
+                
+                payments.slice(0, 5).forEach(payment => {
+                    html += `<div class="result-item">
+                        <strong>Payment ${payment.id.substring(0, 8)}...</strong><br>
+                        Amount: $${payment.amount} ${payment.currency}<br>
+                        Customer: ${payment.customer_id}<br>
+                        Status: ${payment.status}<br>
+                        Created: ${new Date(payment.created_at).toLocaleString()}
+                    </div>`;
+                });
+                
+                paymentsDiv.innerHTML = html || '<p>No payments yet</p>';
+            } catch (error) {
+                console.error('Failed to load payments:', error);
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            loadPayments();
+            
+            // Auto-refresh stats every 10 seconds
+            setInterval(() => {
+                updateStats();
+                loadPayments();
+            }, 10000);
+        });
+    </script>
+</body>
+</html>

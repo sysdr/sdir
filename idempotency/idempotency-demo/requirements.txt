@@ -1,0 +1,9 @@
+flask==3.0.0
+redis==5.0.1
+psycopg2-binary==2.9.9
+requests==2.31.0
+pytest==7.4.3
+sqlalchemy==2.0.23
+flask-sqlalchemy==3.1.1
+gunicorn==21.2.0
+python-dotenv==1.0.0
