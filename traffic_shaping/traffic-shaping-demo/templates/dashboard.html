@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Shaping and Rate Limiting Demo</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Traffic Shaping and Rate Limiting Demo</h1>
+            <p>System Design Interview Roadmap - Issue #95</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="control-panel">
+            <h2>Rate Limiter Testing</h2>
+            <div class="limiter-controls">
+                <div class="limiter-card" data-limiter="token_bucket">
+                    <h3>Token Bucket</h3>
+                    <div class="limiter-status" id="token_bucket_status">
+                        <div class="status-item">
+                            <span class="label">Tokens:</span>
+                            <span class="value" id="token_bucket_tokens">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Capacity:</span>
+                            <span class="value">10</span>
+                        </div>
+                    </div>
+                    <button class="test-btn" onclick="testLimiter('token_bucket')">Send Request</button>
+                    <button class="reset-btn" onclick="resetLimiter('token_bucket')">Reset</button>
+                </div>
+
+                <div class="limiter-card" data-limiter="sliding_window">
+                    <h3>Sliding Window</h3>
+                    <div class="limiter-status" id="sliding_window_status">
+                        <div class="status-item">
+                            <span class="label">Current:</span>
+                            <span class="value" id="sliding_window_current">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Max:</span>
+                            <span class="value">100/min</span>
+                        </div>
+                    </div>
+                    <button class="test-btn" onclick="testLimiter('sliding_window')">Send Request</button>
+                    <button class="reset-btn" onclick="resetLimiter('sliding_window')">Reset</button>
+                </div>
+
+                <div class="limiter-card" data-limiter="fixed_window">
+                    <h3>Fixed Window</h3>
+                    <div class="limiter-status" id="fixed_window_status">
+                        <div class="status-item">
+                            <span class="label">Current:</span>
+                            <span class="value" id="fixed_window_current">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">Max:</span>
+                            <span class="value">50/min</span>
+                        </div>
+                    </div>
+                    <button class="test-btn" onclick="testLimiter('fixed_window')">Send Request</button>
+                    <button class="reset-btn" onclick="resetLimiter('fixed_window')">Reset</button>
+                </div>
+            </div>
+
+            <div class="bulk-testing">
+                <h3>Bulk Testing</h3>
+                <div class="bulk-controls">
+                    <select id="bulk_limiter">
+                        <option value="token_bucket">Token Bucket</option>
+                        <option value="sliding_window">Sliding Window</option>
+                        <option value="fixed_window">Fixed Window</option>
+                    </select>
+                    <input type="number" id="bulk_count" value="20" min="1" max="200" placeholder="Request count">
+                    <input type="number" id="bulk_interval" value="100" min="10" max="5000" placeholder="Interval (ms)">
+                    <button onclick="startBulkTest()">Start Bulk Test</button>
+                    <button onclick="stopBulkTest()">Stop</button>
+                </div>
+                <div class="bulk-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="bulk_progress"></div>
+                    </div>
+                    <span id="bulk_status">Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metrics-panel">
+            <h2>Real-time Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>Requests per Second</h4>
+                    <div class="metric-value" id="rps_value">0</div>
+                </div>
+                <div class="metric-card">
+                    <h4>Success Rate</h4>
+                    <div class="metric-value" id="success_rate">100%</div>
+                </div>
+                <div class="metric-card">
+                    <h4>Avg Response Time</h4>
+                    <div class="metric-value" id="avg_response_time">0ms</div>
+                </div>
+                <div class="metric-card">
+                    <h4>Total Requests</h4>
+                    <div class="metric-value" id="total_requests">0</div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h4>Request Rate Over Time</h4>
+                    <canvas id="requestRateChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h4>Response Time Distribution</h4>
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-panel">
+            <h2>Request Logs</h2>
+            <div class="logs-container" id="logs_container">
+                <!-- Logs will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
