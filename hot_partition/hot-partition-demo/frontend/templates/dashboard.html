@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot Partition Detection Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>🔥 Hot Partition Detection Dashboard</h1>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Entropy Score</span>
+                        <span class="stat-value" id="entropy-score">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Active Partitions</span>
+                        <span class="stat-value" id="active-partitions">5</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">System Status</span>
+                        <span class="stat-value" id="system-status">Normal</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Control Panel -->
+            <section class="control-panel">
+                <h2>Control Panel</h2>
+                <div class="controls">
+                    <button class="btn btn-warning" onclick="triggerHotspot()">
+                        🔥 Trigger Hotspot
+                    </button>
+                    <button class="btn btn-success" onclick="endHotspot()">
+                        🧯 End Hotspot
+                    </button>
+                    <select id="hotspot-partition">
+                        <option value="">Auto Select</option>
+                        <option value="partition_0">Partition 0</option>
+                        <option value="partition_1">Partition 1</option>
+                        <option value="partition_2">Partition 2</option>
+                        <option value="partition_3">Partition 3</option>
+                        <option value="partition_4">Partition 4</option>
+                    </select>
+                    <input type="range" id="intensity-slider" min="2" max="10" value="5" step="0.5">
+                    <span id="intensity-value">5.0x</span>
+                </div>
+            </section>
+
+            <!-- Metrics Grid -->
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Request Distribution</h3>
+                    <canvas id="request-chart"></canvas>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>Memory Usage</h3>
+                    <canvas id="memory-chart"></canvas>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>Response Times</h3>
+                    <canvas id="response-chart"></canvas>
+                </div>
+                
+                <div class="metric-card">
+                    <h3>Entropy Timeline</h3>
+                    <canvas id="entropy-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Partition Status -->
+            <section class="partition-status">
+                <h2>Partition Status</h2>
+                <div class="partition-grid" id="partition-grid">
+                    <!-- Dynamically populated -->
+                </div>
+            </section>
+
+            <!-- Alerts Panel -->
+            <section class="alerts-panel">
+                <h2>Active Alerts</h2>
+                <div class="alerts-container" id="alerts-container">
+                    <div class="no-alerts">No active alerts</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
