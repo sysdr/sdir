@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Scaling Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #202124;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #1a73e8;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 300;
+            color: #1a73e8;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #202124;
+        }
+        
+        .button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
+        }
+        
+        .button:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #34a853;
+            background: #e8f5e8;
+            color: #137333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Predictive Scaling Dashboard</h1>
+            <p>Real-time traffic prediction and automated scaling decisions</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Current RPS</h3>
+                <div class="stat-value" id="current-rps">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Instances</h3>
+                <div class="stat-value" id="active-instances">5</div>
+            </div>
+            <div class="stat-card">
+                <h3>Prediction Confidence</h3>
+                <div class="stat-value" id="prediction-confidence">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Next Hour Prediction</h3>
+                <div class="stat-value" id="next-hour-prediction">-</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="button" onclick="loadData()">Refresh Data</button>
+            <button class="button" onclick="simulateSpike()">Simulate Traffic Spike</button>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Historical Traffic Patterns</div>
+                <div id="historical-chart"></div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Traffic Predictions (Next 24 Hours)</div>
+                <div id="predictions-chart"></div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">Scaling Decisions Timeline</div>
+            <div id="scaling-chart"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentData = null;
+        let predictions = null;
+        let scalingDecisions = null;
+        
+        async function loadData() {
+            try {
+                showAlert('Loading data...', 'info');
+                
+                const [historicalResponse, predictionsResponse, scalingResponse] = await Promise.all([
+                    fetch('/api/historical-data'),
+                    fetch('/api/predictions'),
+                    fetch('/api/scaling-decisions')
+                ]);
+                
+                currentData = await historicalResponse.json();
+                predictions = await predictionsResponse.json();
+                scalingDecisions = await scalingResponse.json();
+                
+                updateStats();
+                updateCharts();
+                
+                showAlert('Data loaded successfully!', 'success');
+            } catch (error) {
+                showAlert('Error loading data: ' + error.message, 'error');
+            }
+        }
+        
+        function updateStats() {
+            if (!currentData || !predictions) return;
+            
+            const currentRPS = currentData.requests_per_second[currentData.requests_per_second.length - 1];
+            const nextHourPrediction = predictions.predicted_rps[0];
+            const confidence = predictions.confidence[0];
+            
+            document.getElementById('current-rps').textContent = Math.round(currentRPS);
+            document.getElementById('next-hour-prediction').textContent = Math.round(nextHourPrediction);
+            document.getElementById('prediction-confidence').textContent = Math.round(confidence * 100) + '%';
+        }
+        
+        function updateCharts() {
+            if (!currentData || !predictions) return;
+            
+            // Historical chart
+            const historicalTrace = {
+                x: currentData.timestamps,
+                y: currentData.requests_per_second,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Historical RPS',
+                line: { color: '#1a73e8', width: 2 }
+            };
+            
+            Plotly.newPlot('historical-chart', [historicalTrace], {
+                margin: { t: 0, r: 0, b: 40, l: 60 },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white',
+                xaxis: { title: 'Time' },
+                yaxis: { title: 'Requests per Second' }
+            });
+            
+            // Predictions chart
+            const predictionsTrace = {
+                x: predictions.timestamps,
+                y: predictions.predicted_rps,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Predicted RPS',
+                line: { color: '#34a853', width: 2 },
+                marker: { size: 6 }
+            };
+            
+            const confidenceTrace = {
+                x: predictions.timestamps,
+                y: predictions.confidence.map(c => c * 100),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Confidence %',
+                yaxis: 'y2',
+                line: { color: '#ea4335', width: 2, dash: 'dash' }
+            };
+            
+            Plotly.newPlot('predictions-chart', [predictionsTrace, confidenceTrace], {
+                margin: { t: 0, r: 60, b: 40, l: 60 },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white',
+                xaxis: { title: 'Time' },
+                yaxis: { title: 'Predicted RPS' },
+                yaxis2: {
+                    title: 'Confidence %',
+                    overlaying: 'y',
+                    side: 'right'
+                }
+            });
+            
+            // Scaling decisions chart
+            const scalingTrace = {
+                x: scalingDecisions.map(d => d.timestamp),
+                y: scalingDecisions.map(d => d.target_instances),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Target Instances',
+                line: { color: '#ff9800', width: 3 },
+                marker: { size: 8 }
+            };
+            
+            const currentInstancesTrace = {
+                x: scalingDecisions.map(d => d.timestamp),
+                y: scalingDecisions.map(d => d.current_instances),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Current Instances',
+                line: { color: '#9e9e9e', width: 2, dash: 'dash' }
+            };
+            
+            Plotly.newPlot('scaling-chart', [scalingTrace, currentInstancesTrace], {
+                margin: { t: 0, r: 0, b: 40, l: 60 },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white',
+                xaxis: { title: 'Time' },
+                yaxis: { title: 'Instance Count' }
+            });
+        }
+        
+        async function simulateSpike() {
+            try {
+                showAlert('Simulating traffic spike...', 'info');
+                
+                const response = await fetch('/api/simulate-traffic-spike');
+                const data = await response.json();
+                
+                showAlert(`Traffic spike simulated! Peak: ${Math.round(data.spike_data.requests_per_second)} RPS`, 'warning');
+                
+                // Reload data to show new predictions
+                setTimeout(() => loadData(), 1000);
+            } catch (error) {
+                showAlert('Error simulating spike: ' + error.message, 'error');
+            }
+        }
+        
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertClass = type === 'error' ? 'alert-error' : type === 'warning' ? 'alert-warning' : 'alert-success';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadData);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
