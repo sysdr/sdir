@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./src/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - WORKER_SERVICE_URL=http://worker-service:8001
+    depends_on:
+      - redis
+      - worker-service
+    networks:
+      - serverless-network
+    restart: unless-stopped
+
+  # Worker Service (can be scaled)
+  worker-service:
+    build:
+      context: ./src/worker-service
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://user:password@postgres:5432/serverless_demo
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - serverless-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  # Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-gateway
+    networks:
+      - serverless-network
+    restart: unless-stopped
+
+  # Redis for caching and job queue
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - serverless-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=serverless_demo
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - serverless-network
+    restart: unless-stopped
+
+  # Monitoring Service
+  monitoring:
+    build:
+      context: ./src/monitoring
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - serverless-network
+    restart: unless-stopped
+
+  # Load Testing Service (optional profile)
+  load-test:
+    build:
+      context: ./src/load-test
+      dockerfile: Dockerfile
+    environment:
+      - TARGET_URL=http://nginx
+      - CONCURRENT_USERS=10
+      - DURATION=60
+    depends_on:
+      - nginx
+    networks:
+      - serverless-network
+    profiles:
+      - load-test
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  serverless-network:
+    driver: bridge 
