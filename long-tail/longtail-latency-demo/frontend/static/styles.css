@@ -1,0 +1,343 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    max-height: 100vh;
+    overflow-x: hidden;
+    color: #333;
+}
+
+.header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 1rem 0;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.header h1 {
+    color: #1a73e8;
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.header p {
+    color: #5f6368;
+    font-size: 1rem;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e8eaed;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card h3 {
+    color: #5f6368;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a73e8;
+    margin-bottom: 0.25rem;
+}
+
+.metric-trend {
+    font-size: 0.875rem;
+    color: #5f6368;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    min-height: 380px;
+    max-height: 380px;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e8eaed;
+    height: 380px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container h3 {
+    color: #202124;
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.chart-container canvas {
+    flex: 1;
+    max-height: 280px !important;
+    height: 280px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+}
+
+.config-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e8eaed;
+    margin-bottom: 2rem;
+}
+
+.config-panel h3 {
+    color: #202124;
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+}
+
+.config-section {
+    margin-bottom: 2rem;
+}
+
+.config-section h4 {
+    color: #5f6368;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.config-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.config-item:hover {
+    background: #f1f3f4;
+}
+
+.config-item.mitigation {
+    background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+    border-color: #34a853;
+}
+
+.config-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #1a73e8;
+}
+
+.config-item input[type="range"] {
+    flex: 1;
+    accent-color: #1a73e8;
+}
+
+.config-item span:first-of-type {
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.config-item small {
+    color: #5f6368;
+    font-size: 0.75rem;
+    margin-left: auto;
+}
+
+.test-controls {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e8eaed;
+    margin-bottom: 2rem;
+}
+
+.test-controls h3 {
+    color: #202124;
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: #1a73e8;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1557b0;
+}
+
+.btn-secondary {
+    background: #fbbc04;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #f9ab00;
+}
+
+.btn-danger {
+    background: #ea4335;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #d33b2c;
+}
+
+.btn-outline {
+    background: transparent;
+    color: #1a73e8;
+    border: 1px solid #1a73e8;
+}
+
+.btn-outline:hover {
+    background: #1a73e8;
+    color: white;
+}
+
+.test-status {
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e8eaed;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    min-height: 50px;
+    color: #5f6368;
+}
+
+@media (max-width: 768px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+        min-height: 320px;
+        max-height: 320px;
+    }
+    
+    .chart-container {
+        height: 320px;
+    }
+    
+    .chart-container canvas {
+        flex: 1;
+        max-height: 240px !important;
+        height: 240px !important;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .config-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Animation for metrics updates */
+.metric-value {
+    transition: color 0.3s ease;
+}
+
+.metric-value.updated {
+    color: #34a853;
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #1a73e8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
