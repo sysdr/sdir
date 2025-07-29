@@ -1,0 +1,13 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+redis==5.0.1
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+Faker==20.1.0
+requests==2.31.0
+pytest==7.4.3
+gunicorn==21.2.0
+mmh3==4.0.1
+numpy==1.24.4
+plotly==5.17.0
+dash==2.14.2
