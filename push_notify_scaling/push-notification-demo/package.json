@@ -1,0 +1,21 @@
+{
+  "name": "push-notification-demo",
+  "version": "1.0.0",
+  "description": "Scalable Push Notification System Demo",
+  "scripts": {
+    "test": "cd tests && node integration-tests.js",
+    "load-test": "cd tests && node load-test.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "express": "^4.18.2",
+    "redis": "^4.6.10",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1",
+    "socket.io": "^4.7.4",
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
