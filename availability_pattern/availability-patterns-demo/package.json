@@ -1,0 +1,21 @@
+{
+  "name": "availability-patterns-demo",
+  "version": "1.0.0",
+  "description": "Demo of Active-Passive vs Active-Active patterns",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "jest tests/"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "redis": "^4.6.10",
+    "axios": "^1.6.0",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  }
+}

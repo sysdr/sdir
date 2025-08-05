@@ -1,0 +1,124 @@
+services:
+  # Redis for shared state
+  redis:
+    image: redis:7-alpine
+    container_name: availability-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Active-Passive Pattern - Primary Node
+  app-ap-primary:
+    build: .
+    container_name: ap-primary
+    environment:
+      - PORT=3000
+      - MODE=active-passive
+      - NODE_ID=ap-primary
+    ports:
+      - "3001:3000"
+      - "4001:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Active-Passive Pattern - Standby Node
+  app-ap-standby:
+    build: .
+    container_name: ap-standby
+    environment:
+      - PORT=3000
+      - MODE=active-passive
+      - NODE_ID=ap-standby
+    ports:
+      - "3002:3000"
+      - "4002:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Active-Active Pattern - Node 1
+  app-aa-node1:
+    build: .
+    container_name: aa-node1
+    environment:
+      - PORT=3000
+      - MODE=active-active
+      - NODE_ID=aa-node1
+    ports:
+      - "3003:3000"
+      - "4003:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Active-Active Pattern - Node 2
+  app-aa-node2:
+    build: .
+    container_name: aa-node2
+    environment:
+      - PORT=3000
+      - MODE=active-active
+      - NODE_ID=aa-node2
+    ports:
+      - "3004:3000"
+      - "4004:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Load Balancer for Active-Passive
+  lb-active-passive:
+    image: nginx:alpine
+    container_name: lb-ap
+    volumes:
+      - ./config/nginx/active-passive.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8080:80"
+    depends_on:
+      - app-ap-primary
+      - app-ap-standby
+    restart: unless-stopped
+
+  # Load Balancer for Active-Active
+  lb-active-active:
+    image: nginx:alpine
+    container_name: lb-aa
+    volumes:
+      - ./config/nginx/active-active.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8081:80"
+    depends_on:
+      - app-aa-node1
+      - app-aa-node2
+    restart: unless-stopped
+
+  # Dashboard Server
+  dashboard:
+    build: .
+    container_name: availability-dashboard
+    environment:
+      - PORT=8000
+      - MODE=dashboard
+      - NODE_ID=dashboard
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./dashboard:/app/dashboard
+    depends_on:
+      - redis
+    command: node -e "const express = require('express'); const app = express(); app.use(express.static('dashboard')); app.listen(8000, () => console.log('Dashboard running on port 8000'));"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: availability-network
