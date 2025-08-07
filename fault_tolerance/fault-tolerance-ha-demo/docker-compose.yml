@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - payment-service
+      - user-service-1
+      - user-service-2
+      - user-service-3
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  user-service-1:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    environment:
+      - INSTANCE_ID=user-1
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+
+  user-service-2:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    environment:
+      - INSTANCE_ID=user-2
+      - PORT=3002
+    ports:
+      - "3003:3002"
+    restart: unless-stopped
+
+  user-service-3:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    environment:
+      - INSTANCE_ID=user-3
+      - PORT=3002
+    ports:
+      - "3004:3002"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - gateway
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

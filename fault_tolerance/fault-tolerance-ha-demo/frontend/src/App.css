@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom styles for the dashboard */
+.dashboard-card {
+  @apply bg-white rounded-lg shadow-lg p-6 border border-gray-200;
+}
+
+.status-indicator {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-healthy {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-degraded {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-failed {
+  @apply bg-red-100 text-red-800;
+}
+
+.circuit-indicator {
+  @apply w-3 h-3 rounded-full inline-block mr-2;
+}
+
+.circuit-closed {
+  @apply bg-green-500;
+}
+
+.circuit-half-open {
+  @apply bg-yellow-500;
+}
+
+.circuit-open {
+  @apply bg-red-500;
+}
