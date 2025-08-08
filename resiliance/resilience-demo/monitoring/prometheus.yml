@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'web-api'
+    static_configs:
+      - targets: ['web-api:3001']
+    metrics_path: '/metrics'
+
+  - job_name: 'database-service'
+    static_configs:
+      - targets: ['database-service:3002']
+    metrics_path: '/metrics'
+
+  - job_name: 'cache-service'
+    static_configs:
+      - targets: ['cache-service:3003']
+    metrics_path: '/metrics'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
