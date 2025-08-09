@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Redis for Tier 1 services (mission-critical)
+  redis-primary:
+    image: redis:7-alpine
+    container_name: redis-primary
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data/primary/redis:/data
+    command: redis-server --appendonly yes --save 1 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL for Tier 2 services
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: postgres-primary
+    environment:
+      POSTGRES_DB: businessdb
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: dbpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/primary/postgres:/var/lib/postgresql/data
+      - ./config/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbuser -d businessdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # InfluxDB for metrics and Tier 3 analytics
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpass123
+      DOCKER_INFLUXDB_INIT_ORG: disaster-recovery-org
+      DOCKER_INFLUXDB_INIT_BUCKET: metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./data/metrics:/var/lib/influxdb2
+
+  # Tier 1: Mission Critical Services (RTO: 30s, RPO: 0s)
+  payment-service:
+    build: ./src/services/tier1
+    container_name: payment-service
+    environment:
+      - SERVICE_NAME=payment-service
+      - SERVICE_TIER=1
+      - RTO_SECONDS=30
+      - RPO_SECONDS=0
+      - REDIS_URL=redis://redis-primary:6379
+    ports:
+      - "3001:3000"
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # Tier 2: Business Critical Services (RTO: 5min, RPO: 1min)
+  inventory-service:
+    build: ./src/services/tier2
+    container_name: inventory-service
+    environment:
+      - SERVICE_NAME=inventory-service
+      - SERVICE_TIER=2
+      - RTO_SECONDS=300
+      - RPO_SECONDS=60
+      - DATABASE_URL=postgresql://dbuser:dbpass123@postgres-primary:5432/businessdb
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # Tier 3: Important Services (RTO: 4hr, RPO: 1hr)
+  analytics-service:
+    build: ./src/services/tier3
+    container_name: analytics-service
+    environment:
+      - SERVICE_NAME=analytics-service
+      - SERVICE_TIER=3
+      - RTO_SECONDS=14400
+      - RPO_SECONDS=3600
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=my-super-secret-auth-token
+      - INFLUX_ORG=disaster-recovery-org
+      - INFLUX_BUCKET=metrics
+    ports:
+      - "3003:3000"
+    depends_on:
+      - influxdb
+    volumes:
+      - ./logs:/app/logs
+
+  # Backup System
+  backup-system:
+    build: ./src/backup-system
+    container_name: backup-system
+    environment:
+      - REDIS_URL=redis://redis-primary:6379
+      - DATABASE_URL=postgresql://dbuser:dbpass123@postgres-primary:5432/businessdb
+      - INFLUX_URL=http://influxdb:8086
+      - BACKUP_INTERVAL_TIER1=10
+      - BACKUP_INTERVAL_TIER2=60
+      - BACKUP_INTERVAL_TIER3=3600
+    volumes:
+      - ./data/backup:/app/backups
+      - ./logs:/app/logs
+    depends_on:
+      - redis-primary
+      - postgres-primary
+      - influxdb
+
+  # Main Dashboard
+  dashboard:
+    build: ./src/dashboard
+    container_name: dashboard
+    environment:
+      - REDIS_URL=redis://redis-primary:6379
+      - DATABASE_URL=postgresql://dbuser:dbpass123@postgres-primary:5432/businessdb
+      - INFLUX_URL=http://influxdb:8086
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis-primary
+      - postgres-primary
+      - influxdb
+    volumes:
+      - ./logs:/app/logs
+
+  # Disaster Injection Service
+  disaster-injector:
+    build: ./src/monitoring
+    container_name: disaster-injector
+    environment:
+      - REDIS_URL=redis://redis-primary:6379
+      - DATABASE_URL=postgresql://dbuser:dbpass123@postgres-primary:5432/businessdb
+    volumes:
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - redis-primary
+      - postgres-primary
+
+volumes:
+  redis_data:
+  postgres_data:
+  influx_data:
+
+networks:
+  default:
+    name: disaster-recovery-net

@@ -1,0 +1,359 @@
+[0;32m[DEMO] 🚀 Starting Disaster Recovery Planning Demo[0m
+[0;32m[DEMO] ===========================================[0m
+[0;32m[DEMO] Building all disaster recovery services...[0m
+time="2025-08-09T19:01:31+05:30" level=warning msg="/Users/sumedhshende/sysd/sdir/disaster_recovery/disaster-recovery-demo/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [disaster-injector internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 188B 0.1s done
+#1 DONE 0.2s
+
+#2 [backup-system internal] load build definition from Dockerfile
+#2 transferring dockerfile: 216B 0.1s done
+#2 DONE 0.2s
+
+#3 [inventory-service internal] load build definition from Dockerfile
+#3 transferring dockerfile: 200B done
+#3 DONE 0.2s
+
+#4 [analytics-service internal] load build definition from Dockerfile
+#4 transferring dockerfile: 200B done
+#4 DONE 0.2s
+
+#5 [dashboard internal] load build definition from Dockerfile
+#5 transferring dockerfile: 200B done
+#5 DONE 0.2s
+
+#6 [payment-service internal] load build definition from Dockerfile
+#6 transferring dockerfile: 200B done
+#6 DONE 0.2s
+
+#7 [payment-service internal] load metadata for docker.io/library/node:18-alpine
+#7 DONE 2.0s
+
+#8 [disaster-injector internal] load .dockerignore
+#8 transferring context: 2B done
+#8 DONE 0.1s
+
+#9 [backup-system internal] load .dockerignore
+#9 transferring context: 2B done
+#9 DONE 0.1s
+
+#10 [inventory-service internal] load .dockerignore
+#10 transferring context: 2B done
+#10 DONE 0.1s
+
+#11 [analytics-service internal] load .dockerignore
+#11 transferring context: 2B done
+#11 DONE 0.1s
+
+#12 [dashboard internal] load .dockerignore
+#12 transferring context: 2B 0.0s done
+#12 DONE 0.1s
+
+#13 [backup-system internal] load build context
+#13 DONE 0.0s
+
+#14 [payment-service internal] load .dockerignore
+#14 transferring context: 2B done
+#14 DONE 0.1s
+
+#15 [payment-service 1/5] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#15 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.0s done
+#15 DONE 0.1s
+
+#16 [disaster-injector internal] load build context
+#16 transferring context: 3.23kB done
+#16 DONE 0.1s
+
+#17 [analytics-service internal] load build context
+#17 transferring context: 5.58kB done
+#17 DONE 0.1s
+
+#18 [payment-service internal] load build context
+#18 transferring context: 4.91kB done
+#18 DONE 0.1s
+
+#19 [inventory-service internal] load build context
+#19 transferring context: 4.76kB done
+#19 DONE 0.1s
+
+#20 [dashboard internal] load build context
+#20 transferring context: 24.68kB done
+#20 DONE 0.1s
+
+#21 [disaster-injector 2/5] WORKDIR /app
+#21 CACHED
+
+#13 [backup-system internal] load build context
+#13 transferring context: 6.36kB done
+#13 DONE 0.0s
+
+#22 [disaster-injector 3/5] COPY package*.json ./
+#22 DONE 0.1s
+
+#23 [backup-system 3/6] COPY package*.json ./
+#23 DONE 0.1s
+
+#24 [payment-service 3/5] COPY package*.json ./
+#24 DONE 0.1s
+
+#25 [analytics-service 3/5] COPY package*.json ./
+#25 DONE 0.1s
+
+#26 [inventory-service 3/5] COPY package*.json ./
+#26 DONE 0.1s
+
+#27 [dashboard 3/5] COPY package*.json ./
+#27 DONE 0.1s
+
+#28 [dashboard 4/5] RUN npm ci --only=production
+#28 1.443 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#28 ...
+
+#29 [payment-service 4/5] RUN npm ci --only=production
+#29 1.502 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#29 2.843 npm error code EUSAGE
+#29 2.850 npm error
+#29 2.850 npm error The `npm ci` command can only install with an existing package-lock.json or
+#29 2.850 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#29 2.850 npm error later to generate a package-lock.json file, then try again.
+#29 2.850 npm error
+#29 2.850 npm error Clean install a project
+#29 2.850 npm error
+#29 2.850 npm error Usage:
+#29 2.850 npm error npm ci
+#29 2.850 npm error
+#29 2.850 npm error Options:
+#29 2.850 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#29 2.850 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#29 2.850 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#29 2.850 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#29 2.850 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#29 2.850 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#29 2.850 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#29 2.850 npm error
+#29 2.850 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#29 2.850 npm error
+#29 2.850 npm error Run "npm help ci" for more info
+#29 2.857 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_909Z-debug-0.log
+#29 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+
+#28 [dashboard 4/5] RUN npm ci --only=production
+#28 2.783 npm error code EUSAGE
+#28 2.784 npm error
+#28 2.784 npm error The `npm ci` command can only install with an existing package-lock.json or
+#28 2.784 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#28 2.784 npm error later to generate a package-lock.json file, then try again.
+#28 2.784 npm error
+#28 2.784 npm error Clean install a project
+#28 2.784 npm error
+#28 2.784 npm error Usage:
+#28 2.784 npm error npm ci
+#28 2.784 npm error
+#28 2.784 npm error Options:
+#28 2.784 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#28 2.784 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#28 2.784 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#28 2.784 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#28 2.784 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#28 2.784 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#28 2.784 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#28 2.784 npm error
+#28 2.784 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#28 2.784 npm error
+#28 2.784 npm error Run "npm help ci" for more info
+#28 2.789 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+#28 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+
+#30 [disaster-injector 4/5] RUN npm ci --only=production
+#30 1.516 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#30 2.831 npm error code EUSAGE
+#30 2.833 npm error
+#30 2.833 npm error The `npm ci` command can only install with an existing package-lock.json or
+#30 2.833 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#30 2.833 npm error later to generate a package-lock.json file, then try again.
+#30 2.833 npm error
+#30 2.833 npm error Clean install a project
+#30 2.833 npm error
+#30 2.833 npm error Usage:
+#30 2.833 npm error npm ci
+#30 2.833 npm error
+#30 2.833 npm error Options:
+#30 2.833 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#30 2.833 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#30 2.833 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#30 2.833 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#30 2.833 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#30 2.833 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#30 2.833 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#30 2.833 npm error
+#30 2.833 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#30 2.833 npm error
+#30 2.833 npm error Run "npm help ci" for more info
+#30 2.848 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+#30 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+
+#31 [analytics-service 4/5] RUN npm ci --only=production
+#31 1.513 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#31 2.833 npm error code EUSAGE
+#31 2.833 npm error
+#31 2.833 npm error The `npm ci` command can only install with an existing package-lock.json or
+#31 2.833 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#31 2.833 npm error later to generate a package-lock.json file, then try again.
+#31 2.833 npm error
+#31 2.833 npm error Clean install a project
+#31 2.833 npm error
+#31 2.833 npm error Usage:
+#31 2.833 npm error npm ci
+#31 2.833 npm error
+#31 2.833 npm error Options:
+#31 2.833 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#31 2.833 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#31 2.833 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#31 2.833 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#31 2.833 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#31 2.833 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#31 2.833 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#31 2.833 npm error
+#31 2.833 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#31 2.833 npm error
+#31 2.833 npm error Run "npm help ci" for more info
+#31 2.834 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+#31 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+
+#32 [backup-system 4/6] RUN npm ci --only=production
+#32 1.502 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#32 2.873 npm error code EUSAGE
+#32 2.873 npm error
+#32 2.873 npm error The `npm ci` command can only install with an existing package-lock.json or
+#32 2.873 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#32 2.873 npm error later to generate a package-lock.json file, then try again.
+#32 2.873 npm error
+#32 2.873 npm error Clean install a project
+#32 2.873 npm error
+#32 2.873 npm error Usage:
+#32 2.873 npm error npm ci
+#32 2.873 npm error
+#32 2.873 npm error Options:
+#32 2.873 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#32 2.873 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#32 2.873 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#32 2.873 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#32 2.873 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#32 2.873 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#32 2.873 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#32 2.873 npm error
+#32 2.873 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#32 2.873 npm error
+#32 2.873 npm error Run "npm help ci" for more info
+#32 2.886 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+#32 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+
+#33 [inventory-service 4/5] RUN npm ci --only=production
+#33 1.464 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#33 2.815 npm error code EUSAGE
+#33 2.817 npm error
+#33 2.817 npm error The `npm ci` command can only install with an existing package-lock.json or
+#33 2.817 npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or
+#33 2.817 npm error later to generate a package-lock.json file, then try again.
+#33 2.817 npm error
+#33 2.817 npm error Clean install a project
+#33 2.817 npm error
+#33 2.817 npm error Usage:
+#33 2.817 npm error npm ci
+#33 2.817 npm error
+#33 2.817 npm error Options:
+#33 2.817 npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+#33 2.817 npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+#33 2.817 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+#33 2.817 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+#33 2.817 npm error [--no-bin-links] [--no-fund] [--dry-run]
+#33 2.817 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+#33 2.817 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+#33 2.817 npm error
+#33 2.817 npm error aliases: clean-install, ic, install-clean, isntall-clean
+#33 2.817 npm error
+#33 2.817 npm error Run "npm help ci" for more info
+#33 2.822 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_908Z-debug-0.log
+#33 ERROR: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
+------
+ > [disaster-injector 4/5] RUN npm ci --only=production:
+2.833 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.833 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.833 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.833 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.833 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.833 npm error
+2.833 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.833 npm error
+2.833 npm error Run "npm help ci" for more info
+2.848 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+------
+------
+ > [payment-service 4/5] RUN npm ci --only=production:
+2.850 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.850 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.850 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.850 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.850 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.850 npm error
+2.850 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.850 npm error
+2.850 npm error Run "npm help ci" for more info
+2.857 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_909Z-debug-0.log
+------
+------
+ > [backup-system 4/6] RUN npm ci --only=production:
+2.873 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.873 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.873 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.873 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.873 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.873 npm error
+2.873 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.873 npm error
+2.873 npm error Run "npm help ci" for more info
+2.886 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+------
+------
+ > [analytics-service 4/5] RUN npm ci --only=production:
+2.833 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.833 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.833 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.833 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.833 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.833 npm error
+2.833 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.833 npm error
+2.833 npm error Run "npm help ci" for more info
+2.834 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+------
+------
+ > [inventory-service 4/5] RUN npm ci --only=production:
+2.817 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.817 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.817 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.817 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.817 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.817 npm error
+2.817 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.817 npm error
+2.817 npm error Run "npm help ci" for more info
+2.822 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_908Z-debug-0.log
+------
+------
+ > [dashboard 4/5] RUN npm ci --only=production:
+2.784 npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+2.784 npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+2.784 npm error [--no-bin-links] [--no-fund] [--dry-run]
+2.784 npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+2.784 npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+2.784 npm error
+2.784 npm error aliases: clean-install, ic, install-clean, isntall-clean
+2.784 npm error
+2.784 npm error Run "npm help ci" for more info
+2.789 npm error A complete log of this run can be found in: /root/.npm/_logs/2025-08-09T13_31_35_906Z-debug-0.log
+------
+failed to solve: process "/bin/sh -c npm ci --only=production" did not complete successfully: exit code: 1
