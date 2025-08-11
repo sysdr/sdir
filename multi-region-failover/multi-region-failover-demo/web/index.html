@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Region Failover Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .regions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .region-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid #4299e1;
+            transition: all 0.3s ease;
+        }
+
+        .region-card.primary {
+            border-left-color: #48bb78;
+            background: linear-gradient(135deg, #f0fff4 0%, #f0fff4 100%);
+        }
+
+        .region-card.unhealthy {
+            border-left-color: #f56565;
+            background: linear-gradient(135deg, #fff5f5 0%, #fff5f5 100%);
+        }
+
+        .region-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .region-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-unhealthy {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-primary {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .failover-log {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border-left: 3px solid #4299e1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .log-error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .log-success {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .timestamp {
+            color: #718096;
+            font-size: 0.8em;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .failover-active {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌍 Multi-Region Failover Dashboard</h1>
+            <p>Real-time monitoring and failover simulation</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>📊 System Overview</h3>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="totalRequests">0</div>
+                        <div class="metric-label">Total Requests</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="activeRegions">0</div>
+                        <div class="metric-label">Active Regions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="currentPrimary">-</div>
+                        <div class="metric-label">Primary Region</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>⚡ Failover Controls</h3>
+                <div class="controls" style="justify-content: space-around;">
+                    <button class="btn btn-danger" onclick="triggerChaos()">🔥 Chaos Test</button>
+                    <button class="btn btn-success" onclick="recoverAll()">🔄 Recover All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="regions-grid" id="regionsContainer">
+            <!-- Regions will be populated by JavaScript -->
+        </div>
+
+        <div class="failover-log">
+            <h3>📝 Failover Activity Log</h3>
+            <div id="logContainer">
+                <div class="log-entry">
+                    <span class="timestamp">[Loading...]</span> System initializing...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let regions = [];
+        let logEntries = [];
+
+        // Socket event listeners
+        socket.on('status_update', (data) => {
+            regions = data.regions;
+            updateDashboard(data);
+        });
+
+        socket.on('failover_step', (data) => {
+            addLogEntry(`Failover Step ${data.step}/5: ${data.description}`, 'info');
+        });
+
+        socket.on('failover_complete', (data) => {
+            addLogEntry(`✅ Failover completed: ${data.from} → ${data.to} (${data.duration}ms)`, 'success');
+        });
+
+        socket.on('region_failure', (data) => {
+            addLogEntry(`❌ Region failure detected: ${data.region}`, 'error');
+        });
+
+        socket.on('region_recovery', (data) => {
+            addLogEntry(`✅ Region recovered: ${data.region}`, 'success');
+        });
+
+        socket.on('metrics_update', (data) => {
+            document.getElementById('totalRequests').textContent = data.totalRequests;
+        });
+
+        function updateDashboard(data) {
+            // Update overview metrics
+            document.getElementById('totalRequests').textContent = data.totalRequests || 0;
+            document.getElementById('activeRegions').textContent = 
+                data.regions.filter(r => r.health.healthy).length;
+            document.getElementById('currentPrimary').textContent = 
+                data.currentPrimary || 'None';
+
+            // Update regions display
+            updateRegionsDisplay(data.regions);
+        }
+
+        function updateRegionsDisplay(regions) {
+            const container = document.getElementById('regionsContainer');
+            container.innerHTML = '';
+
+            regions.forEach(region => {
+                const card = document.createElement('div');
+                card.className = `region-card ${region.primary ? 'primary' : ''} ${!region.health.healthy ? 'unhealthy' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="region-header">
+                        <div class="region-name">${region.name} (${region.id})</div>
+                        <div class="status-badge ${region.primary ? 'status-primary' : (region.health.healthy ? 'status-healthy' : 'status-unhealthy')}">
+                            ${region.primary ? 'PRIMARY' : (region.health.healthy ? 'HEALTHY' : 'UNHEALTHY')}
+                        </div>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-value">${region.health.responseTime.toFixed(1)}ms</div>
+                            <div class="metric-label">Response Time</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${(region.health.errorRate * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Error Rate</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">${region.health.connections}</div>
+                            <div class="metric-label">Connections</div>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn btn-danger" onclick="simulateFailure('${region.id}')" 
+                                ${!region.health.healthy ? 'disabled' : ''}>
+                            Simulate Failure
+                        </button>
+                        <button class="btn btn-success" onclick="recoverRegion('${region.id}')"
+                                ${region.health.healthy ? 'disabled' : ''}>
+                            Recover
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function addLogEntry(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            
+            const container = document.getElementById('logContainer');
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 20 entries
+            while (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        async function simulateFailure(regionId) {
+            try {
+                const response = await fetch(`/api/simulate-failure/${regionId}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    addLogEntry(`🔥 Simulating failure in ${regionId}`, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to simulate failure:', error);
+            }
+        }
+
+        async function recoverRegion(regionId) {
+            try {
+                const response = await fetch(`/api/recover/${regionId}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    addLogEntry(`🔄 Recovering region ${regionId}`, 'info');
+                }
+            } catch (error) {
+                console.error('Failed to recover region:', error);
+            }
+        }
+
+        async function triggerChaos() {
+            addLogEntry('🔥 Initiating chaos engineering test...', 'error');
+            const healthyRegions = regions.filter(r => r.health.healthy);
+            if (healthyRegions.length > 1) {
+                const randomRegion = healthyRegions[Math.floor(Math.random() * healthyRegions.length)];
+                await simulateFailure(randomRegion.id);
+            }
+        }
+
+        async function recoverAll() {
+            addLogEntry('🔄 Recovering all regions...', 'success');
+            for (const region of regions) {
+                if (!region.health.healthy) {
+                    await recoverRegion(region.id);
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Stagger recovery
+                }
+            }
+        }
+
+        // Initialize dashboard
+        addLogEntry('🚀 Multi-region failover dashboard initialized', 'success');
+    </script>
+</body>
+</html>
