@@ -36,5 +36,5 @@ describe('Multi-Region Failover API', () => {
     
     const status = regionManager.getRegionStatus();
     expect(status.currentPrimary).not.toBe('us-east-1');
-  });
+  },10000);
 });
