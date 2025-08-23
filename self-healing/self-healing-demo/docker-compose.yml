@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3001:3000"
+    environment:
+      - SERVICE_NAME=user-service
+      - SERVICE_PORT=3000
+      - INSTANCE_ID=user-1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "3002:3000"
+    environment:
+      - SERVICE_NAME=order-service
+      - SERVICE_PORT=3000
+      - INSTANCE_ID=order-1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "3003:3000"
+    environment:
+      - SERVICE_NAME=payment-service
+      - SERVICE_PORT=3000
+      - INSTANCE_ID=payment-1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  healing-controller:
+    build: ./healing-controller
+    ports:
+      - "3004:3000"
+      - "8080:8080"
+    environment:
+      - CONTROLLER_PORT=3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - user-service
+      - order-service
+      - payment-service
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_CONTROLLER_URL=http://localhost:3004
+    depends_on:
+      - healing-controller
+    restart: unless-stopped
+
+networks:
+  default:
+    name: healing-network
