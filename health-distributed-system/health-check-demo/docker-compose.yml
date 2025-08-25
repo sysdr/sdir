@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health/shallow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - health-network
+
+  payment-service:
+    build: ./services/payment-service  
+    ports:
+      - "5002:5002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health/shallow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - health-network
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "5003:5003"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health/shallow"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - health-network
+
+  health-monitor:
+    build: .
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user-service
+      - payment-service
+      - order-service
+    volumes:
+      - ./health-monitor.py:/app/health-monitor.py
+    networks:
+      - health-network
+
+  dashboard:
+    build: 
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - health-monitor
+    networks:
+      - health-network
+
+networks:
+  health-network:
+    driver: bridge
