@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  blue-app:
+    build:
+      context: ./apps/blue
+      dockerfile: Dockerfile
+    container_name: blue-app
+    ports:
+      - "8001:5000"
+    environment:
+      - FLASK_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  green-app:
+    build:
+      context: ./apps/green
+      dockerfile: Dockerfile
+    container_name: green-app
+    ports:
+      - "8002:5000"
+    environment:
+      - FLASK_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - blue-app
+      - green-app
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./apps/dashboard
+      dockerfile: Dockerfile
+    container_name: dashboard
+    ports:
+      - "3000:5000"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+    depends_on:
+      - blue-app
+      - green-app
+      - nginx
+
+networks:
+  default:
+    name: blue-green-network
