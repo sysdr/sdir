@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build: 
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./web:/app/web
+    depends_on:
+      - app-1
+      - app-2
+      - app-3
+    networks:
+      - rolling-network
+
+  app-1:
+    build: 
+      context: .
+      dockerfile: Dockerfile.app
+    environment:
+      - INSTANCE_ID=app-1
+      - APP_VERSION=v1.0
+      - PORT=3000
+    networks:
+      - rolling-network
+
+  app-2:
+    build: 
+      context: .
+      dockerfile: Dockerfile.app
+    environment:
+      - INSTANCE_ID=app-2
+      - APP_VERSION=v1.0
+      - PORT=3000
+    networks:
+      - rolling-network
+
+  app-3:
+    build: 
+      context: .
+      dockerfile: Dockerfile.app
+    environment:
+      - INSTANCE_ID=app-3
+      - APP_VERSION=v1.0
+      - PORT=3000
+    networks:
+      - rolling-network
+
+networks:
+  rolling-network:
+    driver: bridge
