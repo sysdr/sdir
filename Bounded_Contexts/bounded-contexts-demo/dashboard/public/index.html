@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bounded Contexts Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        
+        .contexts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .context-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.2s ease;
+        }
+        
+        .context-card:hover { transform: translateY(-2px); }
+        
+        .context-card.user { border-left-color: #3b82f6; }
+        .context-card.product { border-left-color: #10b981; }
+        .context-card.order { border-left-color: #f59e0b; }
+        .context-card.payment { border-left-color: #ef4444; }
+        
+        .context-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .context-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            margin-right: 1rem;
+        }
+        
+        .user .context-icon { background: #3b82f6; }
+        .product .context-icon { background: #10b981; }
+        .order .context-icon { background: #f59e0b; }
+        .payment .context-icon { background: #ef4444; }
+        
+        .context-title { font-size: 1.2rem; font-weight: 600; }
+        .context-status { font-size: 0.9rem; margin-top: 0.5rem; }
+        
+        .status-healthy { color: #10b981; }
+        .status-unhealthy { color: #ef4444; }
+        
+        .actions { margin-top: 1rem; }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: background 0.2s ease;
+        }
+        .btn:hover { background: #5a67d8; }
+        .btn.small { padding: 0.3rem 0.8rem; font-size: 0.9rem; }
+        
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        
+        .demo-form {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+        
+        .data-list {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .data-item {
+            background: white;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .isolation-demo {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .isolation-demo h3 { color: #92400e; margin-bottom: 1rem; }
+        .isolation-demo p { color: #451a03; }
+        
+        @media (max-width: 768px) {
+            .demo-grid { grid-template-columns: 1fr; }
+            .contexts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏗️ Bounded Contexts Demo</h1>
+        <p>Isolating System Components for Resilient Architecture</p>
+    </div>
+
+    <div class="container">
+        <div class="contexts-grid" id="contextsGrid">
+            <!-- Context cards will be populated by JavaScript -->
+        </div>
+
+        <div class="demo-section">
+            <h2>🧪 Cross-Context Communication Demo</h2>
+            <p>Watch how different contexts interact while maintaining isolation</p>
+            
+            <div class="demo-grid">
+                <div>
+                    <h3>Create User & Order</h3>
+                    <div class="demo-form">
+                        <div class="form-group">
+                            <label>Email:</label>
+                            <input type="email" id="userEmail" placeholder="user@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>First Name:</label>
+                            <input type="text" id="firstName" placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name:</label>
+                            <input type="text" id="lastName" placeholder="Doe">
+                        </div>
+                        <button class="btn" onclick="createUser()">Create User</button>
+                        <button class="btn" onclick="createOrder()" id="createOrderBtn" disabled>Create Order</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Recent Activity</h3>
+                    <div class="data-list" id="activityLog">
+                        <p>Activity will appear here...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="isolation-demo">
+                <h3>🛡️ Isolation Demonstration</h3>
+                <p>Try updating a product price below. Notice how it only affects the Product Context - other contexts continue operating independently!</p>
+                <div style="margin-top: 1rem;">
+                    <select id="productSelect">
+                        <option value="">Select a product...</option>
+                    </select>
+                    <input type="number" id="newPrice" placeholder="New price" step="0.01" style="margin-left: 1rem;">
+                    <button class="btn" onclick="updateProductPrice()" style="margin-left: 1rem;">Update Price</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+
+        // Load initial data and health status
+        async function loadDashboard() {
+            await loadHealthStatus();
+            await loadProducts();
+            setInterval(loadHealthStatus, 5000); // Refresh every 5 seconds
+        }
+
+        async function loadHealthStatus() {
+            try {
+                const response = await fetch('/api/health');
+                const services = await response.json();
+                
+                const grid = document.getElementById('contextsGrid');
+                grid.innerHTML = '';
+                
+                const contexts = [
+                    { key: 'user-service', name: 'User Management', icon: '🧑', class: 'user' },
+                    { key: 'product-service', name: 'Product Catalog', icon: '📦', class: 'product' },
+                    { key: 'order-service', name: 'Order Processing', icon: '📋', class: 'order' },
+                    { key: 'payment-service', name: 'Payment Processing', icon: '💳', class: 'payment' }
+                ];
+                
+                contexts.forEach(context => {
+                    const service = services.find(s => s.name === context.key);
+                    const card = document.createElement('div');
+                    card.className = `context-card ${context.class}`;
+                    
+                    card.innerHTML = `
+                        <div class="context-header">
+                            <div class="context-icon">${context.icon}</div>
+                            <div>
+                                <div class="context-title">${context.name}</div>
+                                <div class="context-status status-${service?.status || 'unhealthy'}">
+                                    ${service?.status || 'unhealthy'} - ${service?.data?.context || 'Unknown'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn small" onclick="viewContext('${context.key}')">View Data</button>
+                        </div>
+                    `;
+                    
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load health status:', error);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                const data = await response.json();
+                
+                const select = document.getElementById('productSelect');
+                select.innerHTML = '<option value="">Select a product...</option>';
+                
+                data.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.productId;
+                    option.textContent = `${product.name} - $${product.price}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load products:', error);
+            }
+        }
+
+        async function createUser() {
+            const email = document.getElementById('userEmail').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            
+            if (!email || !firstName || !lastName) {
+                alert('Please fill in all user fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, firstName, lastName })
+                });
+                
+                const user = await response.json();
+                currentUserId = user.userId;
+                
+                document.getElementById('createOrderBtn').disabled = false;
+                logActivity(`User created: ${firstName} ${lastName} (${user.userId})`);
+            } catch (error) {
+                console.error('Failed to create user:', error);
+                alert('Failed to create user');
+            }
+        }
+
+        async function createOrder() {
+            if (!currentUserId) {
+                alert('Please create a user first');
+                return;
+            }
+            
+            try {
+                const orderData = {
+                    userId: currentUserId,
+                    items: [
+                        { productId: 'prod-1', quantity: 1 },
+                        { productId: 'prod-2', quantity: 2 }
+                    ]
+                };
+                
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const order = await response.json();
+                logActivity(`Order created: ${order.orderId} - $${order.totalAmount}`);
+                
+                // Create payment
+                setTimeout(async () => {
+                    try {
+                        const paymentResponse = await fetch('/api/payments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                orderId: order.orderId,
+                                amount: order.totalAmount,
+                                method: 'credit_card'
+                            })
+                        });
+                        
+                        const payment = await paymentResponse.json();
+                        logActivity(`Payment processing: ${payment.paymentId}`);
+                    } catch (error) {
+                        console.error('Payment failed:', error);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Failed to create order:', error);
+                alert('Failed to create order');
+            }
+        }
+
+        async function updateProductPrice() {
+            const productId = document.getElementById('productSelect').value;
+            const newPrice = document.getElementById('newPrice').value;
+            
+            if (!productId || !newPrice) {
+                alert('Please select a product and enter a new price');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/products/${productId}/price`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ price: parseFloat(newPrice) })
+                });
+                
+                const result = await response.json();
+                logActivity(`Price updated: ${productId} - $${newPrice} (Product Context only)`);
+                
+                // Reload products to show new price
+                await loadProducts();
+                
+                document.getElementById('newPrice').value = '';
+            } catch (error) {
+                console.error('Failed to update price:', error);
+                alert('Failed to update price');
+            }
+        }
+
+        function logActivity(message) {
+            const log = document.getElementById('activityLog');
+            const item = document.createElement('div');
+            item.className = 'data-item';
+            item.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            
+            log.insertBefore(item, log.firstChild);
+            
+            // Keep only last 10 items
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        async function viewContext(service) {
+            const endpoints = {
+                'user-service': '/api/users',
+                'product-service': '/api/products', 
+                'order-service': '/api/orders',
+                'payment-service': '/api/payments'
+            };
+            
+            try {
+                const response = await fetch(endpoints[service]);
+                const data = await response.json();
+                
+                alert(`${data.context} Context Data:\n\nTotal items: ${data.total}\n\nContext operates independently with its own database and domain logic.`);
+            } catch (error) {
+                console.error('Failed to load context data:', error);
+            }
+        }
+
+        // Initialize dashboard
+        loadDashboard();
+    </script>
+</body>
+</html>
