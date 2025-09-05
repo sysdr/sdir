@@ -1,0 +1,62 @@
+groups:
+  - name: slo.rules
+    interval: 30s
+    rules:
+      # SLI: Availability (success rate)
+      - record: sli:http_requests_success_rate
+        expr: |
+          (
+            sum(rate(http_requests_total{status!~"5.."}[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          )
+
+      # SLI: Latency (95th percentile)
+      - record: sli:http_request_duration_p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)
+          )
+
+      # Error Budget Burn Rate
+      - record: slo:error_budget_burn_rate
+        expr: |
+          (
+            1 - sli:http_requests_success_rate
+          ) / (1 - 0.999)  # SLO target: 99.9%
+
+  - name: slo.alerts
+    rules:
+      # Fast Burn: >10x normal rate
+      - alert: SLOFastBurn
+        expr: slo:error_budget_burn_rate > 10
+        for: 2m
+        labels:
+          severity: critical
+          tier: "1"
+        annotations:
+          summary: "High error budget burn rate for {{ $labels.service }}"
+          description: "Error budget burning at {{ $value }}x normal rate"
+          runbook: "https://wiki.company.com/slo-fast-burn"
+
+      # Medium Burn: 2-10x normal rate  
+      - alert: SLOMediumBurn
+        expr: slo:error_budget_burn_rate > 2 and slo:error_budget_burn_rate <= 10
+        for: 15m
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "Medium error budget burn rate for {{ $labels.service }}"
+          description: "Error budget burning at {{ $value }}x normal rate"
+
+      # Latency SLO violation
+      - alert: LatencySLOViolation
+        expr: sli:http_request_duration_p95 > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          tier: "2"
+        annotations:
+          summary: "P95 latency exceeds SLO for {{ $labels.service }}"
+          description: "P95 latency is {{ $value }}s (SLO: 500ms)"

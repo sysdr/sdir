@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Monitoring Infrastructure
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+
+  # Microservices
+  user-service:
+    build: ./services/user-service
+    container_name: user-service
+    ports:
+      - "8001:8000"
+    environment:
+      - SERVICE_NAME=user-service
+      - FAILURE_RATE=0.02
+
+  payment-service:
+    build: ./services/payment-service
+    container_name: payment-service
+    ports:
+      - "8002:8000"
+    environment:
+      - SERVICE_NAME=payment-service
+      - FAILURE_RATE=0.05
+
+  order-service:
+    build: ./services/order-service
+    container_name: order-service
+    ports:
+      - "8003:8000"
+    environment:
+      - SERVICE_NAME=order-service
+      - FAILURE_RATE=0.01
+
+  # Web Dashboard
+  web-dashboard:
+    build: ./web-dashboard
+    container_name: web-dashboard
+    ports:
+      - "8080:8080"
+    depends_on:
+      - prometheus
+      - grafana
+
+  # Load Generator
+  load-generator:
+    build: ./tests
+    container_name: load-generator
+    depends_on:
+      - user-service
+      - payment-service
+      - order-service
+
+volumes:
+  prometheus_data:
+  grafana_data:

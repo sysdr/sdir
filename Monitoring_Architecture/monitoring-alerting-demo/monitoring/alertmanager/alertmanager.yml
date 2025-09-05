@@ -1,0 +1,56 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@company.com'
+
+# Multi-tier routing based on alert tiers
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Tier 1: Critical - Page immediately
+    - match:
+        tier: "1"
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+    
+    # Tier 2: Warning - Alert within hours
+    - match:
+        tier: "2"
+      receiver: 'warning-alerts'
+      group_wait: 5m
+      repeat_interval: 30m
+    
+    # Tier 3: Info - Daily reports
+    - match:
+        tier: "3"
+      receiver: 'info-alerts'
+      group_wait: 1h
+      repeat_interval: 24h
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://web-dashboard:8080/webhook/alerts'
+
+  - name: 'critical-alerts'
+    webhook_configs:
+      - url: 'http://web-dashboard:8080/webhook/critical'
+
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'http://web-dashboard:8080/webhook/warning'
+
+  - name: 'info-alerts'
+    webhook_configs:
+      - url: 'http://web-dashboard:8080/webhook/info'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
