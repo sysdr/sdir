@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Server Detection Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+        .panel h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .server-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .server-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        .server-healthy { border-color: #48bb78; background: #f0fff4; }
+        .server-zombie { border-color: #ed8936; background: #fffaf0; }
+        .server-dead { border-color: #f56565; background: #fff5f5; }
+        .server-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-healthy { background: #48bb78; color: white; }
+        .badge-zombie { background: #ed8936; color: white; }
+        .badge-dead { background: #f56565; color: white; }
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        .metric {
+            background: #f7fafc;
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+        }
+        .load-test-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4299e1;
+        }
+        .result-card h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .stat {
+            text-align: center;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4299e1;
+        }
+        .stat-label {
+            font-size: 0.8em;
+            color: #718096;
+        }
+        .legend {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .legend-items {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        .auto-refresh {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <div class="auto-refresh">
+        🔄 Auto-refresh: <span id="refresh-countdown">10</span>s
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🧟 Zombie Server Detection Dashboard</h1>
+            <p>Monitor and test different health check strategies</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="panel">
+                <h3>🏥 Server Health Status</h3>
+                <div id="server-health" class="server-grid">
+                    Loading...
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>📊 Health Check Comparison</h3>
+                <div id="health-comparison">
+                    <canvas id="comparison-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h3>🧪 Load Testing</h3>
+            <p>Compare how different load balancing strategies handle zombie servers</p>
+            
+            <div class="button-group">
+                <button class="btn btn-warning" onclick="runLoadTest('shallow')">
+                    Test Shallow Health Checks (Dangerous)
+                </button>
+                <button class="btn btn-primary" onclick="runLoadTest('smart')">
+                    Test Smart Health Checks (Safe)
+                </button>
+                <button class="btn btn-primary" onclick="refreshHealth()">
+                    🔄 Refresh Health Status
+                </button>
+            </div>
+
+            <div id="load-test-results" class="load-test-results" style="display: none;">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>📖 Server Types</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #48bb78;"></div>
+                    <span><strong>Healthy Server:</strong> Passes all health checks, serves requests reliably</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ed8936;"></div>
+                    <span><strong>Zombie Server:</strong> Passes shallow checks but fails under load</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f56565;"></div>
+                    <span><strong>Dead Server:</strong> Completely unresponsive</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+        let countdownInterval;
+        let countdownValue = 10;
+
+        async function refreshHealth() {
+            try {
+                const response = await fetch('/api/health-status');
+                const servers = await response.json();
+                displayServerHealth(servers);
+                updateHealthComparisonChart(servers);
+            } catch (error) {
+                console.error('Failed to fetch health status:', error);
+            }
+        }
+
+        function displayServerHealth(servers) {
+            const container = document.getElementById('server-health');
+            container.innerHTML = servers.map(server => `
+                <div class="server-card server-${server.overall}">
+                    <div class="server-status">
+                        <h4>${server.name}</h4>
+                        <span class="status-badge badge-${server.overall}">${server.overall}</span>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric">
+                            <strong>Shallow Check</strong><br>
+                            ${server.shallow.status === 200 ? '✅ Pass' : '❌ Fail'}
+                        </div>
+                        <div class="metric">
+                            <strong>Deep Check</strong><br>
+                            ${server.deep.status === 200 ? '✅ Pass' : '❌ Fail'}
+                        </div>
+                        <div class="metric">
+                            <strong>CPU Usage</strong><br>
+                            ${server.stats.cpu_usage ? server.stats.cpu_usage.toFixed(1) + '%' : 'N/A'}
+                        </div>
+                        <div class="metric">
+                            <strong>Memory Usage</strong><br>
+                            ${server.stats.memory_usage ? server.stats.memory_usage.toFixed(1) + '%' : 'N/A'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateHealthComparisonChart(servers) {
+            const canvas = document.getElementById('comparison-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Calculate metrics
+            const shallowPassed = servers.filter(s => s.shallow.status === 200).length;
+            const deepPassed = servers.filter(s => s.deep.status === 200).length;
+            const totalServers = servers.length;
+            
+            // Draw comparison chart
+            const barWidth = 80;
+            const barSpacing = 20;
+            const startX = 50;
+            const maxHeight = 150;
+            
+            // Shallow health check bar
+            const shallowHeight = (shallowPassed / totalServers) * maxHeight;
+            ctx.fillStyle = '#ed8936';
+            ctx.fillRect(startX, canvas.height - shallowHeight - 30, barWidth, shallowHeight);
+            
+            // Deep health check bar
+            const deepHeight = (deepPassed / totalServers) * maxHeight;
+            ctx.fillStyle = '#48bb78';
+            ctx.fillRect(startX + barWidth + barSpacing, canvas.height - deepHeight - 30, barWidth, deepHeight);
+            
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Shallow', startX + barWidth/2, canvas.height - 10);
+            ctx.fillText('Deep', startX + barWidth + barSpacing + barWidth/2, canvas.height - 10);
+            
+            // Values
+            ctx.fillText(`${shallowPassed}/${totalServers}`, startX + barWidth/2, canvas.height - shallowHeight - 40);
+            ctx.fillText(`${deepPassed}/${totalServers}`, startX + barWidth + barSpacing + barWidth/2, canvas.height - deepHeight - 40);
+            
+            // Title
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('Health Check Comparison', canvas.width/2, 25);
+            
+            // Legend
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#ed8936';
+            ctx.fillRect(20, canvas.height - 80, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText('Shallow Check (includes zombies)', 40, canvas.height - 70);
+            
+            ctx.fillStyle = '#48bb78';
+            ctx.fillRect(20, canvas.height - 60, 15, 15);
+            ctx.fillStyle = '#333';
+            ctx.fillText('Deep Check (excludes zombies)', 40, canvas.height - 50);
+        }
+
+        async function runLoadTest(type) {
+            const resultsContainer = document.getElementById('load-test-results');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<p>Running load test...</p>';
+
+            try {
+                const response = await fetch(`/api/load-test/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requests: 20 })
+                });
+                const result = await response.json();
+
+                resultsContainer.innerHTML = `
+                    <div class="result-card">
+                        <h4>${type === 'shallow' ? '⚠️ Shallow Health Check Results' : '✅ Smart Health Check Results'}</h4>
+                        <div class="result-stats">
+                            <div class="stat">
+                                <div class="stat-value">${result.total}</div>
+                                <div class="stat-label">Total Requests</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" style="color: #48bb78;">${result.successful}</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" style="color: #f56565;">${result.failed}</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${result.success_rate}%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Refresh health status after load test
+                setTimeout(refreshHealth, 2000);
+            } catch (error) {
+                resultsContainer.innerHTML = `<p style="color: #f56565;">Load test failed: ${error.message}</p>`;
+            }
+        }
+
+        function startAutoRefresh() {
+            refreshHealth();
+            
+            refreshInterval = setInterval(refreshHealth, 10000);
+            
+            function updateCountdown() {
+                document.getElementById('refresh-countdown').textContent = countdownValue;
+                countdownValue--;
+                if (countdownValue < 0) {
+                    countdownValue = 10;
+                }
+            }
+            
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        // Start auto-refresh when page loads
+        window.addEventListener('load', startAutoRefresh);
+    </script>
+</body>
+</html>

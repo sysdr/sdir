@@ -1,0 +1,12 @@
+{
+  "name": "zombie-server-dashboard",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.2"
+  },
+  "scripts": {
+    "start": "node app.js"
+  }
+}
