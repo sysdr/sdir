@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Response Automation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1rem; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        .metrics-panel, .alerts-panel, .actions-panel, .controls-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .metric-label { font-weight: 500; color: #34495e; }
+        .metric-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .metric-normal { color: #27ae60; }
+        .metric-warning { color: #f39c12; }
+        .metric-critical { color: #e74c3c; }
+        .alert-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .alert-critical {
+            background: #fee;
+            border-left-color: #e74c3c;
+        }
+        .alert-warning {
+            background: #ffc;
+            border-left-color: #f39c12;
+        }
+        .action-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #e8f5e8;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+        }
+        .simulate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .simulate-btn:hover { transform: translateY(-2px); }
+        .chart-container {
+            grid-column: span 2;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        canvas { max-height: 300px; }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-healthy { background: #27ae60; }
+        .status-warning { background: #f39c12; }
+        .status-critical { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Incident Response Automation</h1>
+            <p>Real-time monitoring with automated remediation</p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="metrics-panel">
+                <h2 class="panel-title">📊 System Metrics</h2>
+                <div id="metrics-content">
+                    <div class="metric-item">
+                        <span class="metric-label">CPU Usage</span>
+                        <span class="metric-value metric-normal" id="cpu-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Memory Usage</span>
+                        <span class="metric-value metric-normal" id="memory-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Error Rate</span>
+                        <span class="metric-value metric-normal" id="error-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Response Time</span>
+                        <span class="metric-value metric-normal" id="response-value">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <h2 class="panel-title">🎛️ Incident Simulation</h2>
+                <p style="margin-bottom: 15px; color: #7f8c8d;">Trigger incidents to see automation in action:</p>
+                <button class="simulate-btn" onclick="simulateIncident('high_cpu')">🔥 High CPU</button>
+                <button class="simulate-btn" onclick="simulateIncident('memory_leak')">💾 Memory Leak</button>
+                <button class="simulate-btn" onclick="simulateIncident('high_errors')">⚠️ High Errors</button>
+                <button class="simulate-btn" onclick="simulateIncident('slow_response')">🐌 Slow Response</button>
+            </div>
+            
+            <div class="alerts-panel">
+                <h2 class="panel-title">🚨 Active Alerts</h2>
+                <div id="alerts-content">
+                    <p style="color: #95a5a6;">No active alerts</p>
+                </div>
+            </div>
+            
+            <div class="actions-panel">
+                <h2 class="panel-title">🤖 Automated Actions</h2>
+                <div id="actions-content">
+                    <p style="color: #95a5a6;">No automated actions yet</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="panel-title">📈 Metrics Timeline</h2>
+                <canvas id="metricsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js setup
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'CPU Usage (%)',
+                        data: [],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Memory Usage (%)',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Error Rate (%)',
+                        data: [],
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // Update functions
+        function updateMetrics() {
+            fetch('/api/metrics')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.length > 0) {
+                        const latest = data[0];
+                        updateMetricValue('cpu-value', latest.cpu_usage, '%');
+                        updateMetricValue('memory-value', latest.memory_usage, '%');
+                        updateMetricValue('error-value', latest.error_rate, '%');
+                        updateMetricValue('response-value', latest.response_time, 'ms');
+                        
+                        // Update chart
+                        const labels = data.map(m => new Date(m.timestamp).toLocaleTimeString());
+                        chart.data.labels = labels.reverse();
+                        chart.data.datasets[0].data = data.map(m => m.cpu_usage).reverse();
+                        chart.data.datasets[1].data = data.map(m => m.memory_usage).reverse();
+                        chart.data.datasets[2].data = data.map(m => m.error_rate).reverse();
+                        chart.update('none');
+                    }
+                })
+                .catch(error => {
+                    console.warn('Failed to update metrics:', error);
+                    // Don't update the UI on error to avoid breaking the display
+                });
+        }
+
+        function updateMetricValue(elementId, value, unit) {
+            const element = document.getElementById(elementId);
+            element.textContent = value + unit;
+            
+            // Update color based on thresholds
+            element.className = 'metric-value ';
+            if (elementId === 'cpu-value' || elementId === 'memory-value') {
+                if (value > 80) element.className += 'metric-critical';
+                else if (value > 60) element.className += 'metric-warning';
+                else element.className += 'metric-normal';
+            } else if (elementId === 'error-value') {
+                if (value > 5) element.className += 'metric-critical';
+                else if (value > 2) element.className += 'metric-warning';
+                else element.className += 'metric-normal';
+            } else if (elementId === 'response-value') {
+                if (value > 1000) element.className += 'metric-critical';
+                else if (value > 500) element.className += 'metric-warning';
+                else element.className += 'metric-normal';
+            }
+        }
+
+        function updateAlerts() {
+            fetch('/api/alerts')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    const alertsContainer = document.getElementById('alerts-content');
+                    if (data.length === 0) {
+                        alertsContainer.innerHTML = '<p style="color: #95a5a6;">No active alerts</p>';
+                    } else {
+                        alertsContainer.innerHTML = data
+                            .filter(alert => alert.status === 'firing')
+                            .map(alert => `
+                                <div class="alert-item alert-${alert.severity}">
+                                    <div style="font-weight: 600;">
+                                        <span class="status-indicator status-${alert.severity}"></span>
+                                        ${alert.id.replace(/_/g, ' ').toUpperCase()}
+                                    </div>
+                                    <div style="font-size: 0.9rem; margin-top: 5px; color: #7f8c8d;">
+                                        ${alert.message}
+                                    </div>
+                                    <div style="font-size: 0.8rem; margin-top: 5px; color: #95a5a6;">
+                                        ${new Date(alert.timestamp).toLocaleString()}
+                                    </div>
+                                </div>
+                            `).join('');
+                    }
+                })
+                .catch(error => {
+                    console.warn('Failed to update alerts:', error);
+                    // Don't update the UI on error to avoid breaking the display
+                });
+        }
+
+        function updateActions() {
+            fetch('/api/actions')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    const actionsContainer = document.getElementById('actions-content');
+                    if (data.length === 0) {
+                        actionsContainer.innerHTML = '<p style="color: #95a5a6;">No automated actions yet</p>';
+                    } else {
+                        actionsContainer.innerHTML = data.map(action => `
+                            <div class="action-item">
+                                <div style="font-weight: 600;">
+                                    🤖 ${action.action.replace(/_/g, ' ').toUpperCase()}
+                                </div>
+                                <div style="font-size: 0.9rem; margin-top: 5px; color: #27ae60;">
+                                    ${action.details}
+                                </div>
+                                <div style="font-size: 0.8rem; margin-top: 5px; color: #95a5a6;">
+                                    ${new Date(action.timestamp).toLocaleString()}
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(error => {
+                    console.warn('Failed to update actions:', error);
+                    // Don't update the UI on error to avoid breaking the display
+                });
+        }
+
+        function simulateIncident(type) {
+            fetch(`/api/simulate/${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Incident simulated:', data);
+                })
+                .catch(error => {
+                    console.error('Error simulating incident:', error);
+                });
+        }
+
+        // Auto-refresh with less aggressive polling
+        setInterval(updateMetrics, 5000);    // Every 5 seconds
+        setInterval(updateAlerts, 8000);     // Every 8 seconds  
+        setInterval(updateActions, 10000);   // Every 10 seconds
+        
+        // Initial load
+        updateMetrics();
+        updateAlerts();
+        updateActions();
+    </script>
+</body>
+</html>
