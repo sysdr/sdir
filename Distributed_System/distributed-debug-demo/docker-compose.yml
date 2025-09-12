@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  order-service:
+    build: ./services/order
+    ports:
+      - "3001:3000"
+    environment:
+      - SERVICE_NAME=order-service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  payment-service:
+    build: ./services/payment
+    ports:
+      - "3002:3000"
+    environment:
+      - SERVICE_NAME=payment-service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  inventory-service:
+    build: ./services/inventory
+    ports:
+      - "3003:3000"
+    environment:
+      - SERVICE_NAME=inventory-service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  notification-service:
+    build: ./services/notification
+    ports:
+      - "3004:3000"
+    environment:
+      - SERVICE_NAME=notification-service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  debug-dashboard:
+    build: ./dashboard
+    ports:
+      - "8080:3000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - order-service
+      - payment-service
+      - inventory-service
+      - notification-service
+
+volumes:
+  redis_data:

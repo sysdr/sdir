@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Dashboard Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .service { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .healthy { background-color: #d4edda; }
+        .unhealthy { background-color: #f8d7da; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Distributed System Test Dashboard</h1>
+    
+    <div id="services">
+        <div class="service" id="order-service">Order Service (3001): Loading...</div>
+        <div class="service" id="payment-service">Payment Service (3002): Loading...</div>
+        <div class="service" id="inventory-service">Inventory Service (3003): Loading...</div>
+        <div class="service" id="notification-service">Notification Service (3004): Loading...</div>
+    </div>
+    
+    <button onclick="testOrder()">Create Test Order</button>
+    <button onclick="refreshHealth()">Refresh Health</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function checkService(port, serviceName) {
+            try {
+                const response = await fetch(`http://localhost:${port}/health`);
+                const data = await response.json();
+                const element = document.getElementById(`${serviceName}-service`);
+                element.textContent = `${serviceName} Service (${port}): ${data.status}`;
+                element.className = `service ${data.status}`;
+                return data.status === 'healthy';
+            } catch (error) {
+                const element = document.getElementById(`${serviceName}-service`);
+                element.textContent = `${serviceName} Service (${port}): Error - ${error.message}`;
+                element.className = 'service unhealthy';
+                return false;
+            }
+        }
+
+        async function refreshHealth() {
+            await Promise.all([
+                checkService(3001, 'order'),
+                checkService(3002, 'payment'),
+                checkService(3003, 'inventory'),
+                checkService(3004, 'notification')
+            ]);
+        }
+
+        async function testOrder() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Creating test order...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: 'test-user',
+                        items: [{ id: 'item1', quantity: 1 }],
+                        total: 29.99
+                    })
+                });
+                
+                const result = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Order Result:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Load health on page load
+        document.addEventListener('DOMContentLoaded', refreshHealth);
+    </script>
+</body>
+</html>
