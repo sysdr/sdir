@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Friday Load Monitor</title>
+    <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .dashboard-header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .status-card.closed { border-left-color: #27ae60; }
+        .status-card.half-open { border-left-color: #f39c12; }
+        .status-card.open { border-left-color: #e74c3c; }
+        .status-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .load-test-btn {
+            padding: 12px 24px;
+            margin: 0 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .load-test-btn.start {
+            background: #27ae60;
+            color: white;
+        }
+        .load-test-btn.stop {
+            background: #e74c3c;
+            color: white;
+        }
+        .load-test-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .metrics-grid {
+            background: rgba(255,255,255,0.95);
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .metric-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .scaling-events {
+            background: rgba(255,255,255,0.95);
+            padding: 24px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .events-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .event {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .event.scale-up {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        .event.scale-down {
+            background: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+        .event-time {
+            font-weight: bold;
+            color: #495057;
+        }
+        .event-description {
+            color: #6c757d;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <h1>🛍️ Black Friday Load Monitor</h1>
+            <div class="status-indicators">
+                <div class="status-card" id="circuitBreakerCard">
+                    <h3>Circuit Breaker</h3>
+                    <div class="status-value" id="circuitBreakerState">CLOSED</div>
+                </div>
+                <div class="status-card">
+                    <h3>Current RPS</h3>
+                    <div class="status-value" id="currentRPS">0</div>
+                </div>
+                <div class="status-card">
+                    <h3>Response Time</h3>
+                    <div class="status-value" id="avgResponseTime">0ms</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="startLoadTest" class="load-test-btn start">
+                🚀 Start Black Friday Load Test
+            </button>
+            <button id="stopLoadTest" class="load-test-btn stop" disabled>
+                ⏹️ Stop Load Test
+            </button>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Active Connections</h3>
+                <div class="metric-value" id="activeConnections">0</div>
+            </div>
+            <div class="metric-card">
+                <h3>Error Rate</h3>
+                <div class="metric-value" id="errorRate">0.00%</div>
+            </div>
+            <div class="metric-card">
+                <h3>Auto-Scaling Events</h3>
+                <div class="metric-value" id="scalingEventsCount">0</div>
+            </div>
+        </div>
+
+        <div class="scaling-events">
+            <h2>Recent Scaling Events</h2>
+            <div class="events-list" id="eventsList">
+                <div class="event">
+                    <span class="event-time">Waiting for events...</span>
+                    <span class="event-description">System monitoring active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let isLoadTestActive = false;
+
+        // Initialize socket connection
+        function initSocket() {
+            socket = io('http://localhost:3001');
+            
+            socket.on('connect', () => {
+                console.log('Connected to backend');
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                document.getElementById('connectionStatus').className = 'connection-status connected';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from backend');
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                document.getElementById('connectionStatus').className = 'connection-status disconnected';
+            });
+
+            socket.on('metrics', (data) => {
+                updateDashboard(data);
+            });
+        }
+
+        // Update dashboard with new metrics
+        function updateDashboard(metrics) {
+            // Update circuit breaker state
+            document.getElementById('circuitBreakerState').textContent = metrics.circuitBreakerState;
+            document.getElementById('circuitBreakerCard').className = `status-card ${metrics.circuitBreakerState.toLowerCase()}`;
+            
+            // Update metrics
+            document.getElementById('currentRPS').textContent = metrics.currentRPS.toLocaleString();
+            document.getElementById('avgResponseTime').textContent = Math.round(metrics.avgResponseTime) + 'ms';
+            document.getElementById('activeConnections').textContent = metrics.activeConnections;
+            document.getElementById('errorRate').textContent = metrics.errorRate.toFixed(2) + '%';
+            document.getElementById('scalingEventsCount').textContent = metrics.scalingEvents.length;
+            
+            // Update scaling events
+            updateScalingEvents(metrics.scalingEvents);
+        }
+
+        // Update scaling events list
+        function updateScalingEvents(events) {
+            const eventsList = document.getElementById('eventsList');
+            eventsList.innerHTML = '';
+            
+            if (events.length === 0) {
+                eventsList.innerHTML = '<div class="event"><span class="event-time">No events</span><span class="event-description">System running normally</span></div>';
+                return;
+            }
+            
+            events.slice(-10).reverse().forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = `event ${event.type}`;
+                eventDiv.innerHTML = `
+                    <span class="event-time">${event.timestamp}</span>
+                    <span class="event-description">${event.description}</span>
+                `;
+                eventsList.appendChild(eventDiv);
+            });
+        }
+
+        // Load test controls
+        document.getElementById('startLoadTest').addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost:3001/api/load-test/start', { method: 'POST' });
+                const data = await response.json();
+                if (data.active) {
+                    isLoadTestActive = true;
+                    document.getElementById('startLoadTest').disabled = true;
+                    document.getElementById('stopLoadTest').disabled = false;
+                }
+            } catch (err) {
+                console.error('Failed to start load test:', err);
+            }
+        });
+
+        document.getElementById('stopLoadTest').addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost:3001/api/load-test/stop', { method: 'POST' });
+                const data = await response.json();
+                if (!data.active) {
+                    isLoadTestActive = false;
+                    document.getElementById('startLoadTest').disabled = false;
+                    document.getElementById('stopLoadTest').disabled = true;
+                }
+            } catch (err) {
+                console.error('Failed to stop load test:', err);
+            }
+        });
+
+        // Initialize the dashboard
+        initSocket();
+    </script>
+</body>
+</html>

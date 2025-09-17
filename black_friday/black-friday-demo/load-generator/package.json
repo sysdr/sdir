@@ -1,0 +1,12 @@
+{
+  "name": "black-friday-load-generator",
+  "version": "1.0.0",
+  "main": "src/loadtest.js",
+  "dependencies": {
+    "autocannon": "^7.12.0",
+    "axios": "^1.6.0"
+  },
+  "scripts": {
+    "start": "node src/loadtest.js"
+  }
+}
