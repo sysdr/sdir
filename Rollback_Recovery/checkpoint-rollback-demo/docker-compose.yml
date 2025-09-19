@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: checkpoint_demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d checkpoint_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  task-processor:
+    build: .
+    command: python src/task_processor.py
+    environment:
+      - DATABASE_URL=postgresql://demo:demo123@postgres:5432/checkpoint_demo
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+
+  web-dashboard:
+    build: .
+    command: python src/web_dashboard.py
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://demo:demo123@postgres:5432/checkpoint_demo
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+      - task-processor
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
+  redis_data:
