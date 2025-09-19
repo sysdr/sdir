@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Primary
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: postgres-primary
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_REPLICATION_USER: replicator
+      POSTGRES_REPLICATION_PASSWORD: replica123
+    volumes:
+      - ./configs/postgresql-primary.conf:/etc/postgresql/postgresql.conf
+      - ./configs/init-primary.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_primary_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d ecommerce"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL Secondary  
+  postgres-secondary:
+    image: postgres:15-alpine
+    container_name: postgres-secondary
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      PGUSER: admin
+    volumes:
+      - ./configs/postgresql-secondary.conf:/etc/postgresql/postgresql.conf
+      - postgres_secondary_data:/var/lib/postgresql/data
+      - ./configs/setup-replica.sh:/docker-entrypoint-initdb.d/setup-replica.sh
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis Sentinel Setup
+  redis-master:
+    image: redis:7-alpine
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./configs/redis-master.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  redis-sentinel:
+    image: redis:7-alpine
+    container_name: redis-sentinel
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./configs/sentinel.conf:/usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+
+  # Application Services
+  app-primary:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile.app
+    container_name: app-primary
+    environment:
+      - NODE_ENV=production
+      - APP_PORT=3001
+      - DB_HOST=postgres-primary
+      - DB_PORT=5432
+      - REDIS_HOST=redis-master
+      - SERVICE_NAME=app-primary
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+
+  app-secondary:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile.app  
+    container_name: app-secondary
+    environment:
+      - NODE_ENV=production
+      - APP_PORT=3002
+      - DB_HOST=postgres-primary
+      - DB_PORT=5432
+      - REDIS_HOST=redis-master
+      - SERVICE_NAME=app-secondary
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+
+  # HAProxy Load Balancer
+  load-balancer:
+    image: haproxy:2.8-alpine
+    container_name: load-balancer
+    ports:
+      - "8080:8080"
+      - "8404:8404"
+    volumes:
+      - ./configs/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - app-primary
+      - app-secondary
+
+  # Monitoring Dashboard
+  monitoring:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.monitoring
+    container_name: monitoring
+    ports:
+      - "3000:3000"
+      - "8081:8081"
+    environment:
+      - POSTGRES_PRIMARY_HOST=postgres-primary
+      - POSTGRES_SECONDARY_HOST=postgres-secondary
+      - REDIS_HOST=redis-master
+      - HAPROXY_STATS_URL=http://load-balancer:8404/stats
+    depends_on:
+      - load-balancer
+
+volumes:
+  postgres_primary_data:
+  postgres_secondary_data:
