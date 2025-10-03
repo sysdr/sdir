@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  primary:
+    image: postgres:16-alpine
+    container_name: pg_primary
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: testdb
+    volumes:
+      - ./primary:/var/lib/postgresql/data
+      - ./init-primary.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=3
+      -c max_replication_slots=3
+      -c hot_standby=on
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  replica1:
+    image: postgres:16-alpine
+    container_name: pg_replica1
+    environment:
+      POSTGRES_PASSWORD: password
+      PGPASSWORD: password
+    depends_on:
+      - primary
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: |
+      bash -c "
+      chown postgres:postgres /var/lib/postgresql/data
+      chmod 0700 /var/lib/postgresql/data
+      until gosu postgres pg_basebackup -h primary -D /var/lib/postgresql/data -U postgres -Fp -Xs -P -R; do
+        echo 'Waiting for primary...'
+        sleep 2
+      done
+      chmod 0700 /var/lib/postgresql/data
+      exec gosu postgres postgres -c hot_standby=on
+      "
+    ports:
+      - "5433:5432"
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  replica2:
+    image: postgres:16-alpine
+    container_name: pg_replica2
+    environment:
+      POSTGRES_PASSWORD: password
+      PGPASSWORD: password
+    depends_on:
+      - primary
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: |
+      bash -c "
+      chown postgres:postgres /var/lib/postgresql/data
+      chmod 0700 /var/lib/postgresql/data
+      until gosu postgres pg_basebackup -h primary -D /var/lib/postgresql/data -U postgres -Fp -Xs -P -R; do
+        echo 'Waiting for primary...'
+        sleep 2
+      done
+      chmod 0700 /var/lib/postgresql/data
+      exec gosu postgres postgres -c hot_standby=on
+      "
+    ports:
+      - "5434:5432"
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  orchestrator:
+    image: python:3.11-alpine
+    container_name: orchestrator
+    depends_on:
+      - primary
+      - replica1
+      - replica2
+    volumes:
+      - ./orchestrator:/app
+    working_dir: /app
+    command: sh -c "pip install --no-cache-dir psycopg2-binary flask requests && python orchestrator.py"
+    ports:
+      - "5001:5001"
+    networks:
+      - dbnet
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  monitor:
+    image: python:3.11-alpine
+    container_name: monitor
+    depends_on:
+      - primary
+      - replica1
+      - replica2
+      - orchestrator
+    volumes:
+      - ./monitor:/app
+    working_dir: /app
+    command: sh -c "pip install --no-cache-dir psycopg2-binary requests && python monitor.py"
+    networks:
+      - dbnet
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  dashboard:
+    image: python:3.11-alpine
+    container_name: dashboard
+    depends_on:
+      - orchestrator
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    command: sh -c "pip install --no-cache-dir flask requests psycopg2-binary && python dashboard.py"
+    ports:
+      - "8080:8080"
+    networks:
+      - dbnet
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  dbnet:
+    driver: bridge
