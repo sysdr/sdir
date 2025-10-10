@@ -1,0 +1,91 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: eventstore
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  order-service:
+    build: ./services/order
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DB_URL=postgresql://admin:password@postgres:5432/eventstore
+
+  inventory-service:
+    build: ./services/inventory
+    ports:
+      - "3002:3002"
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DB_URL=postgresql://admin:password@postgres:5432/eventstore
+
+  payment-service:
+    build: ./services/payment
+    ports:
+      - "3003:3003"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  notification-service:
+    build: ./services/notification
+    ports:
+      - "3004:3004"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  analytics-service:
+    build: ./services/analytics
+    ports:
+      - "3005:3005"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  antipattern-service:
+    build: ./services/antipattern
+    ports:
+      - "3006:3006"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - order-service
+      - inventory-service
+      - payment-service
+
+volumes:
+  redis_data:
+  postgres_data:
