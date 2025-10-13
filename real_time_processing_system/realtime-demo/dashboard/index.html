@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Processing Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #667eea;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1.1em;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .metric-label {
+      color: #888;
+      font-size: 0.9em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .metric-value {
+      color: #667eea;
+      font-size: 3em;
+      font-weight: bold;
+    }
+
+    .metric-unit {
+      color: #999;
+      font-size: 0.5em;
+    }
+
+    .activity-section {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      color: #667eea;
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+
+    .user-name {
+      min-width: 80px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .bar-container {
+      flex: 1;
+      height: 30px;
+      background: #e9ecef;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 0 15px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.5s ease;
+      border-radius: 15px;
+    }
+
+    .bar-value {
+      min-width: 40px;
+      text-align: right;
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .status-live {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .window-info {
+      background: #fff3cd;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+      color: #856404;
+    }
+
+    .pulse {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #28a745;
+      border-radius: 50%;
+      margin-right: 10px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Real-Time Stream Processing</h1>
+      <p class="subtitle">Issue #144: Architecture Patterns in Action</p>
+      <div class="status-badge status-live">
+        <span class="pulse"></span>LIVE DATA
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Clicks Per Second</div>
+        <div class="metric-value">
+          <span id="cps">0</span>
+          <span class="metric-unit">/sec</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Total Clicks</div>
+        <div class="metric-value" id="total">0</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Late Events</div>
+        <div class="metric-value" id="late">0</div>
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h2 class="section-title">User Activity (Current Window)</h2>
+      <div class="window-info">
+        📊 Window: <strong id="windowTime">Loading...</strong>
+        <br>⏱️ Tumbling window size: <strong>5 seconds</strong>
+      </div>
+      <div id="userActivity" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:8080';
+
+    async function fetchMetrics() {
+      try {
+        const response = await fetch(`${API_URL}/metrics?t=${Date.now()}`);
+        const data = await response.json();
+
+        document.getElementById('cps').textContent = data.clicksPerSecond.toFixed(2);
+        document.getElementById('total').textContent = data.totalClicks.toLocaleString();
+        document.getElementById('late').textContent = data.lateEvents;
+        document.getElementById('windowTime').textContent = new Date(data.currentWindow).toLocaleTimeString();
+
+        // Update user activity bars
+        const userActivity = data.userActivity || {};
+        const maxClicks = Math.max(...Object.values(userActivity), 1);
+        
+        const activityHtml = Object.entries(userActivity)
+          .sort(([, a], [, b]) => b - a)
+          .map(([user, clicks]) => {
+            const percentage = (clicks / maxClicks) * 100;
+            return `
+              <div class="user-bar">
+                <div class="user-name">${user}</div>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: ${percentage}%"></div>
+                </div>
+                <div class="bar-value">${clicks}</div>
+              </div>
+            `;
+          }).join('');
+
+        document.getElementById('userActivity').innerHTML = activityHtml || '<p style="color: #999;">Waiting for events...</p>';
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+      }
+    }
+
+    // Update every second
+    fetchMetrics();
+    setInterval(fetchMetrics, 1000);
+  </script>
+</body>
+</html>
