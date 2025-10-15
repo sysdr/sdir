@@ -1,6 +1,0 @@
-flask==3.0.0
-flask-cors==4.0.0
-requests==2.31.0
-prometheus-client==0.19.0
-structlog==23.2.0
-pydantic==2.5.0

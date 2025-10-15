@@ -1,7 +1,0 @@
-logs/
-web/
-*.pid
-*.log
-__pycache__/
-.git/
-README.md

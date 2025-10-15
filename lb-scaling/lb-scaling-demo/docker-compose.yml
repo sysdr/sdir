@@ -1,0 +1,52 @@
+services:
+  l4-balancer:
+    build: ./l4-balancer
+    ports:
+      - "8000:80"
+      - "8404:8404"
+    depends_on:
+      - l7-balancer-1
+      - l7-balancer-2
+    networks:
+      - lb-network
+
+  l7-balancer-1:
+    build:
+      context: ./l7-balancers
+    command: nginx -c /etc/nginx/nginx-1.conf -g "daemon off;"
+    depends_on:
+      - app-server-1
+      - app-server-2
+      - app-server-3
+    networks:
+      - lb-network
+
+  l7-balancer-2:
+    build:
+      context: ./l7-balancers
+    command: nginx -c /etc/nginx/nginx-2.conf -g "daemon off;"
+    depends_on:
+      - app-server-1
+      - app-server-2
+      - app-server-3
+    networks:
+      - lb-network
+
+  app-server-1:
+    build: ./app-servers
+    networks:
+      - lb-network
+
+  app-server-2:
+    build: ./app-servers
+    networks:
+      - lb-network
+
+  app-server-3:
+    build: ./app-servers
+    networks:
+      - lb-network
+
+networks:
+  lb-network:
+    driver: bridge
