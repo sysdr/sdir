@@ -1,0 +1,15 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY src/monitoring/package*.json ./
+RUN npm install --omit=dev
+
+# Copy monitoring code
+COPY src/monitoring/ ./
+COPY src/web/ ./public/
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Failover Mechanisms Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            padding: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            padding: 30px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 5px solid #007bff;
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .status-card.healthy {
+            border-left-color: #28a745;
+        }
+
+        .status-card.unhealthy {
+            border-left-color: #ffc107;
+        }
+
+        .status-card.failed {
+            border-left-color: #dc3545;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .healthy .status-indicator {
+            background: #28a745;
+        }
+
+        .unhealthy .status-indicator {
+            background: #ffc107;
+        }
+
+        .failed .status-indicator {
+            background: #dc3545;
+        }
+
+        .card-content {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .controls h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .updating {
+            animation: pulse 1s infinite;
+        }
+
+        .logs {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .logs h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-entry {
+            background: white;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #007bff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-entry.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .log-entry.warning {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .log-entry.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Failover Mechanisms Dashboard</h1>
+            <p>Real-time monitoring of distributed system components and automatic failover behavior</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="status-grid">
+                <!-- Database Status -->
+                <div id="database-card" class="status-card">
+                    <div class="card-title">
+                        <div class="status-indicator"></div>
+                        🗄️ Database Cluster
+                    </div>
+                    <div class="card-content">
+                        <div class="metric">
+                            <span>Primary Status:</span>
+                            <span id="db-primary-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Secondary Status:</span>
+                            <span id="db-secondary-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Replication Lag:</span>
+                            <span id="db-replication-lag" class="metric-value">0ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Redis Status -->
+                <div id="redis-card" class="status-card">
+                    <div class="card-title">
+                        <div class="status-indicator"></div>
+                        🔴 Redis Cache
+                    </div>
+                    <div class="card-content">
+                        <div class="metric">
+                            <span>Status:</span>
+                            <span id="redis-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Role:</span>
+                            <span id="redis-role" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Sentinel:</span>
+                            <span id="redis-sentinel" class="metric-value">Monitoring</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Status -->
+                <div id="app-card" class="status-card">
+                    <div class="card-title">
+                        <div class="status-indicator"></div>
+                        🚀 Application Servers
+                    </div>
+                    <div class="card-content">
+                        <div class="metric">
+                            <span>Primary App:</span>
+                            <span id="app-primary-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Secondary App:</span>
+                            <span id="app-secondary-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Response Time:</span>
+                            <span id="app-response-time" class="metric-value">0ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load Balancer Status -->
+                <div id="lb-card" class="status-card">
+                    <div class="card-title">
+                        <div class="status-indicator"></div>
+                        ⚖️ Load Balancer
+                    </div>
+                    <div class="card-content">
+                        <div class="metric">
+                            <span>Status:</span>
+                            <span id="lb-status" class="metric-value">Unknown</span>
+                        </div>
+                        <div class="metric">
+                            <span>Active Servers:</span>
+                            <span id="lb-active-servers" class="metric-value">0</span>
+                        </div>
+                        <div class="metric">
+                            <span>Health Checks:</span>
+                            <span id="lb-health-checks" class="metric-value">Enabled</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h3>🧪 Failure Simulation Controls</h3>
+                <div class="button-group">
+                    <button class="btn btn-danger" onclick="simulateFailure('app-primary')">
+                        Kill Primary App
+                    </button>
+                    <button class="btn btn-danger" onclick="simulateFailure('app-secondary')">
+                        Kill Secondary App
+                    </button>
+                    <button class="btn btn-danger" onclick="simulateFailure('database-primary')">
+                        Fail Primary DB
+                    </button>
+                    <button class="btn btn-info" onclick="refreshStatus()">
+                        Refresh Status
+                    </button>
+                </div>
+            </div>
+
+            <div class="logs">
+                <h3>📜 System Event Logs</h3>
+                <div id="log-container">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+
+            <div class="timestamp">
+                Last updated: <span id="last-updated">Never</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let systemStatus = {};
+        let logs = [];
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8081');
+            
+            ws.onopen = function() {
+                console.log('Connected to monitoring WebSocket');
+                addLog('Connected to monitoring service', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                systemStatus = JSON.parse(event.data);
+                updateDashboard(systemStatus);
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+                addLog('Connection to monitoring service lost', 'error');
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addLog('WebSocket connection error', 'error');
+            };
+        }
+
+        function updateDashboard(status) {
+            // Update database status
+            updateCard('database-card', getDatabaseOverallStatus(status.databases));
+            document.getElementById('db-primary-status').textContent = status.databases.primary.status;
+            document.getElementById('db-secondary-status').textContent = status.databases.secondary.status;
+            document.getElementById('db-replication-lag').textContent = status.databases.primary.replicationLag + 'ms';
+
+            // Update Redis status
+            updateCard('redis-card', status.redis.status);
+            document.getElementById('redis-status').textContent = status.redis.status;
+            document.getElementById('redis-role').textContent = status.redis.role || 'unknown';
+
+            // Update application status
+            updateCard('app-card', getApplicationOverallStatus(status.applications));
+            document.getElementById('app-primary-status').textContent = status.applications.primary.status;
+            document.getElementById('app-secondary-status').textContent = status.applications.secondary.status;
+            const avgResponseTime = Math.round((status.applications.primary.responseTime + status.applications.secondary.responseTime) / 2);
+            document.getElementById('app-response-time').textContent = avgResponseTime + 'ms';
+
+            // Update load balancer status
+            updateCard('lb-card', status.loadBalancer.status);
+            document.getElementById('lb-status').textContent = status.loadBalancer.status;
+            document.getElementById('lb-active-servers').textContent = status.loadBalancer.activeServers;
+
+            // Update timestamp
+            document.getElementById('last-updated').textContent = new Date(status.timestamp).toLocaleTimeString();
+
+            // Log status changes
+            checkStatusChanges(status);
+        }
+
+        function updateCard(cardId, status) {
+            const card = document.getElementById(cardId);
+            card.className = 'status-card ' + status;
+        }
+
+        function getDatabaseOverallStatus(databases) {
+            if (databases.primary.status === 'healthy' || databases.secondary.status === 'healthy') {
+                return 'healthy';
+            } else if (databases.primary.status === 'failed' && databases.secondary.status === 'failed') {
+                return 'failed';
+            } else {
+                return 'unhealthy';
+            }
+        }
+
+        function getApplicationOverallStatus(applications) {
+            const healthyApps = Object.values(applications).filter(app => app.status === 'healthy').length;
+            if (healthyApps >= 1) return 'healthy';
+            if (healthyApps === 0) return 'failed';
+            return 'unhealthy';
+        }
+
+        let previousStatus = {};
+        function checkStatusChanges(status) {
+            if (JSON.stringify(previousStatus) === '{}') {
+                previousStatus = JSON.parse(JSON.stringify(status));
+                return;
+            }
+
+            // Check for database failover
+            if (previousStatus.databases.primary.status !== status.databases.primary.status) {
+                if (status.databases.primary.status === 'failed') {
+                    addLog('🚨 Primary database failed! Initiating failover...', 'error');
+                } else if (status.databases.primary.status === 'healthy' && previousStatus.databases.primary.status === 'failed') {
+                    addLog('✅ Primary database recovered', 'success');
+                }
+            }
+
+            // Check for application failover
+            if (previousStatus.applications.primary.status !== status.applications.primary.status) {
+                if (status.applications.primary.status === 'failed') {
+                    addLog('🚨 Primary application failed! Load balancer redirecting traffic...', 'error');
+                } else if (status.applications.primary.status === 'healthy' && previousStatus.applications.primary.status === 'failed') {
+                    addLog('✅ Primary application recovered', 'success');
+                }
+            }
+
+            if (previousStatus.applications.secondary.status !== status.applications.secondary.status) {
+                if (status.applications.secondary.status === 'failed') {
+                    addLog('⚠️ Secondary application failed', 'warning');
+                } else if (status.applications.secondary.status === 'healthy' && previousStatus.applications.secondary.status === 'failed') {
+                    addLog('✅ Secondary application recovered', 'success');
+                }
+            }
+
+            previousStatus = JSON.parse(JSON.stringify(status));
+        }
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.unshift({ message, type, timestamp });
+            if (logs.length > 50) logs.pop();
+
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = logs.map(log => 
+                `<div class="log-entry ${log.type}">[${log.timestamp}] ${log.message}</div>`
+            ).join('');
+        }
+
+        async function simulateFailure(component) {
+            try {
+                addLog(`Simulating failure for ${component}...`, 'warning');
+                const response = await fetch(`/api/simulate-failure/${component}`, { method: 'POST' });
+                const result = await response.json();
+                addLog(result.message, 'info');
+            } catch (error) {
+                addLog(`Failed to simulate failure: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshStatus() {
+            document.querySelector('.dashboard').classList.add('updating');
+            setTimeout(() => {
+                document.querySelector('.dashboard').classList.remove('updating');
+            }, 1000);
+            addLog('Manual refresh requested', 'info');
+        }
+
+        // Initialize
+        connectWebSocket();
+        addLog('Dashboard initialized', 'success');
+        addLog('Monitoring distributed system components...', 'info');
+    </script>
+</body>
+</html>

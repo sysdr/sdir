@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PRODUCT_SERVICE_URL=http://product:3001
+      - PAYMENT_SERVICE_URL=http://payment:3002
+      - INVENTORY_SERVICE_URL=http://inventory:3003
+    depends_on:
+      - product
+      - payment
+      - inventory
+    command: node src/gateway.js
+
+  product:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    command: node src/product-service.js
+
+  payment:
+    build: .
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+    command: node src/payment-service.js
+
+  inventory:
+    build: .
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - NODE_ENV=production
+    command: node src/inventory-service.js

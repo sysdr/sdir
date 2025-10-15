@@ -1,0 +1,11 @@
+{
+  "name": "self-healing-demo",
+  "version": "1.0.0",
+  "description": "Self-healing microservices demonstration",
+  "scripts": {
+    "install-all": "npm run install-services && npm run install-controller && npm run install-dashboard",
+    "install-services": "cd services/user-service && npm install && cd ../order-service && npm install && cd ../payment-service && npm install",
+    "install-controller": "cd healing-controller && npm install",
+    "install-dashboard": "cd dashboard && npm install"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "runbook-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^6.8.1"
+  }
+}

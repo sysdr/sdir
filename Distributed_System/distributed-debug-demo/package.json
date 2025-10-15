@@ -1,0 +1,9 @@
+{
+  "name": "distributed-debug-demo",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "docker-compose up --build",
+    "test": "npm run test:services",
+    "test:services": "docker-compose exec order-service npm test"
+  }
+}

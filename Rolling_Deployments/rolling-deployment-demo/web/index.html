@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rolling Deployment Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 { font-size: 1.8rem; font-weight: 600; }
+        .header p { opacity: 0.9; margin-top: 0.5rem; }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .card h3 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .instance {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        
+        .instance.healthy { background: #f0fff4; border-color: #9ae6b4; }
+        .instance.unhealthy { background: #fed7d7; border-color: #fc8181; }
+        .instance.updating { background: #fef5e7; border-color: #f6ad55; }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-dot.healthy { background: #48bb78; }
+        .status-dot.unhealthy { background: #f56565; }
+        .status-dot.updating { background: #ed8936; }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        input, select, button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d2d6dc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            background: #4c51bf;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover { background: #434190; }
+        button:disabled { background: #a0aec0; cursor: not-allowed; }
+        
+        .log {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            border-radius: 4px;
+        }
+        
+        .log-entry.info { background: rgba(66, 153, 225, 0.1); }
+        .log-entry.success { background: rgba(72, 187, 120, 0.1); }
+        .log-entry.error { background: rgba(245, 101, 101, 0.1); }
+        .log-entry.warning { background: rgba(237, 137, 54, 0.1); }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #4c51bf;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rolling Deployment Dashboard</h1>
+        <p>Monitor and control rolling deployments across your service instances</p>
+    </div>
+    
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h3>Service Instances</h3>
+                <div id="instances"></div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="healthy-count">0</div>
+                        <div class="metric-label">Healthy</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="total-requests">0</div>
+                        <div class="metric-label">Total Requests</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="current-version">v1.0</div>
+                        <div class="metric-label">Current Version</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Deployment Controls</h3>
+                <div class="controls">
+                    <input type="text" id="version-input" placeholder="e.g., v2.0" value="v2.0">
+                    <select id="strategy-select">
+                        <option value="rolling">Rolling Update</option>
+                    </select>
+                    <button onclick="startDeployment()" id="deploy-btn">Deploy</button>
+                </div>
+                <div class="controls">
+                    <button onclick="testTraffic()">Test Traffic</button>
+                    <button onclick="simulateFailure()">Simulate Failure</button>
+                    <button onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>Deployment Logs</h3>
+            <div class="log" id="logs"></div>
+        </div>
+    </div>
+    
+    <script>
+        let ws;
+        let deploymentInProgress = false;
+        
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8081');
+            
+            ws.onopen = () => {
+                addLog('WebSocket connected', 'success');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onclose = () => {
+                addLog('WebSocket disconnected. Attempting reconnect...', 'warning');
+                setTimeout(connectWebSocket, 5000);
+            };
+            
+            ws.onerror = (error) => {
+                addLog('WebSocket error: ' + error, 'error');
+            };
+        }
+        
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'health':
+                    updateInstances(data.instances);
+                    break;
+                case 'deployment':
+                    handleDeploymentUpdate(data);
+                    break;
+                case 'batchUpdate':
+                    addLog(`Updating batch: ${data.batch.join(', ')} to ${data.version}`, 'info');
+                    break;
+            }
+        }
+        
+        function updateInstances(instances) {
+            const container = document.getElementById('instances');
+            const healthyCount = instances.filter(i => i.healthy).length;
+            const totalRequests = instances.reduce((sum, i) => sum + (i.requests || 0), 0);
+            const versions = [...new Set(instances.map(i => i.version))];
+            
+            container.innerHTML = instances.map(instance => `
+                <div class="instance ${getInstanceStatus(instance)}">
+                    <div style="display: flex; align-items: center;">
+                        <div class="status-dot ${getInstanceStatus(instance)}"></div>
+                        <strong>${instance.id}</strong>
+                        <span style="margin-left: 0.5rem; color: #718096;">${instance.version}</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #718096;">
+                        ${instance.healthy ? `${instance.requests || 0} requests` : 'Unhealthy'}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('healthy-count').textContent = healthyCount;
+            document.getElementById('total-requests').textContent = totalRequests;
+            document.getElementById('current-version').textContent = versions.join(', ');
+        }
+        
+        function getInstanceStatus(instance) {
+            if (instance.updating) return 'updating';
+            return instance.healthy ? 'healthy' : 'unhealthy';
+        }
+        
+        function handleDeploymentUpdate(data) {
+            const btn = document.getElementById('deploy-btn');
+            
+            switch(data.status) {
+                case 'started':
+                    deploymentInProgress = true;
+                    btn.disabled = true;
+                    addLog(`Started ${data.strategy} deployment to ${data.version}`, 'info');
+                    break;
+                case 'completed':
+                    deploymentInProgress = false;
+                    btn.disabled = false;
+                    addLog(`Deployment to ${data.version} completed successfully`, 'success');
+                    break;
+                case 'failed':
+                    deploymentInProgress = false;
+                    btn.disabled = false;
+                    addLog(`Deployment failed: ${data.error}`, 'error');
+                    break;
+            }
+        }
+        
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        async function startDeployment() {
+            const version = document.getElementById('version-input').value;
+            const strategy = document.getElementById('strategy-select').value;
+            
+            if (!version) {
+                addLog('Please enter a version number', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ version, strategy })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                addLog(`Deployment request sent for version ${version}`, 'info');
+            } catch (error) {
+                addLog(`Failed to start deployment: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testTraffic() {
+            addLog('Sending test requests to load balancer...', 'info');
+            
+            for (let i = 0; i < 10; i++) {
+                try {
+                    const response = await fetch('/api/data');
+                    const data = await response.json();
+                    addLog(`Response from ${data.message} (${data.version})`, 'info');
+                } catch (error) {
+                    addLog(`Request failed: ${error.message}`, 'error');
+                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
+        function simulateFailure() {
+            addLog('Simulating service failure...', 'warning');
+            // In a real implementation, this would call an admin endpoint
+            addLog('This would trigger a health check failure in a real system', 'info');
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        // Initialize
+        connectWebSocket();
+        addLog('Rolling Deployment Dashboard initialized', 'success');
+    </script>
+</body>
+</html>

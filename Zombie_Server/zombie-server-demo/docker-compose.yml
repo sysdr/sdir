@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  healthy-server:
+    build: ./backend/healthy
+    container_name: healthy-server
+    networks:
+      - zombie-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  zombie-server:
+    build: ./backend/zombie
+    container_name: zombie-server
+    networks:
+      - zombie-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dead-server:
+    build: ./backend/dead
+    container_name: dead-server
+    networks:
+      - zombie-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    build: ./loadbalancer
+    container_name: zombie-lb
+    ports:
+      - "8080:80"
+    depends_on:
+      - healthy-server
+      - zombie-server
+      - dead-server
+      - dashboard
+    networks:
+      - zombie-net
+    volumes:
+      - ./logs:/var/log/nginx
+
+  dashboard:
+    build: ./dashboard
+    container_name: zombie-dashboard
+    networks:
+      - zombie-net
+    depends_on:
+      - healthy-server
+      - zombie-server
+      - dead-server
+
+networks:
+  zombie-net:
+    driver: bridge
+
+volumes:
+  logs:

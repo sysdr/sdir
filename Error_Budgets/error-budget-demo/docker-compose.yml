@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  error-budget-service:
+    build: .
+    ports:
+      - "3000:3000"
+      - "8001:8001"
+      - "8002:8002"
+      - "8003:8003"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+    environment:
+      - REDIS_HOST=redis
+
+  traffic-generator:
+    build: .
+    command: python scripts/generate_traffic.py
+    depends_on:
+      - error-budget-service
+      - redis
+    environment:
+      - REDIS_HOST=redis

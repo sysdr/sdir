@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Event-Driven Architecture Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header { 
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white; 
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+            padding: 30px;
+        }
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 25px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card h3 { 
+            color: #2c3e50; 
+            margin-bottom: 15px; 
+            font-size: 1.3em;
+            border-bottom: 2px solid #27ae60;
+            padding-bottom: 10px;
+        }
+        .metric { 
+            font-size: 2em; 
+            font-weight: bold; 
+            color: #333; 
+            margin: 10px 0;
+        }
+        .button { 
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1em;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        .button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+        .danger { 
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        .success { 
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+        .events-log { 
+            background: #f5f5f5; 
+            border-radius: 8px; 
+            padding: 15px; 
+            height: 200px; 
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .event-item { 
+            padding: 5px; 
+            border-bottom: 1px solid #ddd; 
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .status-healthy { color: #27ae60; }
+        .status-unhealthy { color: #e74c3c; }
+        .pattern-demo { 
+            background: linear-gradient(45deg, #e8f5e8, #d5f4d5);
+            border-left: 4px solid #27ae60;
+        }
+        .antipattern-demo { 
+            background: linear-gradient(45deg, #fdf2f2, #fce4e4);
+            border-left: 4px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Event-Driven Architecture Dashboard</h1>
+            <p>Real-time monitoring of patterns and anti-patterns</p>
+        </div>
+        
+        <div class="grid">
+            <!-- Analytics -->
+            <div class="card">
+                <h3>📊 Real-time Analytics</h3>
+                <div>Orders Created: <span class="metric" id="ordersCreated">0</span></div>
+                <div>Payments Processed: <span class="metric" id="paymentsProcessed">0</span></div>
+                <div>Total Revenue: $<span class="metric" id="totalRevenue">0</span></div>
+                <div>Payment Failures: <span class="metric" id="paymentsFailed">0</span></div>
+            </div>
+            
+            <!-- Service Health -->
+            <div class="card">
+                <h3>🏥 Service Health</h3>
+                <div id="serviceHealth">
+                    <div>Order Service: <span id="orderHealth" class="status-healthy">Healthy</span></div>
+                    <div>Inventory Service: <span id="inventoryHealth" class="status-healthy">Healthy</span></div>
+                    <div>Payment Service: <span id="paymentHealth" class="status-healthy">Healthy</span></div>
+                    <div>Notification Service: <span id="notificationHealth" class="status-healthy">Healthy</span></div>
+                </div>
+            </div>
+            
+            <!-- Pattern Demonstrations -->
+            <div class="card pattern-demo">
+                <h3>✅ Good Patterns Demo</h3>
+                <button class="button success" onclick="createOrder()">Create Order (Event Sourcing)</button>
+                <button class="button success" onclick="checkInventory()">Check Inventory (CQRS)</button>
+                <button class="button success" onclick="processPayment()">Process Payment (Pub/Sub)</button>
+            </div>
+            
+            <!-- Anti-pattern Demonstrations -->
+            <div class="card antipattern-demo">
+                <h3>❌ Anti-patterns Demo</h3>
+                <button class="button danger" onclick="triggerEventStorm()">Trigger Event Storm</button>
+                <button class="button" onclick="stopEventStorm()">Stop Event Storm</button>
+                <div>⚠️ Watch how anti-patterns affect system performance</div>
+            </div>
+            
+            <!-- Event Stream -->
+            <div class="card" style="grid-column: span 2;">
+                <h3>📡 Live Event Stream</h3>
+                <div class="events-log" id="eventsLog">
+                    Waiting for events...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let orderId = 1;
+        
+        async function createOrder() {
+            try {
+                const order = {
+                    customerId: 'customer-' + Math.random().toString(36).substr(2, 9),
+                    items: [
+                        { productId: 'product-1', quantity: 2, price: 29.99 },
+                        { productId: 'product-2', quantity: 1, price: 49.99 }
+                    ]
+                };
+                
+                const response = await fetch('http://localhost:3001/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(order)
+                });
+                
+                const result = await response.json();
+                addEvent(`✅ Order created: ${result.orderId}`);
+                
+                // Trigger payment
+                setTimeout(() => processPaymentForOrder(result.orderId, 79.97), 1000);
+                
+            } catch (error) {
+                addEvent(`❌ Order creation failed: ${error.message}`);
+            }
+        }
+        
+        async function processPaymentForOrder(orderId, amount) {
+            try {
+                const payment = {
+                    orderId: orderId,
+                    amount: amount,
+                    paymentMethod: 'credit_card'
+                };
+                
+                const response = await fetch('http://localhost:3003/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payment)
+                });
+                
+                const result = await response.json();
+                addEvent(`💳 Payment ${result.status}: ${orderId} ($${amount})`);
+                
+            } catch (error) {
+                addEvent(`❌ Payment failed: ${error.message}`);
+            }
+        }
+        
+        async function checkInventory() {
+            try {
+                const response = await fetch('http://localhost:3002/inventory/product-1');
+                const result = await response.json();
+                addEvent(`📦 Inventory check: ${result.productId} has ${result.stock} units`);
+            } catch (error) {
+                addEvent(`❌ Inventory check failed: ${error.message}`);
+            }
+        }
+        
+        async function processPayment() {
+            const testPayment = {
+                orderId: 'test-' + Date.now(),
+                amount: Math.floor(Math.random() * 100) + 10,
+                paymentMethod: 'credit_card'
+            };
+            
+            try {
+                const response = await fetch('http://localhost:3003/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testPayment)
+                });
+                
+                const result = await response.json();
+                addEvent(`💰 Payment processed: $${testPayment.amount} - ${result.status}`);
+            } catch (error) {
+                addEvent(`❌ Payment failed: ${error.message}`);
+            }
+        }
+        
+        async function triggerEventStorm() {
+            try {
+                const response = await fetch('http://localhost:3006/trigger-event-storm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: 'storm-' + Date.now() })
+                });
+                
+                const result = await response.json();
+                addEvent(`🌪️ EVENT STORM TRIGGERED! This will flood the system with events`);
+            } catch (error) {
+                addEvent(`❌ Failed to trigger event storm: ${error.message}`);
+            }
+        }
+        
+        async function stopEventStorm() {
+            try {
+                await fetch('http://localhost:3006/stop-event-storm', { method: 'POST' });
+                addEvent(`🛑 Event storm stopped`);
+            } catch (error) {
+                addEvent(`❌ Failed to stop event storm: ${error.message}`);
+            }
+        }
+        
+        function addEvent(message) {
+            const eventsLog = document.getElementById('eventsLog');
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item';
+            eventItem.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            eventsLog.appendChild(eventItem);
+            eventsLog.scrollTop = eventsLog.scrollHeight;
+        }
+        
+        async function updateAnalytics() {
+            try {
+                const response = await fetch('http://localhost:3005/analytics');
+                const analytics = await response.json();
+                
+                document.getElementById('ordersCreated').textContent = analytics.ordersCreated;
+                document.getElementById('paymentsProcessed').textContent = analytics.paymentsProcessed;
+                document.getElementById('totalRevenue').textContent = analytics.totalRevenue.toFixed(2);
+                document.getElementById('paymentsFailed').textContent = analytics.paymentsFailed;
+            } catch (error) {
+                console.error('Failed to update analytics:', error);
+            }
+        }
+        
+        async function checkServiceHealth() {
+            const services = [
+                { name: 'order', port: 3001, element: 'orderHealth' },
+                { name: 'inventory', port: 3002, element: 'inventoryHealth' },
+                { name: 'payment', port: 3003, element: 'paymentHealth' },
+                { name: 'notification', port: 3004, element: 'notificationHealth' }
+            ];
+            
+            for (const service of services) {
+                try {
+                    const response = await fetch(`http://localhost:${service.port}/health`);
+                    const result = await response.json();
+                    const element = document.getElementById(service.element);
+                    element.textContent = result.status === 'healthy' ? 'Healthy' : 'Unhealthy';
+                    element.className = result.status === 'healthy' ? 'status-healthy' : 'status-unhealthy';
+                } catch (error) {
+                    const element = document.getElementById(service.element);
+                    element.textContent = 'Unhealthy';
+                    element.className = 'status-unhealthy';
+                }
+            }
+        }
+        
+        // Initialize dashboard
+        addEvent('🚀 Dashboard initialized - Ready to demonstrate EDA patterns!');
+        addEvent('💡 Click buttons above to see different patterns in action');
+        
+        // Update analytics and health every 2 seconds
+        setInterval(() => {
+            updateAnalytics();
+            checkServiceHealth();
+        }, 2000);
+        
+        // Initial checks
+        setTimeout(() => {
+            updateAnalytics();
+            checkServiceHealth();
+        }, 1000);
+    </script>
+</body>
+</html>

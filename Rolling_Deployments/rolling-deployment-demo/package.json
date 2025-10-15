@@ -1,0 +1,13 @@
+{
+  "name": "rolling-deployment-demo",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "node tests/test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "axios": "^1.6.7",
+    "ws": "^8.16.0"
+  }
+}

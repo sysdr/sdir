@@ -1,0 +1,15 @@
+{
+  "name": "failover-monitoring",
+  "version": "1.0.0",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "pg": "^8.11.3",
+    "redis": "^4.6.8",
+    "node-fetch": "^2.6.1"
+  }
+}

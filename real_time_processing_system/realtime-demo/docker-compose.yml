@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - realtime-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - realtime-net
+
+  producer:
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
+    container_name: click-producer
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9093
+    networks:
+      - realtime-net
+
+  processor:
+    build:
+      context: ./processor
+      dockerfile: Dockerfile
+    container_name: stream-processor
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BROKER=kafka:9093
+    ports:
+      - "8080:8080"
+    networks:
+      - realtime-net
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: realtime-dashboard
+    depends_on:
+      - processor
+    ports:
+      - "3000:80"
+    networks:
+      - realtime-net
+
+networks:
+  realtime-net:
+    driver: bridge

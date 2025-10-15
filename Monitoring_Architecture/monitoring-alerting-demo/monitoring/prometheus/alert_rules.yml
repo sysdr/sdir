@@ -1,0 +1,25 @@
+groups:
+  - name: infrastructure.alerts
+    rules:
+      # Tier 3: Predictive alerts
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(cpu_idle[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+          tier: "3"
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      # Service Discovery Issues
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: "1"
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service has been down for more than 1 minute"
+          escalation: "page-oncall"

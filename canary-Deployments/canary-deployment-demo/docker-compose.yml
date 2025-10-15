@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  stable-app:
+    build: ./apps/stable
+    container_name: canary-stable
+    networks:
+      - canary-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  canary-app:
+    build: ./apps/canary
+    container_name: canary-canary
+    environment:
+      - SIMULATE_ISSUES=false
+      - ERROR_RATE=0.02
+    networks:
+      - canary-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: canary-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - stable-app
+      - canary-app
+    networks:
+      - canary-net
+
+  dashboard:
+    build: ./dashboard
+    container_name: canary-dashboard
+    ports:
+      - "4000:4000"
+    depends_on:
+      - stable-app
+      - canary-app
+      - nginx
+    networks:
+      - canary-net
+
+networks:
+  canary-net:
+    driver: bridge

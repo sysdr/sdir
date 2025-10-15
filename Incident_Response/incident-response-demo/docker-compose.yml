@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: incident-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitoring:
+    build: ./src/monitoring
+    container_name: incident-monitoring
+    ports:
+      - "5001:5001"
+    depends_on:
+      - redis
+    environment:
+      - FLASK_ENV=production
+
+  alerting:
+    build: ./src/alerting
+    container_name: incident-alerting
+    ports:
+      - "5002:5002"
+    depends_on:
+      - redis
+    environment:
+      - FLASK_ENV=production
+
+  automation:
+    build: ./src/automation
+    container_name: incident-automation
+    ports:
+      - "5003:5003"
+    depends_on:
+      - redis
+      - monitoring
+    environment:
+      - FLASK_ENV=production
+
+  dashboard:
+    build: ./src/dashboard
+    container_name: incident-dashboard
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    environment:
+      - FLASK_ENV=production
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: incident-response-network

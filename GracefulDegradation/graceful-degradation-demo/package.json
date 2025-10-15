@@ -1,0 +1,24 @@
+{
+  "name": "graceful-degradation-demo",
+  "version": "1.0.0",
+  "description": "Demo showing graceful degradation vs fail fast patterns",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "jest tests/",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "redis": "^4.6.0",
+    "prom-client": "^15.1.0",
+    "opossum": "^9.0.0",
+    "ws": "^8.15.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.0",
+    "supertest": "^6.3.0"
+  }
+}

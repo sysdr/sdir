@@ -1,0 +1,106 @@
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="700" height="500" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="350" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">Multi-Level Circuit Breaker States</text>
+  
+  <!-- CLOSED State -->
+  <g transform="translate(100,80)">
+    <circle cx="60" cy="60" r="45" fill="#27ae60" stroke="#229954" stroke-width="3"/>
+    <text x="60" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="white">CLOSED</text>
+    <text x="60" y="70" text-anchor="middle" font-size="10" fill="white">Normal</text>
+    <text x="60" y="130" text-anchor="middle" font-size="12" fill="#27ae60">✓ All requests pass</text>
+    <text x="60" y="145" text-anchor="middle" font-size="12" fill="#27ae60">✓ Error rate < 20%</text>
+  </g>
+  
+  <!-- WARNING State -->
+  <g transform="translate(300,80)">
+    <circle cx="60" cy="60" r="45" fill="#f39c12" stroke="#e67e22" stroke-width="3"/>
+    <text x="60" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="white">WARNING</text>
+    <text x="60" y="70" text-anchor="middle" font-size="10" fill="white">Elevated</text>
+    <text x="60" y="130" text-anchor="middle" font-size="12" fill="#f39c12">⚠ Error rate 20-50%</text>
+    <text x="60" y="145" text-anchor="middle" font-size="12" fill="#f39c12">⚠ Start logging</text>
+  </g>
+  
+  <!-- HALF-OPEN State -->
+  <g transform="translate(500,80)">
+    <circle cx="60" cy="60" r="45" fill="#3498db" stroke="#2980b9" stroke-width="3"/>
+    <text x="60" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="white">HALF-OPEN</text>
+    <text x="60" y="65" text-anchor="middle" font-size="10" fill="white">Testing</text>
+    <text x="60" y="130" text-anchor="middle" font-size="12" fill="#3498db">⏳ Limited traffic</text>
+    <text x="60" y="145" text-anchor="middle" font-size="12" fill="#3498db">⏳ Testing recovery</text>
+  </g>
+  
+  <!-- OPEN State -->
+  <g transform="translate(200,280)">
+    <circle cx="60" cy="60" r="45" fill="#e74c3c" stroke="#c0392b" stroke-width="3"/>
+    <text x="60" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="white">OPEN</text>
+    <text x="60" y="70" text-anchor="middle" font-size="10" fill="white">Failing</text>
+    <text x="60" y="130" text-anchor="middle" font-size="12" fill="#e74c3c">❌ Reject requests</text>
+    <text x="60" y="145" text-anchor="middle" font-size="12" fill="#e74c3c">❌ Serve cached data</text>
+  </g>
+  
+  <!-- EMERGENCY State -->
+  <g transform="translate(400,280)">
+    <circle cx="60" cy="60" r="45" fill="#8e44ad" stroke="#7d3c98" stroke-width="3"/>
+    <text x="60" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="white">EMERGENCY</text>
+    <text x="60" y="65" text-anchor="middle" font-size="10" fill="white">Critical Only</text>
+    <text x="60" y="130" text-anchor="middle" font-size="12" fill="#8e44ad">🚨 Critical paths only</text>
+    <text x="60" y="145" text-anchor="middle" font-size="12" fill="#8e44ad">🚨 Drop 90% traffic</text>
+  </g>
+  
+  <!-- Arrows and transitions -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34495e"/>
+    </marker>
+  </defs>
+  
+  <!-- CLOSED to WARNING -->
+  <path d="M 180 120 Q 220 100 280 120" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="230" y="105" text-anchor="middle" font-size="10" fill="#34495e">Error rate ↑</text>
+  
+  <!-- WARNING to OPEN -->
+  <path d="M 320 160 Q 280 220 240 280" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="270" y="220" text-anchor="middle" font-size="10" fill="#34495e">Threshold exceeded</text>
+  
+  <!-- OPEN to HALF-OPEN -->
+  <path d="M 290 320 Q 400 250 480 160" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="380" y="240" text-anchor="middle" font-size="10" fill="#34495e">Timeout elapsed</text>
+  
+  <!-- HALF-OPEN to CLOSED -->
+  <path d="M 480 120 Q 420 50 180 100" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="330" y="65" text-anchor="middle" font-size="10" fill="#34495e">Success ✓</text>
+  
+  <!-- HALF-OPEN to OPEN -->
+  <path d="M 520 160 Q 480 220 440 280" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="480" y="220" text-anchor="middle" font-size="10" fill="#34495e">Still failing</text>
+  
+  <!-- WARNING to EMERGENCY -->
+  <path d="M 350 160 Q 380 220 420 280" stroke="#34495e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="385" y="220" text-anchor="middle" font-size="10" fill="#34495e">Critical load</text>
+  
+  <!-- Load shedding strategies -->
+  <g transform="translate(50,400)">
+    <text x="0" y="20" font-size="14" font-weight="bold" fill="#2c3e50">Load Shedding Strategies:</text>
+    
+    <rect x="10" y="30" width="15" height="15" fill="#27ae60"/>
+    <text x="35" y="42" font-size="12" fill="#2c3e50">VIP Users: Always served</text>
+    
+    <rect x="200" y="30" width="15" height="15" fill="#f39c12"/>
+    <text x="225" y="42" font-size="12" fill="#2c3e50">Regular: Queued during load</text>
+    
+    <rect x="420" y="30" width="15" height="15" fill="#e74c3c"/>
+    <text x="445" y="42" font-size="12" fill="#2c3e50">Anonymous: Dropped first</text>
+  </g>
+  
+  <!-- Response strategies -->
+  <g transform="translate(50,450)">
+    <text x="0" y="20" font-size="14" font-weight="bold" fill="#2c3e50">Response Strategies:</text>
+    
+    <text x="15" y="40" font-size="12" fill="#2c3e50">• Cached responses for non-critical data</text>
+    <text x="15" y="55" font-size="12" fill="#2c3e50">• Graceful degradation with reduced features</text>
+    <text x="15" y="70" font-size="12" fill="#2c3e50">• Queue with estimated wait times</text>
+  </g>
+</svg>

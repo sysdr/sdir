@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runbook Management System - Demo Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <span class="text-xl font-bold">📚 Runbook Manager - Demo</span>
+                </div>
+                <div class="flex space-x-4">
+                    <span class="px-3 py-2 rounded-md bg-blue-700">Dashboard</span>
+                    <span class="px-3 py-2 rounded-md hover:bg-blue-500">Runbooks</span>
+                    <span class="px-3 py-2 rounded-md hover:bg-blue-500">Analytics</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="space-y-6">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    Runbook Management Dashboard
+                </h1>
+                <p class="text-gray-600">
+                    Standardize and streamline your operational procedures
+                </p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 bg-blue-100 rounded-full">
+                            <span class="text-2xl">📚</span>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm text-gray-600">Total Runbooks</p>
+                            <p class="text-2xl font-bold text-gray-800" id="totalRunbooks">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 bg-green-100 rounded-full">
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm text-gray-600">Total Executions</p>
+                            <p class="text-2xl font-bold text-gray-800" id="totalExecutions">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 bg-purple-100 rounded-full">
+                            <span class="text-2xl">🎯</span>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm text-gray-600">Success Rate</p>
+                            <p class="text-2xl font-bold text-gray-800" id="successRate">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Runbooks by Category</h2>
+                    <canvas id="categoryChart" width="400" height="300"></canvas>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Execution Status</h2>
+                    <canvas id="statusChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Runbooks -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Available Runbooks</h2>
+                <div id="runbooksList" class="space-y-3">
+                    <p class="text-gray-500">Loading runbooks...</p>
+                </div>
+            </div>
+
+            <!-- Demo Actions -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Demo Actions</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="createDemoExecution()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                        Create Demo Execution
+                    </button>
+                    <button onclick="refreshData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Refresh Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let categoryChart, statusChart;
+
+        async function fetchData() {
+            try {
+                const [runbooksRes, analyticsRes] = await Promise.all([
+                    fetch(`${API_BASE}/runbooks`),
+                    fetch(`${API_BASE}/analytics`)
+                ]);
+                
+                const runbooks = await runbooksRes.json();
+                const analytics = await analyticsRes.json();
+                
+                updateDashboard(runbooks, analytics);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                document.getElementById('totalRunbooks').textContent = 'Error';
+                document.getElementById('totalExecutions').textContent = 'Error';
+                document.getElementById('successRate').textContent = 'Error';
+            }
+        }
+
+        function updateDashboard(runbooks, analytics) {
+            // Update stats
+            document.getElementById('totalRunbooks').textContent = analytics.totalRunbooks[0]?.count || 0;
+            document.getElementById('totalExecutions').textContent = analytics.totalExecutions[0]?.count || 0;
+            
+            // Calculate success rate
+            const completed = analytics.executionsByStatus.find(s => s.status === 'completed')?.count || 0;
+            const total = analytics.totalExecutions[0]?.count || 1;
+            const successRate = Math.round((completed / total) * 100);
+            document.getElementById('successRate').textContent = `${successRate}%`;
+
+            // Update runbooks list
+            const runbooksList = document.getElementById('runbooksList');
+            runbooksList.innerHTML = runbooks.map(runbook => `
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                    <h3 class="font-semibold text-gray-800">${runbook.title}</h3>
+                    <p class="text-sm text-gray-600">${runbook.description}</p>
+                    <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                        <span class="px-2 py-1 rounded-full ${
+                            runbook.severity === 'High' ? 'bg-red-100 text-red-800' :
+                            runbook.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                        }">
+                            ${runbook.severity}
+                        </span>
+                        <span>${runbook.category}</span>
+                        <span>~${runbook.estimated_time} min</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Update charts
+            updateCharts(analytics);
+        }
+
+        function updateCharts(analytics) {
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChart) categoryChart.destroy();
+            categoryChart = new Chart(categoryCtx, {
+                type: 'pie',
+                data: {
+                    labels: analytics.runbooksByCategory.map(item => item.category),
+                    datasets: [{
+                        data: analytics.runbooksByCategory.map(item => item.count),
+                        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: analytics.executionsByStatus.map(item => item.status),
+                    datasets: [{
+                        label: 'Executions',
+                        data: analytics.executionsByStatus.map(item => item.count),
+                        backgroundColor: ['#10B981', '#F59E0B', '#EF4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function createDemoExecution() {
+            try {
+                const runbooksRes = await fetch(`${API_BASE}/runbooks`);
+                const runbooks = await runbooksRes.json();
+                
+                if (runbooks.length > 0) {
+                    const randomRunbook = runbooks[Math.floor(Math.random() * runbooks.length)];
+                    const response = await fetch(`${API_BASE}/executions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            runbook_id: randomRunbook.id,
+                            executed_by: 'Demo User'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    alert(`Demo execution created: ${result.id}`);
+                    refreshData();
+                }
+            } catch (error) {
+                console.error('Failed to create demo execution:', error);
+                alert('Failed to create demo execution');
+            }
+        }
+
+        function refreshData() {
+            fetchData();
+        }
+
+        // Initialize dashboard
+        fetchData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+</html>

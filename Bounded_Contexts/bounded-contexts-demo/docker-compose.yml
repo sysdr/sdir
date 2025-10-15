@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # MongoDB instances - one per context
+  mongo-user:
+    image: mongo:7-jammy
+    container_name: bounded-contexts-mongo-user
+    environment:
+      MONGO_INITDB_DATABASE: userdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_user_data:/data/db
+    networks:
+      - bounded-contexts
+
+  mongo-product:
+    image: mongo:7-jammy
+    container_name: bounded-contexts-mongo-product
+    environment:
+      MONGO_INITDB_DATABASE: productdb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_product_data:/data/db
+    networks:
+      - bounded-contexts
+
+  mongo-order:
+    image: mongo:7-jammy
+    container_name: bounded-contexts-mongo-order
+    environment:
+      MONGO_INITDB_DATABASE: orderdb
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo_order_data:/data/db
+    networks:
+      - bounded-contexts
+
+  mongo-payment:
+    image: mongo:7-jammy
+    container_name: bounded-contexts-mongo-payment
+    environment:
+      MONGO_INITDB_DATABASE: paymentdb
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo_payment_data:/data/db
+    networks:
+      - bounded-contexts
+
+  # Microservices - one per bounded context
+  user-service:
+    build: ./user-service
+    container_name: bounded-contexts-user-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo-user
+    environment:
+      MONGODB_URI: mongodb://mongo-user:27017/userdb
+      PORT: 3001
+    networks:
+      - bounded-contexts
+    restart: unless-stopped
+
+  product-service:
+    build: ./product-service
+    container_name: bounded-contexts-product-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongo-product
+    environment:
+      MONGODB_URI: mongodb://mongo-product:27017/productdb
+      PORT: 3002
+    networks:
+      - bounded-contexts
+    restart: unless-stopped
+
+  order-service:
+    build: ./order-service
+    container_name: bounded-contexts-order-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongo-order
+      - user-service
+      - product-service
+    environment:
+      MONGODB_URI: mongodb://mongo-order:27017/orderdb
+      PORT: 3003
+    networks:
+      - bounded-contexts
+    restart: unless-stopped
+
+  payment-service:
+    build: ./payment-service
+    container_name: bounded-contexts-payment-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      - mongo-payment
+      - order-service
+    environment:
+      MONGODB_URI: mongodb://mongo-payment:27017/paymentdb
+      PORT: 3004
+    networks:
+      - bounded-contexts
+    restart: unless-stopped
+
+  # Dashboard
+  dashboard:
+    build: ./dashboard
+    container_name: bounded-contexts-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+    environment:
+      PORT: 3000
+    networks:
+      - bounded-contexts
+    restart: unless-stopped
+
+volumes:
+  mongo_user_data:
+  mongo_product_data:
+  mongo_order_data:
+  mongo_payment_data:
+
+networks:
+  bounded-contexts:
+    driver: bridge
