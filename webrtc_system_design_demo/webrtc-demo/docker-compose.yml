@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - webrtc-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - webrtc-network
+
+  coturn:
+    image: coturn/coturn:4.6.2-alpine
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+    environment:
+      - TURN_USERNAME=webrtc
+      - TURN_PASSWORD=webrtc123
+    command: |
+      -n --log-file=stdout
+      --min-port=49160 --max-port=49200
+      --fingerprint
+      --lt-cred-mech --user=webrtc:webrtc123
+      --realm=webrtc.local
+      --external-ip=$$(detect-external-ip)
+    networks:
+      - webrtc-network
+
+networks:
+  webrtc-network:
+    driver: bridge
