@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: banking
+      POSTGRES_USER: bankuser
+      POSTGRES_PASSWORD: bankpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankuser -d banking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  account-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.account
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bankuser:bankpass@postgres:5432/banking
+      REDIS_URL: redis://redis:6379
+      SERVICE_NAME: account-service
+      PORT: 8001
+
+  transaction-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.transaction
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bankuser:bankpass@postgres:5432/banking
+      REDIS_URL: redis://redis:6379
+      SERVICE_NAME: transaction-service
+      PORT: 8002
+      ACCOUNT_SERVICE_URL: http://account-service:8001
+
+  audit-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.audit
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bankuser:bankpass@postgres:5432/banking
+      REDIS_URL: redis://redis:6379
+      SERVICE_NAME: audit-service
+      PORT: 8003
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - account-service
+      - transaction-service
+      - audit-service
+    environment:
+      REACT_APP_ACCOUNT_SERVICE_URL: http://localhost:8001
+      REACT_APP_TRANSACTION_SERVICE_URL: http://localhost:8002
+      REACT_APP_AUDIT_SERVICE_URL: http://localhost:8003
+
+volumes:
+  postgres_data:

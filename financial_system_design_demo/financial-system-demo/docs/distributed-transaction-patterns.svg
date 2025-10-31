@@ -1,0 +1,230 @@
+<svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="3" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+    <linearGradient id="tpcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ee5a24;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sagaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#11998e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38ef7d;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="900" height="700" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <rect x="50" y="20" width="800" height="60" rx="10" fill="url(#headerGrad)" filter="url(#shadow)"/>
+  <text x="450" y="55" text-anchor="middle" dominant-baseline="middle" 
+        font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">
+    Distributed Transaction Patterns: 2PC vs SAGA
+  </text>
+  
+  <!-- 2PC Section -->
+  <g transform="translate(50, 120)">
+    <!-- 2PC Title -->
+    <rect x="0" y="0" width="350" height="40" rx="8" fill="url(#tpcGrad)" filter="url(#shadow)"/>
+    <text x="175" y="25" text-anchor="middle" dominant-baseline="middle" 
+          font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+      Two-Phase Commit (2PC)
+    </text>
+    
+    <!-- Coordinator -->
+    <g transform="translate(150, 70)">
+      <rect x="-50" y="-20" width="100" height="40" rx="8" fill="url(#tpcGrad)" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">
+        Coordinator
+      </text>
+    </g>
+    
+    <!-- Services for 2PC -->
+    <g transform="translate(50, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#ffd6e3" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Account
+      </text>
+    </g>
+    
+    <g transform="translate(150, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#ffd6e3" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Payment
+      </text>
+    </g>
+    
+    <g transform="translate(250, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#ffd6e3" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Audit
+      </text>
+    </g>
+    
+    <!-- 2PC Flow Steps -->
+    <g transform="translate(0, 200)">
+      <rect x="0" y="0" width="350" height="120" rx="8" fill="rgba(255,107,107,0.1)" 
+            stroke="#ff6b6b" stroke-width="2" filter="url(#shadow)"/>
+      <text x="10" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+        Phase 1: PREPARE
+      </text>
+      <text x="15" y="40" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • Coordinator asks all services to prepare
+      </text>
+      <text x="15" y="55" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • Services lock resources and vote YES/NO
+      </text>
+      
+      <text x="10" y="80" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+        Phase 2: COMMIT/ABORT
+      </text>
+      <text x="15" y="100" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • If all YES: Coordinator sends COMMIT
+      </text>
+      <text x="15" y="115" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • If any NO: Coordinator sends ABORT
+      </text>
+    </g>
+    
+    <!-- Connection lines for 2PC -->
+    <line x1="150" y1="90" x2="50" y2="135" stroke="#ff6b6b" stroke-width="2"/>
+    <line x1="150" y1="90" x2="150" y2="135" stroke="#ff6b6b" stroke-width="2"/>
+    <line x1="150" y1="90" x2="250" y2="135" stroke="#ff6b6b" stroke-width="2"/>
+  </g>
+  
+  <!-- SAGA Section -->
+  <g transform="translate(500, 120)">
+    <!-- SAGA Title -->
+    <rect x="0" y="0" width="350" height="40" rx="8" fill="url(#sagaGrad)" filter="url(#shadow)"/>
+    <text x="175" y="25" text-anchor="middle" dominant-baseline="middle" 
+          font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">
+      SAGA Pattern (Compensation)
+    </text>
+    
+    <!-- No central coordinator for SAGA -->
+    <g transform="translate(175, 70)">
+      <rect x="-60" y="-20" width="120" height="40" rx="8" fill="rgba(17,153,142,0.2)" 
+            stroke="#11998e" stroke-width="2" stroke-dasharray="5,5"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#11998e">
+        Orchestrated Flow
+      </text>
+    </g>
+    
+    <!-- Services for SAGA -->
+    <g transform="translate(50, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#d4edda" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Account
+      </text>
+    </g>
+    
+    <g transform="translate(150, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#d4edda" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Payment
+      </text>
+    </g>
+    
+    <g transform="translate(250, 150)">
+      <rect x="-40" y="-15" width="80" height="30" rx="5" fill="#d4edda" filter="url(#shadow)"/>
+      <text x="0" y="5" text-anchor="middle" dominant-baseline="middle" 
+            font-family="Arial, sans-serif" font-size="12" fill="#333">
+        Audit
+      </text>
+    </g>
+    
+    <!-- SAGA Flow Steps -->
+    <g transform="translate(0, 200)">
+      <rect x="0" y="0" width="350" height="120" rx="8" fill="rgba(17,153,142,0.1)" 
+            stroke="#11998e" stroke-width="2" filter="url(#shadow)"/>
+      <text x="10" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+        Sequential Execution
+      </text>
+      <text x="15" y="40" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • Execute steps one by one
+      </text>
+      <text x="15" y="55" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • Each step has compensation action
+      </text>
+      
+      <text x="10" y="80" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">
+        Compensation on Failure
+      </text>
+      <text x="15" y="100" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • If step fails, run compensations
+      </text>
+      <text x="15" y="115" font-family="Arial, sans-serif" font-size="12" fill="#666">
+        • Reverse completed operations
+      </text>
+    </g>
+    
+    <!-- Sequential arrows for SAGA -->
+    <line x1="90" y1="150" x2="110" y2="150" stroke="#11998e" stroke-width="3" marker-end="url(#sagaArrow)"/>
+    <line x1="190" y1="150" x2="210" y2="150" stroke="#11998e" stroke-width="3" marker-end="url(#sagaArrow)"/>
+  </g>
+  
+  <!-- Comparison table -->
+  <g transform="translate(100, 450)">
+    <rect x="0" y="0" width="700" height="200" rx="10" fill="rgba(102,126,234,0.1)" 
+          stroke="#667eea" stroke-width="2" filter="url(#shadow)"/>
+    <text x="350" y="25" text-anchor="middle" dominant-baseline="middle" 
+          font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">
+      Pattern Comparison
+    </text>
+    
+    <!-- Headers -->
+    <text x="50" y="55" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">Aspect</text>
+    <text x="250" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ff6b6b">2PC</text>
+    <text x="550" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#11998e">SAGA</text>
+    
+    <!-- Row 1 -->
+    <text x="50" y="80" font-family="Arial, sans-serif" font-size="12" fill="#333">Consistency</text>
+    <text x="250" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Strong (ACID)</text>
+    <text x="550" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Eventual</text>
+    
+    <!-- Row 2 -->
+    <text x="50" y="105" font-family="Arial, sans-serif" font-size="12" fill="#333">Availability</text>
+    <text x="250" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Blocking</text>
+    <text x="550" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Non-blocking</text>
+    
+    <!-- Row 3 -->
+    <text x="50" y="130" font-family="Arial, sans-serif" font-size="12" fill="#333">Complexity</text>
+    <text x="250" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">High</text>
+    <text x="550" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Medium</text>
+    
+    <!-- Row 4 -->
+    <text x="50" y="155" font-family="Arial, sans-serif" font-size="12" fill="#333">Best For</text>
+    <text x="250" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">Short transactions</text>
+    <text x="550" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">Long business processes</text>
+    
+    <!-- Row 5 -->
+    <text x="50" y="180" font-family="Arial, sans-serif" font-size="12" fill="#333">Failure Recovery</text>
+    <text x="250" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">Automatic rollback</text>
+    <text x="550" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#666">Manual compensation</text>
+  </g>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="sagaArrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#11998e"/>
+    </marker>
+  </defs>
+  
+  <!-- Footer -->
+  <text x="450" y="680" text-anchor="middle" dominant-baseline="middle" 
+        font-family="Arial, sans-serif" font-size="12" fill="#888">
+    Modern financial systems often prefer SAGA for better scalability and resilience
+  </text>
+</svg>
