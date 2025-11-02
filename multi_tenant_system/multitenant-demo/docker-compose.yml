@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Shared Database for Pattern 1 & 2
+  postgres-shared:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: shared_tenants
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - shared_db_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d shared_tenants"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Separate Database for Pattern 3 (Tenant 1)
+  postgres-tenant1:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: tenant1_db
+      POSTGRES_USER: tenant1_user
+      POSTGRES_PASSWORD: tenant1_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - tenant1_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenant1_user -d tenant1_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SHARED_DB_URL=postgresql://admin:password123@postgres-shared:5432/shared_tenants
+      - TENANT1_DB_URL=postgresql://tenant1_user:tenant1_pass@postgres-tenant1:5432/tenant1_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres-shared:
+        condition: service_healthy
+      postgres-tenant1:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Dashboard
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+
+  # Monitoring with Grafana
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+
+volumes:
+  shared_db_data:
+  tenant1_db_data:
+  grafana_data:

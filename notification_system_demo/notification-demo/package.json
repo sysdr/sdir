@@ -1,0 +1,14 @@
+{
+  "name": "notification-system-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "redis": "^4.6.12",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.1"
+  }
+}

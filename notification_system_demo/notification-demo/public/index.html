@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notification System Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0f172a;
+      min-height: 100vh;
+      padding: 24px;
+      color: #e2e8f0;
+    }
+    
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #1e293b;
+    }
+    
+    .header h1 {
+      color: #f8fafc;
+      font-size: 2.75rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    
+    .header .subtitle {
+      color: #94a3b8;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: currentColor;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+    
+    .stat-card.queued { color: #60a5fa; }
+    .stat-card.processing { color: #fbbf24; }
+    .stat-card.delivered { color: #34d399; }
+    .stat-card.failed { color: #f87171; }
+    .stat-card.throttled { color: #f59e0b; }
+    .stat-card.retrying { color: #a78bfa; }
+    
+    .stat-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.9;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .stat-value {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stat-change {
+      font-size: 0.75rem;
+      margin-top: 8px;
+      color: #64748b;
+    }
+    
+    .notifications-panel {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      max-height: 600px;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    .notifications-panel h2 {
+      color: #f8fafc;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #334155;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    .notification-item {
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      border-left: 4px solid #3b82f6;
+      animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    
+    .notification-item:hover {
+      transform: translateX(4px);
+      border-left-width: 6px;
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    }
+    
+    .notification-item.delivered { 
+      border-left-color: #34d399;
+      background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    }
+    
+    .notification-item.failed { 
+      border-left-color: #f87171;
+      background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    }
+    
+    .notification-item.throttled { 
+      border-left-color: #f59e0b;
+      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .notification-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    
+    .notification-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #60a5fa;
+    }
+    
+    .notification-time {
+      color: #64748b;
+      font-size: 0.875rem;
+      font-weight: 400;
+    }
+    
+    .notification-body {
+      color: #cbd5e1;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .badge.p0 { 
+      background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+      color: #fca5a5;
+      box-shadow: 0 2px 8px rgba(156, 16, 16, 0.4);
+    }
+    
+    .badge.p1 { 
+      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+      color: #fbbf24;
+      box-shadow: 0 2px 8px rgba(154, 102, 14, 0.4);
+    }
+    
+    .badge.p2 { 
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: #60a5fa;
+      box-shadow: 0 2px 8px rgba(30, 58, 138, 0.4);
+    }
+    
+    .channel-badge {
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .channel-badge.email { border-color: #3b82f6; color: #93c5fd; }
+    .channel-badge.sms { border-color: #10b981; color: #6ee7b7; }
+    .channel-badge.push { border-color: #8b5cf6; color: #c4b5fd; }
+    .channel-badge.webhook { border-color: #f59e0b; color: #fcd34d; }
+    
+    .pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    /* Custom scrollbar */
+    .notifications-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .notifications-panel::-webkit-scrollbar-track {
+      background: #1e293b;
+      border-radius: 10px;
+    }
+    
+    .notifications-panel::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 10px;
+    }
+    
+    .notifications-panel::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    
+    /* Stats animation */
+    .stat-value {
+      transition: all 0.3s ease;
+    }
+    
+    .stat-value.updated {
+      animation: numberUpdate 0.5s ease;
+    }
+    
+    @keyframes numberUpdate {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); color: currentColor; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Notification System at Scale</h1>
+      <p class="subtitle">Real-time monitoring dashboard for high-performance notification processing</p>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card queued">
+        <div class="stat-icon">📥</div>
+        <div class="stat-label">Queued</div>
+        <div class="stat-value" id="stat-queued">0</div>
+      </div>
+      
+      <div class="stat-card processing">
+        <div class="stat-icon">⚙️</div>
+        <div class="stat-label">Processing</div>
+        <div class="stat-value pulse" id="stat-processing">0</div>
+      </div>
+      
+      <div class="stat-card delivered">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Delivered</div>
+        <div class="stat-value" id="stat-delivered">0</div>
+      </div>
+      
+      <div class="stat-card failed">
+        <div class="stat-icon">❌</div>
+        <div class="stat-label">Failed</div>
+        <div class="stat-value" id="stat-failed">0</div>
+      </div>
+      
+      <div class="stat-card throttled">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-label">Throttled</div>
+        <div class="stat-value" id="stat-throttled">0</div>
+      </div>
+      
+      <div class="stat-card retrying">
+        <div class="stat-icon">🔄</div>
+        <div class="stat-label">Retrying</div>
+        <div class="stat-value" id="stat-retrying">0</div>
+      </div>
+    </div>
+    
+    <div class="notifications-panel">
+      <h2>
+        <span class="status-indicator"></span>
+        Live Notifications Stream
+      </h2>
+      <div id="notifications-list"></div>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
+    const notificationsList = document.getElementById('notifications-list');
+    const maxNotifications = 50;
+    
+    let previousStats = {};
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'stats') {
+        Object.entries(data.data).forEach(([key, value]) => {
+          const el = document.getElementById(`stat-${key}`);
+          if (el) {
+            if (previousStats[key] !== undefined && previousStats[key] !== value) {
+              el.classList.add('updated');
+              setTimeout(() => el.classList.remove('updated'), 500);
+            }
+            el.textContent = value;
+          }
+        });
+        previousStats = { ...data.data };
+      }
+      
+      if (data.type === 'notification') {
+        const notif = data.data;
+        const div = document.createElement('div');
+        div.className = `notification-item ${notif.status}`;
+        div.innerHTML = `
+          <div class="notification-header">
+            <span class="notification-user">
+              ${notif.userId}
+              <span class="badge ${notif.priority}">${notif.priority}</span>
+              <span class="channel-badge ${notif.channel}">${notif.channel}</span>
+            </span>
+            <span class="notification-time">
+              ${new Date(notif.timestamp).toLocaleTimeString()}
+            </span>
+          </div>
+          <div class="notification-body">${notif.message}</div>
+        `;
+        
+        notificationsList.insertBefore(div, notificationsList.firstChild);
+        
+        while (notificationsList.children.length > maxNotifications) {
+          notificationsList.removeChild(notificationsList.lastChild);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
+

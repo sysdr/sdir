@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IAM System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f4c75 0%, #3282b8 50%, #bbe1fa 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #0f4c75;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .refresh-btn {
+            background: #3282b8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #0f4c75;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(15, 76, 117, 0.3);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auto-refresh label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-healthy {
+            background: #c8e6c9;
+            color: #1b5e20;
+        }
+
+        .status-unhealthy {
+            background: #ffcdd2;
+            color: #b71c1c;
+        }
+
+        .status-warning {
+            background: #ffe0b2;
+            color: #e65100;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+            color: white;
+        }
+
+        .summary-card h2 {
+            color: white;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3282b8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .service-name {
+            font-weight: 600;
+        }
+
+        .container-name {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 IAM System Dashboard</h1>
+            <div class="auto-refresh">
+                <label>
+                    <input type="checkbox" id="autoRefresh" checked>
+                    <span>Auto-refresh (5s)</span>
+                </label>
+                <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div id="dashboard" class="grid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading dashboard data...</p>
+            </div>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+
+        function updateTimestamp() {
+            const timestamp = document.getElementById('timestamp');
+            timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        function createCard(title, content) {
+            return `
+                <div class="card">
+                    <h2>${title}</h2>
+                    ${content}
+                </div>
+            `;
+        }
+
+        function createStatusItem(name, status, details = '') {
+            const statusClass = status === 'healthy' || status === 'working' || status === 'running' || status === 'ready' 
+                ? 'status-healthy' 
+                : status === 'warning' 
+                ? 'status-warning' 
+                : 'status-unhealthy';
+            const statusText = status === 'healthy' || status === 'working' || status === 'running' || status === 'ready' 
+                ? '✓ OK' 
+                : status === 'warning' 
+                ? '⚠ WARNING' 
+                : '✗ ERROR';
+            
+            return `
+                <div class="status-item">
+                    <span class="service-name">${name}</span>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+            `;
+        }
+
+        async function loadDashboard() {
+            const dashboard = document.getElementById('dashboard');
+            dashboard.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading dashboard data...</p></div>';
+
+            try {
+                const [health, containers, databases, ports, metrics] = await Promise.all([
+                    fetch('/api/health').then(r => r.json()),
+                    fetch('/api/containers').then(r => r.json()),
+                    fetch('/api/databases').then(r => r.json()),
+                    fetch('/api/ports').then(r => r.json()),
+                    fetch('/api/metrics').then(r => r.json())
+                ]);
+
+                let html = '';
+
+                // Summary Card
+                const summaryStatus = metrics.summary.percentage === 100 ? 'healthy' : metrics.summary.percentage >= 50 ? 'warning' : 'unhealthy';
+                html += createCard('📊 Summary', `
+                    <div class="summary-stats">
+                        <div class="stat">
+                            <div class="stat-value">${metrics.summary.passing}/${metrics.summary.total}</div>
+                            <div class="stat-label">Tests Passing</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${metrics.summary.percentage}%</div>
+                            <div class="stat-label">Success Rate</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${containers.filter(c => c.State === 'running' || c.Status?.includes('Up')).length}</div>
+                            <div class="stat-label">Containers Running</div>
+                        </div>
+                    </div>
+                `);
+
+                // Service Health
+                let healthContent = '';
+                healthContent += createStatusItem('Auth Server', health.authServer.healthy ? 'healthy' : 'unhealthy');
+                healthContent += createStatusItem('Resource Server', health.resourceServer.healthy ? 'healthy' : 'unhealthy');
+                html += createCard('🏥 Service Health', healthContent);
+
+                // Docker Containers
+                let containersContent = '';
+                if (containers.length === 0) {
+                    containersContent = '<div class="status-item"><span>No containers found</span></div>';
+                } else {
+                    containers.forEach(container => {
+                        const isRunning = container.State === 'running' || container.Status?.includes('Up');
+                        containersContent += createStatusItem(
+                            container.Name || 'Unknown',
+                            isRunning ? 'running' : 'unhealthy',
+                            container.Status || container.State || ''
+                        );
+                    });
+                }
+                html += createCard('🐳 Docker Containers', containersContent);
+
+                // Database Status
+                let dbContent = '';
+                dbContent += createStatusItem('PostgreSQL', databases.postgres.ready ? 'ready' : 'unhealthy');
+                if (databases.postgres.container) {
+                    dbContent += `<div class="container-name">Container: ${databases.postgres.container}</div>`;
+                }
+                dbContent += createStatusItem('Redis', databases.redis.ready ? 'ready' : 'unhealthy');
+                if (databases.redis.container) {
+                    dbContent += `<div class="container-name">Container: ${databases.redis.container}</div>`;
+                }
+                html += createCard('💾 Database & Cache', dbContent);
+
+                // Port Status
+                let portsContent = '';
+                ports.forEach(({ port, service, inUse }) => {
+                    portsContent += createStatusItem(`${service} (Port ${port})`, inUse ? 'healthy' : 'unhealthy');
+                });
+                html += createCard('🔌 Port Status', portsContent);
+
+                // System Metrics
+                let metricsContent = '';
+                metrics.metrics.forEach(metric => {
+                    metricsContent += createStatusItem(
+                        metric.name,
+                        metric.working ? 'working' : 'unhealthy',
+                        metric.status ? `HTTP ${metric.status}` : ''
+                    );
+                });
+                html += createCard('📈 System Metrics', metricsContent);
+
+                dashboard.innerHTML = html;
+                updateTimestamp();
+
+            } catch (error) {
+                dashboard.innerHTML = createCard('❌ Error', `
+                    <div class="status-item">
+                        <span>Failed to load dashboard data</span>
+                        <span class="status-badge status-unhealthy">ERROR</span>
+                    </div>
+                    <div style="margin-top: 10px; color: #666; font-size: 14px;">${error.message}</div>
+                `);
+            }
+        }
+
+        function setupAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+                autoRefreshInterval = setInterval(loadDashboard, 5000);
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        }
+
+        document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
+
+        // Initial load
+        loadDashboard();
+        setupAutoRefresh();
+    </script>
+</body>
+</html>
+
