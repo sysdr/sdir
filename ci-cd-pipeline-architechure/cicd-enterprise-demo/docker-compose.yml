@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cicd-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  pipeline-orchestrator:
+    build:
+      context: ./pipeline-orchestrator
+      dockerfile: Dockerfile
+    container_name: cicd-orchestrator
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+    volumes:
+      - ./services:/app/services
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: cicd-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      pipeline-orchestrator:
+        condition: service_healthy
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./dashboard/src:/app/src
+
+  frontend-service:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: frontend-service
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backend-service:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    container_name: backend-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  database-service:
+    build:
+      context: ./services/database
+      dockerfile: Dockerfile
+    container_name: database-service
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis_data:
+    driver: local
