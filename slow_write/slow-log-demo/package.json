@@ -1,0 +1,14 @@
+{
+  "name": "slow-log-demo",
+  "version": "1.0.0",
+  "description": "Demo of synchronous vs asynchronous logging impact",
+  "main": "app/server.js",
+  "scripts": {
+    "start": "node app/server.js",
+    "test": "node app/test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "autocannon": "^7.12.0"
+  }
+}

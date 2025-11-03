@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slow Log Writes Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    .controls {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .control-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .control-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    select, input[type="range"] {
+      padding: 10px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 8px;
+      background: #e2e8f0;
+      border: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .delay-value {
+      color: #667eea;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: #f56565;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e53e3e;
+      transform: translateY(-2px);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .metric-label {
+      color: #718096;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .metric-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+
+    .metric-unit {
+      font-size: 18px;
+      color: #a0aec0;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-good { background: #48bb78; }
+    .status-warning { background: #ed8936; }
+    .status-danger { background: #f56565; }
+
+    .chart-container {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 20px;
+    }
+
+    canvas {
+      max-width: 100%;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .mode-sync {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .mode-async {
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Slow Log Writes Demo</h1>
+      <p class="subtitle">Real-time demonstration of synchronous vs asynchronous logging impact</p>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-item">
+          <label>Logging Mode</label>
+          <select id="loggingMode">
+            <option value="sync">Synchronous (Blocking)</option>
+            <option value="async">Asynchronous (Non-Blocking)</option>
+          </select>
+        </div>
+        
+        <div class="control-item">
+          <label>Log Write Delay: <span class="delay-value" id="delayValue">0ms</span></label>
+          <input type="range" id="logDelay" min="0" max="500" value="0" step="10">
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" onclick="applyConfig()">Apply Configuration</button>
+        <button class="btn-primary" onclick="startLoad()">Start Load Test (10s)</button>
+        <button class="btn-danger" onclick="stopLoad()">Stop Load Test</button>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Current Mode</div>
+        <div class="metric-value">
+          <span id="currentMode" class="mode-badge mode-sync">SYNC</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Total Requests</div>
+        <div class="metric-value" id="totalRequests">0</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Avg Response Time</div>
+        <div class="metric-value">
+          <span id="avgResponseTime">0</span>
+          <span class="metric-unit">ms</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Success Rate</div>
+        <div class="metric-value">
+          <span id="successRate">100</span>
+          <span class="metric-unit">%</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Queue Size</div>
+        <div class="metric-value" id="queueSize">0</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Dropped Logs</div>
+        <div class="metric-value" id="droppedLogs">0</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">📈 Response Time Trend</div>
+      <canvas id="responseChart" width="800" height="300"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let loadTestInterval = null;
+    let metricsInterval = null;
+    let responseTimeData = [];
+    let chartCtx = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('logDelay').addEventListener('input', (e) => {
+        document.getElementById('delayValue').textContent = e.target.value + 'ms';
+      });
+
+      chartCtx = document.getElementById('responseChart').getContext('2d');
+      startMetricsPolling();
+      fetchMetrics();
+    });
+
+    async function applyConfig() {
+      const mode = document.getElementById('loggingMode').value;
+      const delay = document.getElementById('logDelay').value;
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            loggingMode: mode,
+            logDelay: parseInt(delay)
+          })
+        });
+
+        if (response.ok) {
+          responseTimeData = [];
+          fetchMetrics();
+          alert('Configuration applied successfully!');
+        }
+      } catch (error) {
+        console.error('Error applying config:', error);
+      }
+    }
+
+    async function startLoad() {
+      stopLoad();
+      
+      loadTestInterval = setInterval(async () => {
+        // Send 10 concurrent requests
+        const promises = [];
+        for (let i = 0; i < 10; i++) {
+          promises.push(fetch('/api/process').catch(e => console.error(e)));
+        }
+        await Promise.all(promises);
+      }, 100);
+
+      setTimeout(() => stopLoad(), 10000);
+    }
+
+    function stopLoad() {
+      if (loadTestInterval) {
+        clearInterval(loadTestInterval);
+        loadTestInterval = null;
+      }
+    }
+
+    async function fetchMetrics() {
+      try {
+        const response = await fetch('/api/metrics');
+        const metrics = await response.json();
+
+        const configResponse = await fetch('/api/config');
+        const config = await configResponse.json();
+
+        // Update metrics
+        document.getElementById('totalRequests').textContent = metrics.totalRequests;
+        document.getElementById('avgResponseTime').textContent = metrics.avgResponseTime;
+        document.getElementById('queueSize').textContent = metrics.queueSize;
+        document.getElementById('droppedLogs').textContent = metrics.droppedLogs;
+
+        const successRate = metrics.totalRequests > 0 
+          ? Math.round((metrics.successfulRequests / metrics.totalRequests) * 100)
+          : 100;
+        document.getElementById('successRate').textContent = successRate;
+
+        // Update mode badge
+        const modeBadge = document.getElementById('currentMode');
+        modeBadge.textContent = config.loggingMode.toUpperCase();
+        modeBadge.className = config.loggingMode === 'sync' ? 'mode-badge mode-sync' : 'mode-badge mode-async';
+
+        // Update chart
+        responseTimeData.push(metrics.avgResponseTime);
+        if (responseTimeData.length > 50) responseTimeData.shift();
+        drawChart();
+
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+      }
+    }
+
+    function startMetricsPolling() {
+      metricsInterval = setInterval(fetchMetrics, 500);
+    }
+
+    function drawChart() {
+      if (!chartCtx) return;
+
+      const canvas = chartCtx.canvas;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // Clear canvas
+      chartCtx.clearRect(0, 0, width, height);
+
+      if (responseTimeData.length < 2) return;
+
+      // Find max value for scaling
+      const maxValue = Math.max(...responseTimeData, 100);
+      const padding = 40;
+      const graphWidth = width - padding * 2;
+      const graphHeight = height - padding * 2;
+
+      // Draw axes
+      chartCtx.strokeStyle = '#e2e8f0';
+      chartCtx.lineWidth = 2;
+      chartCtx.beginPath();
+      chartCtx.moveTo(padding, padding);
+      chartCtx.lineTo(padding, height - padding);
+      chartCtx.lineTo(width - padding, height - padding);
+      chartCtx.stroke();
+
+      // Draw line
+      chartCtx.strokeStyle = '#667eea';
+      chartCtx.lineWidth = 3;
+      chartCtx.beginPath();
+
+      responseTimeData.forEach((value, index) => {
+        const x = padding + (index / (responseTimeData.length - 1)) * graphWidth;
+        const y = height - padding - (value / maxValue) * graphHeight;
+        
+        if (index === 0) {
+          chartCtx.moveTo(x, y);
+        } else {
+          chartCtx.lineTo(x, y);
+        }
+      });
+
+      chartCtx.stroke();
+
+      // Draw points
+      chartCtx.fillStyle = '#667eea';
+      responseTimeData.forEach((value, index) => {
+        const x = padding + (index / (responseTimeData.length - 1)) * graphWidth;
+        const y = height - padding - (value / maxValue) * graphHeight;
+        
+        chartCtx.beginPath();
+        chartCtx.arc(x, y, 4, 0, Math.PI * 2);
+        chartCtx.fill();
+      });
+
+      // Draw labels
+      chartCtx.fillStyle = '#718096';
+      chartCtx.font = '12px sans-serif';
+      chartCtx.fillText('0ms', 5, height - padding + 5);
+      chartCtx.fillText(maxValue + 'ms', 5, padding + 5);
+    }
+  </script>
+</body>
+</html>
