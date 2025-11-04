@@ -1,0 +1,8 @@
+{
+  "name": "event-generator",
+  "version": "1.0.0",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "faker": "^5.5.3"
+  }
+}

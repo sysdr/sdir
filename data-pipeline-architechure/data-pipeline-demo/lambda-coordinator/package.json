@@ -1,0 +1,9 @@
+{
+  "name": "lambda-coordinator",
+  "version": "1.0.0",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "redis": "^4.6.10",
+    "pg": "^8.11.3"
+  }
+}

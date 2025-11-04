@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # Apache Kafka for streaming
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis for real-time data
+  redis:
+    image: redis:7.2-alpine
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL for batch data
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pipeline_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d pipeline_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Event Generator
+  event-generator:
+    build: ./event-generator
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    restart: unless-stopped
+
+  # Stream Processor (Kappa Pattern)
+  stream-processor:
+    build: ./stream-processor
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    restart: unless-stopped
+
+  # Batch Processor
+  batch-processor:
+    build: ./batch-processor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://admin:password@postgres:5432/pipeline_db
+    restart: unless-stopped
+
+  # Lambda Architecture Coordinator
+  lambda-coordinator:
+    build: ./lambda-coordinator
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://admin:password@postgres:5432/pipeline_db
+    restart: unless-stopped
+
+  # Web Dashboard
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - postgres
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://admin:password@postgres:5432/pipeline_db
+    restart: unless-stopped
+
