@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mlsystem
+      POSTGRES_USER: mluser
+      POSTGRES_PASSWORD: mlpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mluser -d mlsystem"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  feature-store:
+    build: ./feature-store
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://mluser:mlpass@postgres:5432/mlsystem
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  training-service:
+    build: ./training-service
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://mluser:mlpass@postgres:5432/mlsystem
+      FEATURE_STORE_URL: http://feature-store:8001
+    depends_on:
+      - feature-store
+
+  inference-service:
+    build: ./inference-service
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://mluser:mlpass@postgres:5432/mlsystem
+      FEATURE_STORE_URL: http://feature-store:8001
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - feature-store
+      - redis
+
+  monitoring-service:
+    build: ./monitoring-service
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: postgresql://mluser:mlpass@postgres:5432/mlsystem
+      INFERENCE_URL: http://inference-service:8003
+    depends_on:
+      - inference-service
+
+  web-dashboard:
+    build: ./web-dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - feature-store
+      - training-service
+      - inference-service
+      - monitoring-service
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: ml-system-network
