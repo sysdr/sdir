@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: frauddb
+      POSTGRES_USER: fraud
+      POSTGRES_PASSWORD: fraud123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  transaction-service:
+    build: ./transaction-service
+    ports:
+      - "3001:3001"
+    environment:
+      KAFKA_BROKER: kafka:29092
+      REDIS_URL: redis://redis:6379
+      PG_HOST: postgres
+      PG_USER: fraud
+      PG_PASSWORD: fraud123
+      PG_DATABASE: frauddb
+    depends_on:
+      - kafka
+      - redis
+      - postgres
+
+  feature-service:
+    build: ./feature-service
+    ports:
+      - "8001:8001"
+    environment:
+      KAFKA_BROKER: kafka:29092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - kafka
+      - redis
+
+  risk-service:
+    build: ./risk-service
+    ports:
+      - "8002:8002"
+    environment:
+      KAFKA_BROKER: kafka:29092
+      REDIS_URL: redis://redis:6379
+      PG_HOST: postgres
+      PG_USER: fraud
+      PG_PASSWORD: fraud123
+      PG_DATABASE: frauddb
+    depends_on:
+      - kafka
+      - redis
+      - postgres
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - transaction-service
+      - risk-service
