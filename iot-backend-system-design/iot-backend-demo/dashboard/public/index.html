@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Backend Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0c1929 0%, #1a365d 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        
+        .header {
+            background: rgba(26, 54, 93, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(66, 153, 225, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #63b3ed;
+        }
+        
+        .header p {
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+        
+        .container {
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background: rgba(45, 55, 72, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid rgba(66, 153, 225, 0.2);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #63b3ed;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(45, 55, 72, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(66, 153, 225, 0.2);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(66, 153, 225, 0.2);
+            font-weight: 600;
+            color: #63b3ed;
+        }
+        
+        .panel-content {
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: rgba(26, 54, 93, 0.5);
+            border: 1px solid rgba(66, 153, 225, 0.1);
+        }
+        
+        .device-info {
+            flex: 1;
+        }
+        
+        .device-id {
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+        }
+        
+        .device-metrics {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 0.25rem;
+        }
+        
+        .device-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+            box-shadow: 0 0 8px rgba(72, 187, 120, 0.5);
+        }
+        
+        .device-status.offline {
+            background: #f56565;
+            box-shadow: 0 0 8px rgba(245, 101, 101, 0.5);
+        }
+        
+        .command-btn {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            border: none;
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .command-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+        }
+        
+        .event-item {
+            padding: 0.75rem;
+            border-left: 3px solid #4299e1;
+            margin-bottom: 0.5rem;
+            background: rgba(26, 54, 93, 0.3);
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .event-type {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #63b3ed;
+            text-transform: uppercase;
+        }
+        
+        .event-content {
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            margin-top: 0.25rem;
+        }
+        
+        .event-time {
+            font-size: 0.7rem;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+        
+        .chart-container {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding: 1rem;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, #4299e1, #63b3ed);
+            border-radius: 4px 4px 0 0;
+            min-height: 10px;
+            transition: height 0.3s ease;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(26, 54, 93, 0.3);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(66, 153, 225, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 IoT Backend Dashboard</h1>
+        <p>Real-time device monitoring and control</p>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Devices</div>
+                <div class="stat-value" id="totalDevices">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Devices</div>
+                <div class="stat-value" id="activeDevices">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Messages/Hour</div>
+                <div class="stat-value" id="messagesHour">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Temperature</div>
+                <div class="stat-value" id="avgTemp">--°C</div>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <div class="panel">
+                <div class="panel-header">📱 Connected Devices</div>
+                <div class="panel-content" id="deviceList">
+                    <div style="color: #718096; text-align: center; padding: 2rem;">
+                        Waiting for devices...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">📊 Live Events</div>
+                <div class="panel-content" id="eventLog">
+                    <div style="color: #718096; text-align: center; padding: 2rem;">
+                        Waiting for events...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel" style="margin-top: 1.5rem;">
+            <div class="panel-header">📈 Message Throughput</div>
+            <div class="chart-container" id="throughputChart">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+        const WS_URL = 'ws://localhost:3001';
+        
+        let devices = new Map();
+        let events = [];
+        let throughputData = new Array(30).fill(0);
+        let messageCount = 0;
+        
+        // WebSocket connection
+        const ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+            addEvent('system', 'Connected to backend', new Date().toISOString());
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            handleMessage(data);
+        };
+        
+        ws.onerror = () => {
+            addEvent('error', 'WebSocket connection error', new Date().toISOString());
+        };
+        
+        function handleMessage(data) {
+            messageCount++;
+            
+            if (data.type === 'telemetry') {
+                devices.set(data.deviceId, {
+                    id: data.deviceId,
+                    metrics: data.metrics,
+                    lastSeen: new Date(data.timestamp),
+                    online: true
+                });
+                updateDeviceList();
+                addEvent('telemetry', `${data.deviceId}: ${data.metrics.temperature.toFixed(1)}°C, ${data.metrics.humidity.toFixed(1)}%`, data.timestamp);
+            }
+            
+            if (data.type === 'command') {
+                addEvent('command', `${data.deviceId}: ${data.command}`, data.timestamp);
+            }
+            
+            if (data.type === 'status') {
+                if (devices.has(data.deviceId)) {
+                    devices.get(data.deviceId).online = data.status === 'online';
+                    updateDeviceList();
+                }
+            }
+        }
+        
+        function updateDeviceList() {
+            const container = document.getElementById('deviceList');
+            if (devices.size === 0) return;
+            
+            let html = '';
+            const temps = [];
+            
+            devices.forEach((device) => {
+                const isOnline = device.online && (Date.now() - device.lastSeen < 30000);
+                temps.push(device.metrics.temperature);
+                
+                html += `
+                    <div class="device-item">
+                        <div class="device-status ${isOnline ? '' : 'offline'}"></div>
+                        <div class="device-info">
+                            <div class="device-id">${device.id}</div>
+                            <div class="device-metrics">
+                                🌡️ ${device.metrics.temperature.toFixed(1)}°C | 
+                                💧 ${device.metrics.humidity.toFixed(1)}% |
+                                🔋 ${device.metrics.battery.toFixed(0)}%
+                            </div>
+                        </div>
+                        <button class="command-btn" onclick="sendCommand('${device.id}', 'toggle')">Toggle</button>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Update average temperature
+            const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+            document.getElementById('avgTemp').textContent = avgTemp.toFixed(1) + '°C';
+        }
+        
+        function addEvent(type, content, timestamp) {
+            events.unshift({ type, content, timestamp });
+            if (events.length > 50) events.pop();
+            
+            const container = document.getElementById('eventLog');
+            let html = '';
+            
+            events.slice(0, 20).forEach(event => {
+                const time = new Date(event.timestamp).toLocaleTimeString();
+                html += `
+                    <div class="event-item">
+                        <div class="event-type">${event.type}</div>
+                        <div class="event-content">${event.content}</div>
+                        <div class="event-time">${time}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function sendCommand(deviceId, command) {
+            try {
+                await fetch(`${API_URL}/api/devices/${deviceId}/command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        command: command,
+                        payload: { action: command, timestamp: Date.now() }
+                    })
+                });
+            } catch (e) {
+                console.error('Failed to send command:', e);
+            }
+        }
+        
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/stats`);
+                const data = await res.json();
+                
+                document.getElementById('totalDevices').textContent = data.totalDevices;
+                document.getElementById('activeDevices').textContent = data.activeDevices;
+                document.getElementById('messagesHour').textContent = data.messagesLastHour;
+            } catch (e) {
+                console.error('Failed to fetch stats:', e);
+            }
+        }
+        
+        function updateThroughputChart() {
+            throughputData.shift();
+            throughputData.push(messageCount);
+            messageCount = 0;
+            
+            const max = Math.max(...throughputData, 1);
+            const container = document.getElementById('throughputChart');
+            
+            container.innerHTML = throughputData.map(value => {
+                const height = (value / max) * 100;
+                return `<div class="chart-bar" style="height: ${Math.max(height, 5)}%"></div>`;
+            }).join('');
+        }
+        
+        // Initialize
+        fetchStats();
+        setInterval(fetchStats, 5000);
+        setInterval(updateThroughputChart, 1000);
+    </script>
+</body>
+</html>

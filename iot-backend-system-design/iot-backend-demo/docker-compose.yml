@@ -1,0 +1,75 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: iot-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mqtt-broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - iot-network
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: iot-timescaledb
+    environment:
+      POSTGRES_DB: iotdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./timescaledb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - iot-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iot-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=timescaledb
+      - MQTT_URL=mqtt://mqtt-broker:1883
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+    networks:
+      - iot-network
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: iot-dashboard
+    ports:
+      - "3000:3000"
+    networks:
+      - iot-network
+
+  simulator:
+    build:
+      context: ./device-simulator
+      dockerfile: Dockerfile
+    container_name: iot-simulator
+    environment:
+      - MQTT_URL=mqtt://mqtt-broker:1883
+      - DEVICE_COUNT=5
+    depends_on:
+      - mqtt-broker
+      - backend
+    networks:
+      - iot-network
+
+networks:
+  iot-network:
+    driver: bridge

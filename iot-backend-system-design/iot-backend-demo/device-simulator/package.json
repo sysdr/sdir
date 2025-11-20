@@ -1,0 +1,11 @@
+{
+  "name": "device-simulator",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node simulator.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.3.0"
+  }
+}
