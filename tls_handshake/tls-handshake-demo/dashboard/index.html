@@ -388,13 +388,10 @@
         
         // Demo functionality
         let demoRunning = false;
-        let demoPhase = null;
         
         async function makeDemoRequest() {
             try {
-                // Make request to backend endpoint (reliable, works from browser)
-                // Note: For TLS handshake metrics, the automatic load generator
-                // makes requests through nginx HTTPS endpoint
+                // Make request to backend endpoint to generate load
                 const response = await fetch('http://localhost:8080/', {
                     method: 'GET',
                     cache: 'no-cache'
@@ -484,7 +481,7 @@
             }
         }
         
-        // Also allow triggering demo via keyboard shortcut (Ctrl+D or Cmd+D)
+        // Keyboard shortcut: Ctrl+D or Cmd+D to start demo
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !demoRunning) {
                 e.preventDefault();
