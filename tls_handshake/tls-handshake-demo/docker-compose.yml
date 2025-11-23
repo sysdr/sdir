@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: tls-nginx
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    networks:
+      - tls-demo
+
+  backend:
+    build: ./backend
+    container_name: tls-backend
+    ports:
+      - "8080:8080"
+    networks:
+      - tls-demo
+
+  dashboard:
+    build: ./dashboard
+    container_name: tls-dashboard
+    ports:
+      - "3000:80"
+    networks:
+      - tls-demo
+
+  load-generator:
+    build: ./load-generator
+    container_name: tls-load-gen
+    depends_on:
+      - nginx
+      - backend
+    networks:
+      - tls-demo
+
+networks:
+  tls-demo:
+    driver: bridge

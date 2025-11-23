@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TLS Handshake Latency Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metric-value.warning {
+            color: #f59e0b;
+        }
+        
+        .metric-value.danger {
+            color: #ef4444;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .chart-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.healthy {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+        
+        .status-indicator.warning {
+            background: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+        
+        .status-indicator.critical {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .metric-unit {
+            font-size: 18px;
+            color: #999;
+            margin-left: 5px;
+        }
+        
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .demo-button:active {
+            transform: translateY(0);
+        }
+        
+        .demo-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .demo-status {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            display: none;
+        }
+        
+        .demo-status.active {
+            display: block;
+        }
+        
+        .demo-status.phase-normal {
+            border-left: 4px solid #22c55e;
+        }
+        
+        .demo-status.phase-high {
+            border-left: 4px solid #ef4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .demo-status.phase-recovery {
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 TLS Handshake Latency Monitor</h1>
+            <p>Real-time monitoring of TLS connection establishment under load</p>
+            <button class="demo-button" id="demo-button" onclick="startDemo()">
+                🚀 Start Demo
+            </button>
+            <div class="demo-status" id="demo-status"></div>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <span class="status-indicator healthy" id="status-indicator"></span>
+                    System Status
+                </div>
+                <div class="metric-value" id="status-text">Healthy</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Active Connections</div>
+                <div class="metric-value" id="active-connections">0</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Total Handshakes</div>
+                <div class="metric-value" id="total-connections">0</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Handshake P50</div>
+                <div class="metric-value" id="p50-latency">0<span class="metric-unit">ms</span></div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Handshake P99</div>
+                <div class="metric-value" id="p99-latency">0<span class="metric-unit">ms</span></div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Failed Handshakes</div>
+                <div class="metric-value" id="failed-handshakes">0</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">TLS Handshake Latency Over Time</div>
+            <canvas id="latencyChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">Connection Activity</div>
+            <canvas id="connectionChart"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        // Chart configuration
+        const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+        const connectionCtx = document.getElementById('connectionChart').getContext('2d');
+        
+        const latencyChart = new Chart(latencyCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'P50 Latency (ms)',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'P99 Latency (ms)',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+        
+        const connectionChart = new Chart(connectionCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Active Connections',
+                        data: [],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+        
+        // Update metrics from backend
+        async function updateMetrics() {
+            try {
+                const response = await fetch('http://localhost:8080/metrics');
+                const data = await response.json();
+                
+                // Update metric cards
+                document.getElementById('active-connections').textContent = data.active_connections;
+                document.getElementById('total-connections').textContent = data.total_connections;
+                document.getElementById('p50-latency').innerHTML = 
+                    data.handshake_latency_p50_ms.toFixed(1) + '<span class="metric-unit">ms</span>';
+                document.getElementById('p99-latency').innerHTML = 
+                    data.handshake_latency_p99_ms.toFixed(1) + '<span class="metric-unit">ms</span>';
+                document.getElementById('failed-handshakes').textContent = data.failed_handshakes;
+                
+                // Update status
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+                const p99Element = document.getElementById('p99-latency');
+                
+                if (data.handshake_latency_p99_ms > 2000) {
+                    statusIndicator.className = 'status-indicator critical';
+                    statusText.textContent = 'Critical';
+                    statusText.className = 'metric-value danger';
+                    p99Element.className = 'metric-value danger';
+                } else if (data.handshake_latency_p99_ms > 500) {
+                    statusIndicator.className = 'status-indicator warning';
+                    statusText.textContent = 'Degraded';
+                    statusText.className = 'metric-value warning';
+                    p99Element.className = 'metric-value warning';
+                } else {
+                    statusIndicator.className = 'status-indicator healthy';
+                    statusText.textContent = 'Healthy';
+                    statusText.className = 'metric-value';
+                    p99Element.className = 'metric-value';
+                }
+                
+                // Update charts
+                const now = new Date().toLocaleTimeString();
+                
+                if (latencyChart.data.labels.length > 30) {
+                    latencyChart.data.labels.shift();
+                    latencyChart.data.datasets[0].data.shift();
+                    latencyChart.data.datasets[1].data.shift();
+                }
+                
+                latencyChart.data.labels.push(now);
+                latencyChart.data.datasets[0].data.push(data.handshake_latency_p50_ms);
+                latencyChart.data.datasets[1].data.push(data.handshake_latency_p99_ms);
+                latencyChart.update('none');
+                
+                if (connectionChart.data.labels.length > 30) {
+                    connectionChart.data.labels.shift();
+                    connectionChart.data.datasets[0].data.shift();
+                }
+                
+                connectionChart.data.labels.push(now);
+                connectionChart.data.datasets[0].data.push(data.active_connections);
+                connectionChart.update('none');
+                
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+            }
+        }
+        
+        // Update every 2 seconds
+        setInterval(updateMetrics, 2000);
+        updateMetrics(); // Initial call
+        
+        // Demo functionality
+        let demoRunning = false;
+        let demoPhase = null;
+        
+        async function makeDemoRequest() {
+            try {
+                // Make request to backend endpoint (reliable, works from browser)
+                // Note: For TLS handshake metrics, the automatic load generator
+                // makes requests through nginx HTTPS endpoint
+                const response = await fetch('http://localhost:8080/', {
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                return response.ok;
+            } catch (error) {
+                console.warn('Request failed:', error);
+                return false;
+            }
+        }
+        
+        async function runDemoPhase(phase, numRequests, delay, duration) {
+            const statusDiv = document.getElementById('demo-status');
+            const button = document.getElementById('demo-button');
+            
+            statusDiv.className = `demo-status active phase-${phase}`;
+            
+            if (phase === 'normal') {
+                statusDiv.textContent = `📊 Phase 1: Normal Load - Generating ${numRequests} concurrent requests every ${delay}ms for ${duration}s...`;
+            } else if (phase === 'high') {
+                statusDiv.textContent = `🔥 Phase 2: HIGH LOAD - Generating ${numRequests} concurrent requests every ${delay}ms for ${duration}s - Watch the latency metrics spike!`;
+            } else {
+                statusDiv.textContent = `🔄 Phase 3: Recovery - Returning to normal load (${duration}s)...`;
+            }
+            
+            const endTime = Date.now() + duration * 1000;
+            const requests = [];
+            
+            while (Date.now() < endTime && demoRunning) {
+                // Create multiple concurrent requests
+                for (let i = 0; i < numRequests && demoRunning; i++) {
+                    requests.push(makeDemoRequest());
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            
+            // Wait for all requests to complete
+            await Promise.all(requests);
+        }
+        
+        async function startDemo() {
+            if (demoRunning) {
+                return;
+            }
+            
+            demoRunning = true;
+            const button = document.getElementById('demo-button');
+            button.disabled = true;
+            button.textContent = '⏳ Demo Running...';
+            
+            try {
+                // Phase 1: Normal Load
+                await runDemoPhase('normal', 5, 200, 30);
+                
+                if (!demoRunning) return;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Phase 2: High Load
+                await runDemoPhase('high', 30, 50, 60);
+                
+                if (!demoRunning) return;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Phase 3: Recovery
+                await runDemoPhase('recovery', 5, 200, 20);
+                
+                // Demo complete
+                const statusDiv = document.getElementById('demo-status');
+                statusDiv.className = 'demo-status active';
+                statusDiv.textContent = '✅ Demo complete! Check the charts above to see TLS handshake latency patterns.';
+                
+            } catch (error) {
+                console.error('Demo error:', error);
+                const statusDiv = document.getElementById('demo-status');
+                statusDiv.className = 'demo-status active';
+                statusDiv.textContent = '❌ Demo encountered an error. Check console for details.';
+            } finally {
+                demoRunning = false;
+                button.disabled = false;
+                button.textContent = '🚀 Start Demo';
+                
+                // Hide status after 5 seconds
+                setTimeout(() => {
+                    const statusDiv = document.getElementById('demo-status');
+                    statusDiv.className = 'demo-status';
+                }, 5000);
+            }
+        }
+        
+        // Also allow triggering demo via keyboard shortcut (Ctrl+D or Cmd+D)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !demoRunning) {
+                e.preventDefault();
+                startDemo();
+            }
+        });
+    </script>
+</body>
+</html>
