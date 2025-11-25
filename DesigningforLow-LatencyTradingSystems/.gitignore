@@ -1,0 +1,17 @@
+# Node artifacts
+node_modules/
+npm-debug.log
+
+# Generated demo workspace
+low-latency-trading/
+
+# Docker noise
+.DS_Store
+*.log
+
+# Editor/OS cruft
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
