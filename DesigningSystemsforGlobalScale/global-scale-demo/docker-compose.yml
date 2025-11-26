@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - global-net
+
+  us-region:
+    build:
+      context: ./us-region
+      dockerfile: ../Dockerfile.node
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+    networks:
+      - global-net
+    environment:
+      - NODE_ENV=production
+
+  eu-region:
+    build:
+      context: ./eu-region
+      dockerfile: ../Dockerfile.node
+    ports:
+      - "3002:3002"
+    depends_on:
+      - redis
+    networks:
+      - global-net
+    environment:
+      - NODE_ENV=production
+
+  apac-region:
+    build:
+      context: ./apac-region
+      dockerfile: ../Dockerfile.node
+    ports:
+      - "3003:3003"
+    depends_on:
+      - redis
+    networks:
+      - global-net
+    environment:
+      - NODE_ENV=production
+
+  global-router:
+    build:
+      context: ./global-router
+      dockerfile: ../Dockerfile.node
+    ports:
+      - "3000:3000"
+    depends_on:
+      - us-region
+      - eu-region
+      - apac-region
+    networks:
+      - global-net
+    environment:
+      - NODE_ENV=production
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.node
+    ports:
+      - "8080:8080"
+    depends_on:
+      - global-router
+    networks:
+      - global-net
+    environment:
+      - NODE_ENV=production
+
+networks:
+  global-net:
+    driver: bridge
