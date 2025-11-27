@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zero-Trust Security Architecture Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+
+    .card h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.4em;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .auth-section {
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 0.2s;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      padding: 8px 15px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 15px;
+    }
+
+    .status.authenticated {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status.unauthenticated {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      padding: 20px;
+      border-radius: 8px;
+      color: white;
+      margin-bottom: 15px;
+    }
+
+    .stat-box h3 {
+      font-size: 2em;
+      margin-bottom: 5px;
+    }
+
+    .stat-box p {
+      opacity: 0.9;
+    }
+
+    .log-entry {
+      padding: 12px;
+      border-left: 4px solid #667eea;
+      background: #f9fafb;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .log-entry.denied {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .log-entry .timestamp {
+      color: #6b7280;
+      font-size: 0.85em;
+    }
+
+    .log-entry .decision {
+      font-weight: 600;
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+
+    .log-entry .decision.allow {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .log-entry .decision.deny {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .session-item {
+      padding: 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .session-item strong {
+      color: #667eea;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .metric-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      color: white;
+    }
+
+    .metric-card h4 {
+      font-size: 1.8em;
+      margin-bottom: 5px;
+    }
+
+    .metric-card p {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .policy-item {
+      padding: 12px;
+      background: #eff6ff;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .policy-item strong {
+      color: #1e40af;
+    }
+
+    .alert {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .alert.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+
+    .alert.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .info-text {
+      color: #6b7280;
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 Zero-Trust Security Architecture</h1>
+
+    <div class="grid">
+      <!-- Authentication Section -->
+      <div class="card">
+        <h2>1. Identity Provider</h2>
+        <div class="status" id="authStatus">Unauthenticated</div>
+        
+        <div class="auth-section">
+          <div class="form-group">
+            <label>Email:</label>
+            <select id="email">
+              <option value="alice@company.com">alice@company.com (Engineer)</option>
+              <option value="bob@company.com">bob@company.com (Admin)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" value="password123">
+          </div>
+
+          <div class="form-group">
+            <label>Device ID:</label>
+            <select id="deviceId">
+              <option value="device-001">device-001 (Secure, Score: 95)</option>
+              <option value="device-002">device-002 (Secure, Score: 98)</option>
+              <option value="device-003">device-003 (Insecure, Score: 45)</option>
+            </select>
+          </div>
+
+          <button onclick="login()">Authenticate</button>
+          <button onclick="logout()" id="logoutBtn" disabled>Logout</button>
+        </div>
+
+        <div id="userInfo"></div>
+        <p class="info-text">Try different devices to see security posture checks in action</p>
+      </div>
+
+      <!-- Policy Engine -->
+      <div class="card">
+        <h2>2. Policy Engine</h2>
+        <div id="policyStats"></div>
+        <div id="policyList"></div>
+      </div>
+
+      <!-- Request Testing -->
+      <div class="card">
+        <h2>3. Test Protected Resources</h2>
+        <p class="info-text">All requests go through: Identity → Policy → Access Proxy → Service</p>
+        
+        <button onclick="testEndpoint('/api/database')">Access Database</button>
+        <button onclick="testEndpoint('/api/users')">Access Users</button>
+        <button onclick="testEndpoint('/api/public')">Access Public API</button>
+        
+        <div id="requestResult" style="margin-top: 15px;"></div>
+      </div>
+
+      <!-- Proxy Statistics -->
+      <div class="card">
+        <h2>4. Access Proxy Stats</h2>
+        <div id="proxyStats"></div>
+      </div>
+
+      <!-- Active Sessions -->
+      <div class="card">
+        <h2>5. Active Sessions</h2>
+        <button onclick="loadSessions()">Refresh Sessions</button>
+        <div id="sessionList" style="margin-top: 15px;"></div>
+      </div>
+
+      <!-- Decision Log -->
+      <div class="card">
+        <h2>6. Policy Decisions Log</h2>
+        <div id="decisionLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let accessToken = null;
+    let refreshInterval = null;
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const deviceId = document.getElementById('deviceId').value;
+
+      try {
+        const response = await fetch('http://localhost:3001/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, deviceId, location: { city: 'San Francisco' } })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          accessToken = data.accessToken;
+          document.getElementById('authStatus').className = 'status authenticated';
+          document.getElementById('authStatus').textContent = 'Authenticated';
+          document.getElementById('logoutBtn').disabled = false;
+          
+          document.getElementById('userInfo').innerHTML = `
+            <div class="alert success">
+              ✓ Login successful!<br>
+              User: ${data.user.email}<br>
+              Role: ${data.user.role}<br>
+              Device Score: ${data.devicePosture.score}
+            </div>
+          `;
+
+          loadDashboard();
+          startAutoRefresh();
+        } else {
+          document.getElementById('userInfo').innerHTML = `
+            <div class="alert error">✗ ${data.error}</div>
+          `;
+        }
+      } catch (error) {
+        document.getElementById('userInfo').innerHTML = `
+          <div class="alert error">✗ Connection error: ${error.message}</div>
+        `;
+      }
+    }
+
+    function logout() {
+      accessToken = null;
+      document.getElementById('authStatus').className = 'status unauthenticated';
+      document.getElementById('authStatus').textContent = 'Unauthenticated';
+      document.getElementById('logoutBtn').disabled = true;
+      document.getElementById('userInfo').innerHTML = '';
+      document.getElementById('requestResult').innerHTML = '';
+      stopAutoRefresh();
+    }
+
+    async function testEndpoint(path) {
+      if (!accessToken) {
+        document.getElementById('requestResult').innerHTML = `
+          <div class="alert error">✗ Please login first</div>
+        `;
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:3003${path}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('requestResult').innerHTML = `
+            <div class="alert success">
+              ✓ Access granted to ${path}<br>
+              <pre style="margin-top: 10px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+          `;
+        } else {
+          document.getElementById('requestResult').innerHTML = `
+            <div class="alert error">
+              ✗ Access denied to ${path}<br>
+              Reason: ${data.reason || data.error}
+            </div>
+          `;
+        }
+        
+        loadProxyStats();
+        loadDecisionLog();
+      } catch (error) {
+        document.getElementById('requestResult').innerHTML = `
+          <div class="alert error">✗ Request failed: ${error.message}</div>
+        `;
+      }
+    }
+
+    async function loadPolicies() {
+      try {
+        const response = await fetch('http://localhost:3002/policy/list');
+        const data = await response.json();
+
+        let html = '<div style="margin-top: 15px;">';
+        data.policies.forEach(policy => {
+          html += `
+            <div class="policy-item">
+              <strong>${policy.name}</strong><br>
+              Resource: ${policy.resource}<br>
+              Roles: ${policy.conditions.roles?.join(', ') || 'Any'}<br>
+              Min Device Score: ${policy.conditions.minDeviceScore || 'None'}
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        document.getElementById('policyList').innerHTML = html;
+      } catch (error) {
+        console.error('Failed to load policies:', error);
+      }
+    }
+
+    async function loadProxyStats() {
+      try {
+        const response = await fetch('http://localhost:3003/proxy/stats');
+        const data = await response.json();
+
+        document.getElementById('proxyStats').innerHTML = `
+          <div class="metrics">
+            <div class="metric-card">
+              <h4>${data.totalRequests}</h4>
+              <p>Total Requests</p>
+            </div>
+            <div class="metric-card">
+              <h4>${data.allowed}</h4>
+              <p>Allowed</p>
+            </div>
+            <div class="metric-card">
+              <h4>${data.denied}</h4>
+              <p>Denied</p>
+            </div>
+          </div>
+          <div class="stat-box" style="margin-top: 15px;">
+            <h3>${data.avgLatency}ms</h3>
+            <p>Average Latency (Identity + Policy Check)</p>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load proxy stats:', error);
+      }
+    }
+
+    async function loadSessions() {
+      try {
+        const response = await fetch('http://localhost:3001/auth/sessions');
+        const data = await response.json();
+
+        let html = '<div style="margin-top: 15px;">';
+        if (data.sessions.length === 0) {
+          html += '<p class="info-text">No active sessions</p>';
+        } else {
+          data.sessions.forEach(session => {
+            html += `
+              <div class="session-item">
+                <strong>${session.email}</strong><br>
+                Device: ${session.deviceId}<br>
+                Location: ${session.location.city}<br>
+                Age: ${session.age}s
+              </div>
+            `;
+          });
+        }
+        html += '</div>';
+
+        document.getElementById('sessionList').innerHTML = html;
+      } catch (error) {
+        console.error('Failed to load sessions:', error);
+      }
+    }
+
+    async function loadDecisionLog() {
+      try {
+        const response = await fetch('http://localhost:3002/policy/decisions');
+        const data = await response.json();
+
+        let html = `
+          <div class="metrics" style="margin: 15px 0;">
+            <div class="metric-card">
+              <h4>${data.stats.total}</h4>
+              <p>Total Decisions</p>
+            </div>
+            <div class="metric-card">
+              <h4>${data.stats.allowed}</h4>
+              <p>Allowed</p>
+            </div>
+            <div class="metric-card">
+              <h4>${data.stats.denied}</h4>
+              <p>Denied</p>
+            </div>
+          </div>
+        `;
+
+        data.decisions.slice(0, 10).forEach(decision => {
+          const deniedClass = decision.decision === 'DENY' ? 'denied' : '';
+          const decisionClass = decision.decision === 'ALLOW' ? 'allow' : 'deny';
+          html += `
+            <div class="log-entry ${deniedClass}">
+              <span class="timestamp">${new Date(decision.timestamp).toLocaleTimeString()}</span>
+              <span class="decision ${decisionClass}">${decision.decision}</span><br>
+              User: ${decision.email} → ${decision.resource}<br>
+              ${decision.reason} (${decision.latency}ms)
+            </div>
+          `;
+        });
+
+        document.getElementById('decisionLog').innerHTML = html;
+      } catch (error) {
+        console.error('Failed to load decision log:', error);
+      }
+    }
+
+    async function loadPolicyStats() {
+      try {
+        const response = await fetch('http://localhost:3002/policy/decisions');
+        const data = await response.json();
+
+        document.getElementById('policyStats').innerHTML = `
+          <div class="stat-box">
+            <h3>${data.stats.total}</h3>
+            <p>Total Policy Evaluations</p>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load policy stats:', error);
+      }
+    }
+
+    function loadDashboard() {
+      loadPolicies();
+      loadProxyStats();
+      loadSessions();
+      loadDecisionLog();
+      loadPolicyStats();
+    }
+
+    function startAutoRefresh() {
+      refreshInterval = setInterval(() => {
+        if (accessToken) {
+          loadProxyStats();
+          loadDecisionLog();
+          loadPolicyStats();
+        }
+      }, 3000);
+    }
+
+    function stopAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+
+    // Auto-update password field based on selected user
+    document.getElementById('email').addEventListener('change', function() {
+      const passwords = {
+        'alice@company.com': 'password123',
+        'bob@company.com': 'password456'
+      };
+      document.getElementById('password').value = passwords[this.value];
+    });
+
+    // Initial load
+    loadPolicies();
+    loadPolicyStats();
+  </script>
+</body>
+</html>
