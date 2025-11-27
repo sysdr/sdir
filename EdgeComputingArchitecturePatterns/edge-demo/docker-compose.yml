@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: edge_user
+      POSTGRES_PASSWORD: edge_pass
+      POSTGRES_DB: edge_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edge_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  device-edge:
+    build: ./device-edge
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  regional-edge:
+    build: ./regional-edge
+    ports:
+      - "3002:3002"
+    depends_on:
+      - redis
+      - device-edge
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  central-cloud:
+    build: ./central-cloud
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      regional-edge:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - device-edge
+      - regional-edge
+      - central-cloud
+
+networks:
+  default:
+    name: edge-network
