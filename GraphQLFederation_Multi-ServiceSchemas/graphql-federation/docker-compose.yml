@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  users-service:
+    build: ./users-service
+    ports:
+      - "4001:4001"
+    networks:
+      - federation-network
+
+  products-service:
+    build: ./products-service
+    ports:
+      - "4002:4002"
+    networks:
+      - federation-network
+
+  reviews-service:
+    build: ./reviews-service
+    ports:
+      - "4003:4003"
+    networks:
+      - federation-network
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "4000:4000"
+    depends_on:
+      - users-service
+      - products-service
+      - reviews-service
+    networks:
+      - federation-network
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+    networks:
+      - federation-network
+
+networks:
+  federation-network:
+    driver: bridge

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphQL Federation Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+    .stat-label {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stat-value {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .service-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .service-stat {
+      text-align: center;
+    }
+    .service-name {
+      font-size: 0.8em;
+      color: #666;
+    }
+    .service-count {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #764ba2;
+    }
+    .query-log {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .query-log h2 {
+      margin-bottom: 20px;
+      color: #667eea;
+    }
+    .query-item {
+      padding: 15px;
+      border-left: 4px solid #667eea;
+      margin-bottom: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .query-item:hover {
+      background: #e9ecef;
+      transform: translateX(5px);
+    }
+    .query-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .query-time {
+      font-size: 0.85em;
+      color: #666;
+    }
+    .query-operation {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .query-services {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .service-badge {
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8em;
+    }
+    .response-time {
+      background: #28a745;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: bold;
+    }
+    .test-section {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+    .test-section h2 {
+      margin-bottom: 20px;
+      color: #667eea;
+    }
+    .test-buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #28a745;
+      animation: pulse 2s infinite;
+      margin-right: 8px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="status-indicator"></span>GraphQL Federation Dashboard</h1>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Queries</div>
+        <div class="stat-value" id="totalQueries">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Response Time</div>
+        <div class="stat-value" id="avgResponseTime">0ms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Service Invocations</div>
+        <div class="service-stats">
+          <div class="service-stat">
+            <div class="service-name">Users</div>
+            <div class="service-count" id="usersCount">0</div>
+          </div>
+          <div class="service-stat">
+            <div class="service-name">Products</div>
+            <div class="service-count" id="productsCount">0</div>
+          </div>
+          <div class="service-stat">
+            <div class="service-name">Reviews</div>
+            <div class="service-count" id="reviewsCount">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test Queries</h2>
+      <div class="test-buttons">
+        <button onclick="testQuery1()">Get Users</button>
+        <button onclick="testQuery2()">Get Products with Reviews</button>
+        <button onclick="testQuery3()">Get User with Reviews</button>
+        <button onclick="testQuery4()">Complex Federation Query</button>
+      </div>
+    </div>
+
+    <div class="query-log">
+      <h2>Query Execution Log</h2>
+      <div id="queryLog"></div>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000');
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.type === 'init') {
+        updateMetrics(message.data.metrics);
+        message.data.queryLogs.forEach(addQueryLog);
+      } else if (message.type === 'query') {
+        addQueryLog(message.data);
+      } else if (message.type === 'metrics') {
+        updateMetrics(message.data);
+      }
+    };
+
+    function updateMetrics(metrics) {
+      document.getElementById('totalQueries').textContent = metrics.totalQueries;
+      document.getElementById('avgResponseTime').textContent = metrics.avgResponseTime.toFixed(2) + 'ms';
+      document.getElementById('usersCount').textContent = metrics.servicesInvoked.users;
+      document.getElementById('productsCount').textContent = metrics.servicesInvoked.products;
+      document.getElementById('reviewsCount').textContent = metrics.servicesInvoked.reviews;
+    }
+
+    function addQueryLog(log) {
+      const logElement = document.createElement('div');
+      logElement.className = 'query-item';
+      logElement.innerHTML = `
+        <div class="query-header">
+          <span class="query-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
+          <span class="response-time">${log.responseTime}ms</span>
+        </div>
+        <div class="query-operation">${log.operation}</div>
+        <div class="query-services">
+          ${log.services.map(s => `<span class="service-badge">${s}</span>`).join('')}
+        </div>
+      `;
+      
+      const logContainer = document.getElementById('queryLog');
+      logContainer.insertBefore(logElement, logContainer.firstChild);
+      
+      if (logContainer.children.length > 20) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+
+    async function executeQuery(query, operation, services) {
+      const startTime = Date.now();
+      
+      try {
+        const response = await fetch('http://localhost:4000/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        
+        const data = await response.json();
+        const responseTime = Date.now() - startTime;
+        
+        await fetch('http://localhost:3000/log-query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operation, services, responseTime })
+        });
+        
+        console.log('Query result:', data);
+      } catch (error) {
+        console.error('Query failed:', error);
+      }
+    }
+
+    function testQuery1() {
+      const query = `query GetUsers { users { id name email joinDate } }`;
+      executeQuery(query, 'GetUsers', ['users']);
+    }
+
+    function testQuery2() {
+      const query = `query GetProductsWithReviews {
+        products {
+          id name price
+          reviews { rating comment date }
+          avgRating reviewCount
+        }
+      }`;
+      executeQuery(query, 'GetProductsWithReviews', ['products', 'reviews']);
+    }
+
+    function testQuery3() {
+      const query = `query GetUserWithReviews {
+        user(id: "1") {
+          id name email
+          reviews { rating comment date }
+        }
+      }`;
+      executeQuery(query, 'GetUserWithReviews', ['users', 'reviews']);
+    }
+
+    function testQuery4() {
+      const query = `query ComplexFederation {
+        users {
+          id name
+          reviews {
+            rating comment
+          }
+        }
+        products {
+          id name price
+          reviews {
+            rating
+            author { name email }
+          }
+          avgRating
+        }
+      }`;
+      executeQuery(query, 'ComplexFederation', ['users', 'products', 'reviews']);
+    }
+  </script>
+</body>
+</html>
