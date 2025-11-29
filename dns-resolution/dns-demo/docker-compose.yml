@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./services/backend
+    container_name: dns-demo-backend
+    networks:
+      - demo-network
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/data"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  fragile:
+    build: ./services/fragile
+    container_name: dns-demo-fragile
+    networks:
+      - demo-network
+    ports:
+      - "8081:8081"
+    depends_on:
+      - backend
+    dns:
+      - 127.0.0.11
+
+  resilient:
+    build: ./services/resilient
+    container_name: dns-demo-resilient
+    networks:
+      - demo-network
+    ports:
+      - "8082:8082"
+    depends_on:
+      - backend
+    dns:
+      - 127.0.0.11
+
+  dns-controller:
+    build: ./services/dns-server
+    container_name: dns-demo-controller
+    networks:
+      - demo-network
+    ports:
+      - "9000:9000"
+
+  dashboard:
+    image: nginx:alpine
+    container_name: dns-demo-dashboard
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    driver: bridge

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Resilience Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            min-width: 100px;
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-healthy {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-slow {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-fail {
+            background: #ef4444;
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .metric-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-healthy {
+            background: #10b981;
+        }
+        
+        .status-degraded {
+            background: #f59e0b;
+        }
+        
+        .status-error {
+            background: #ef4444;
+        }
+        
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .service-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .service-title {
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-fragile {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .badge-resilient {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .stat-label {
+            color: #666;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 DNS Resilience Demo</h1>
+            <p class="subtitle">See how DNS failures cascade through your system</p>
+        </header>
+        
+        <div class="controls">
+            <h3 style="margin-bottom: 20px;">DNS Chaos Controls</h3>
+            
+            <div class="control-group">
+                <label>DNS Response Delay</label>
+                <div class="slider-container">
+                    <input type="range" id="delaySlider" min="0" max="15000" value="0" step="500">
+                    <div class="value-display" id="delayValue">0ms</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Quick Scenarios</label>
+                <div class="button-group">
+                    <button class="btn-healthy" onclick="setHealthy()">🟢 Healthy</button>
+                    <button class="btn-slow" onclick="setSlow()">🟡 Slow DNS (5s)</button>
+                    <button class="btn-fail" onclick="setFailing()">🔴 DNS Timeout (10s)</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3><span class="status-indicator" id="dnsStatus"></span> DNS Status</h3>
+                <div class="metric-value" id="dnsMode">HEALTHY</div>
+                <div class="metric-label">Current response time: <span id="dnsDelay">0ms</span></div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Request Volume</h3>
+                <div class="metric-value" id="totalRequests">0</div>
+                <div class="metric-label">Total requests processed</div>
+            </div>
+        </div>
+        
+        <div class="comparison-grid">
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">🔴 Fragile Service</div>
+                    <span class="badge badge-fragile">NO RESILIENCE</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Success Rate</span>
+                    <span class="stat-value" id="fragileSuccess">100%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total Requests</span>
+                    <span class="stat-value" id="fragileTotal">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Failed Requests</span>
+                    <span class="stat-value" id="fragileFailed">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg DNS Time</span>
+                    <span class="stat-value" id="fragileDNS">0ms</span>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">🟢 Resilient Service</div>
+                    <span class="badge badge-resilient">WITH CACHING</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Success Rate</span>
+                    <span class="stat-value" id="resilientSuccess">100%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Total Requests</span>
+                    <span class="stat-value" id="resilientTotal">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Failed Requests</span>
+                    <span class="stat-value" id="resilientFailed">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg DNS Time</span>
+                    <span class="stat-value" id="resilientDNS">0ms</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Cache Hit Rate</span>
+                    <span class="stat-value" id="resilientCacheHit">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3 style="margin-bottom: 20px;">Success Rate Comparison</h3>
+            <canvas id="successChart"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        const ctx = document.getElementById('successChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Fragile Service',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Resilient Service',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        const delaySlider = document.getElementById('delaySlider');
+        const delayValue = document.getElementById('delayValue');
+        
+        delaySlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            delayValue.textContent = value + 'ms';
+            setDNSDelay(parseInt(value));
+        });
+        
+        function setHealthy() {
+            delaySlider.value = 0;
+            delayValue.textContent = '0ms';
+            setDNSDelay(0);
+        }
+        
+        function setSlow() {
+            delaySlider.value = 5000;
+            delayValue.textContent = '5000ms';
+            setDNSDelay(5000);
+        }
+        
+        function setFailing() {
+            delaySlider.value = 10000;
+            delayValue.textContent = '10000ms';
+            setDNSDelay(10000);
+        }
+        
+        async function setDNSDelay(ms) {
+            try {
+                await fetch('http://localhost:9000/delay', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({delay_ms: ms})
+                });
+            } catch (e) {
+                console.error('Failed to set DNS delay:', e);
+            }
+        }
+        
+        async function fetchMetrics() {
+            try {
+                const [dnsStatus, fragile, resilient] = await Promise.all([
+                    fetch('http://localhost:9000/status').then(r => r.json()),
+                    fetch('http://localhost:8081/metrics').then(r => r.json()),
+                    fetch('http://localhost:8082/metrics').then(r => r.json())
+                ]);
+                
+                // Update DNS status
+                document.getElementById('dnsDelay').textContent = dnsStatus.delay_ms + 'ms';
+                document.getElementById('dnsMode').textContent = dnsStatus.mode.toUpperCase();
+                
+                const statusEl = document.getElementById('dnsStatus');
+                if (dnsStatus.mode === 'healthy') {
+                    statusEl.className = 'status-indicator status-healthy';
+                } else if (dnsStatus.mode === 'slow' || dnsStatus.mode === 'degraded') {
+                    statusEl.className = 'status-indicator status-degraded';
+                } else {
+                    statusEl.className = 'status-indicator status-error';
+                }
+                
+                // Update fragile service
+                document.getElementById('fragileSuccess').textContent = fragile.success_rate.toFixed(1) + '%';
+                document.getElementById('fragileTotal').textContent = fragile.total_requests;
+                document.getElementById('fragileFailed').textContent = fragile.failed_requests;
+                document.getElementById('fragileDNS').textContent = fragile.avg_dns_time_ms + 'ms';
+                
+                // Update resilient service
+                document.getElementById('resilientSuccess').textContent = resilient.success_rate.toFixed(1) + '%';
+                document.getElementById('resilientTotal').textContent = resilient.total_requests;
+                document.getElementById('resilientFailed').textContent = resilient.failed_requests;
+                document.getElementById('resilientDNS').textContent = resilient.avg_dns_time_ms + 'ms';
+                document.getElementById('resilientCacheHit').textContent = resilient.cache_hit_rate.toFixed(1) + '%';
+                
+                // Update chart
+                const now = new Date().toLocaleTimeString();
+                if (chart.data.labels.length > 20) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.shift();
+                }
+                chart.data.labels.push(now);
+                chart.data.datasets[0].data.push(fragile.success_rate);
+                chart.data.datasets[1].data.push(resilient.success_rate);
+                chart.update('none');
+                
+                document.getElementById('totalRequests').textContent = 
+                    fragile.total_requests + resilient.total_requests;
+                
+            } catch (e) {
+                console.error('Failed to fetch metrics:', e);
+            }
+        }
+        
+        // Update every second
+        setInterval(fetchMetrics, 1000);
+        fetchMetrics();
+        
+        // Make requests to both services
+        async function makeRequests() {
+            try {
+                await Promise.all([
+                    fetch('http://localhost:8081/health'),
+                    fetch('http://localhost:8082/health')
+                ]);
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+        
+        setInterval(makeRequests, 2000);
+    </script>
+</body>
+</html>
