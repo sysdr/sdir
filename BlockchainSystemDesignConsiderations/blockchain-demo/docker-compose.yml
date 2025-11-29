@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  node1:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: blockchain_node1
+    environment:
+      - NODE_ID=node1
+      - PORT=3000
+      - VALIDATOR_STAKE=100
+      - PEER_NODES=ws://node2:3000,ws://node3:3000
+    ports:
+      - "3001:3000"
+    networks:
+      - blockchain_network
+
+  node2:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: blockchain_node2
+    environment:
+      - NODE_ID=node2
+      - PORT=3000
+      - VALIDATOR_STAKE=150
+      - PEER_NODES=ws://node1:3000,ws://node3:3000
+    ports:
+      - "3002:3000"
+    networks:
+      - blockchain_network
+
+  node3:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: blockchain_node3
+    environment:
+      - NODE_ID=node3
+      - PORT=3000
+      - VALIDATOR_STAKE=200
+      - PEER_NODES=ws://node1:3000,ws://node2:3000
+    ports:
+      - "3003:3000"
+    networks:
+      - blockchain_network
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: blockchain_dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - node1
+      - node2
+      - node3
+    networks:
+      - blockchain_network
+
+networks:
+  blockchain_network:
+    driver: bridge

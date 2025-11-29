@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge Computing Architecture Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      color: white;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    
+    .tiers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .tier {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+    }
+    
+    .tier:hover {
+      transform: translateY(-5px);
+    }
+    
+    .tier-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #f0f0f0;
+    }
+    
+    .tier-icon {
+      font-size: 2.5em;
+      margin-right: 15px;
+    }
+    
+    .tier-title {
+      flex: 1;
+    }
+    
+    .tier-title h2 {
+      font-size: 1.5em;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+    
+    .tier-title .latency {
+      font-size: 0.9em;
+      color: #888;
+    }
+    
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .metric:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-label {
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .metric-value {
+      color: #667eea;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+    
+    .status.healthy {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .data-flow {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+    
+    .data-flow h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+    
+    .flow-item {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideIn 0.5s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .flow-device {
+      font-weight: bold;
+    }
+    
+    .flow-action {
+      background: rgba(255,255,255,0.2);
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.9em;
+    }
+    
+    .analytics {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .analytics h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+    
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .analytics-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .analytics-card .value {
+      font-size: 2.5em;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    
+    .analytics-card .label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Edge Computing Architecture</h1>
+    <div class="subtitle">Real-time Three-Tier Distributed Processing</div>
+    
+    <div class="tiers">
+      <div class="tier">
+        <div class="tier-header">
+          <div class="tier-icon">📱</div>
+          <div class="tier-title">
+            <h2>Device Edge</h2>
+            <div class="latency">Target: 1-5ms</div>
+          </div>
+          <span class="status healthy" id="device-status">●</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Processed</span>
+          <span class="metric-value" id="device-processed">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Avg Latency</span>
+          <span class="metric-value" id="device-latency">0ms</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Local Decisions</span>
+          <span class="metric-value" id="device-decisions">0</span>
+        </div>
+      </div>
+      
+      <div class="tier">
+        <div class="tier-header">
+          <div class="tier-icon">🌐</div>
+          <div class="tier-title">
+            <h2>Regional Edge</h2>
+            <div class="latency">Target: 10-50ms</div>
+          </div>
+          <span class="status healthy" id="regional-status">●</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Aggregated</span>
+          <span class="metric-value" id="regional-aggregated">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Cache Hit Rate</span>
+          <span class="metric-value" id="regional-cache">0%</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Avg Latency</span>
+          <span class="metric-value" id="regional-latency">0ms</span>
+        </div>
+      </div>
+      
+      <div class="tier">
+        <div class="tier-header">
+          <div class="tier-icon">☁️</div>
+          <div class="tier-title">
+            <h2>Central Cloud</h2>
+            <div class="latency">Target: 100-200ms</div>
+          </div>
+          <span class="status healthy" id="cloud-status">●</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Stored</span>
+          <span class="metric-value" id="cloud-stored">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Analyzed</span>
+          <span class="metric-value" id="cloud-analyzed">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Avg Latency</span>
+          <span class="metric-value" id="cloud-latency">0ms</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="data-flow">
+      <h2>🔄 Real-Time Data Flow</h2>
+      <div id="flow-container"></div>
+    </div>
+    
+    <div class="analytics">
+      <h2>📊 Global Analytics</h2>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="label">Total Processed</div>
+          <div class="value" id="total-processed">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="label">Avg Temperature</div>
+          <div class="value" id="avg-temp">0°C</div>
+        </div>
+        <div class="analytics-card">
+          <div class="label">Avg Humidity</div>
+          <div class="value" id="avg-humidity">0%</div>
+        </div>
+        <div class="analytics-card">
+          <div class="label">Active Devices</div>
+          <div class="value" id="active-devices">5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const ws = new WebSocket('ws://localhost:3001');
+    const flowContainer = document.getElementById('flow-container');
+    let flowItems = [];
+    
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'sensor') {
+        updateFlow(message.data);
+      }
+    };
+    
+    function updateFlow(data) {
+      const flowItem = document.createElement('div');
+      flowItem.className = 'flow-item';
+      flowItem.innerHTML = `
+        <span class="flow-device">${data.deviceId}</span>
+        <span>🌡️ ${data.temperature.toFixed(1)}°C | 💧 ${data.humidity.toFixed(1)}%</span>
+        <span class="flow-action">${data.action}</span>
+      `;
+      
+      flowContainer.insertBefore(flowItem, flowContainer.firstChild);
+      flowItems.push(flowItem);
+      
+      if (flowItems.length > 5) {
+        const removed = flowItems.shift();
+        removed.remove();
+      }
+    }
+    
+    async function updateMetrics() {
+      try {
+        const [device, regional, cloud] = await Promise.all([
+          fetch('http://localhost:3001/metrics').then(r => r.json()),
+          fetch('http://localhost:3002/metrics').then(r => r.json()),
+          fetch('http://localhost:3003/metrics').then(r => r.json())
+        ]);
+        
+        document.getElementById('device-processed').textContent = device.processed;
+        document.getElementById('device-latency').textContent = device.avgLatency.toFixed(2) + 'ms';
+        document.getElementById('device-decisions').textContent = device.localDecisions;
+        
+        document.getElementById('regional-aggregated').textContent = regional.aggregated;
+        document.getElementById('regional-cache').textContent = regional.cacheHitRate;
+        document.getElementById('regional-latency').textContent = regional.avgLatency.toFixed(2) + 'ms';
+        
+        document.getElementById('cloud-stored').textContent = cloud.stored;
+        document.getElementById('cloud-analyzed').textContent = cloud.analyzed;
+        document.getElementById('cloud-latency').textContent = cloud.avgLatency.toFixed(2) + 'ms';
+        
+        const total = device.processed + regional.aggregated + cloud.stored;
+        document.getElementById('total-processed').textContent = total;
+      } catch (error) {
+        console.error('Error updating metrics:', error);
+      }
+    }
+    
+    async function processDataThroughTiers() {
+      try {
+        const sensorData = {
+          deviceId: `device-${Math.floor(Math.random() * 5) + 1}`,
+          temperature: 20 + Math.random() * 10,
+          humidity: 40 + Math.random() * 30,
+          region: 'us-west'
+        };
+        
+        const deviceResult = await fetch('http://localhost:3001/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sensorData)
+        }).then(r => r.json());
+        
+        const regionalResult = await fetch('http://localhost:3002/aggregate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(deviceResult)
+        }).then(r => r.json());
+        
+        await fetch('http://localhost:3003/store', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(regionalResult)
+        });
+        
+        const analytics = await fetch('http://localhost:3003/analytics').then(r => r.json());
+        if (analytics.length > 0) {
+          const tempMetric = analytics.find(a => a.metric_type === 'avg_temperature');
+          const humidityMetric = analytics.find(a => a.metric_type === 'avg_humidity');
+          
+          if (tempMetric) document.getElementById('avg-temp').textContent = parseFloat(tempMetric.value).toFixed(1) + '°C';
+          if (humidityMetric) document.getElementById('avg-humidity').textContent = parseFloat(humidityMetric.value).toFixed(1) + '%';
+        }
+      } catch (error) {
+        console.error('Error processing data:', error);
+      }
+    }
+    
+    setInterval(updateMetrics, 2000);
+    setInterval(processDataThroughTiers, 3000);
+    updateMetrics();
+  </script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  identity-provider:
+    build: ./identity-provider
+    ports:
+      - "3001:3001"
+    networks:
+      - zero-trust-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  policy-engine:
+    build: ./policy-engine
+    ports:
+      - "3002:3002"
+    networks:
+      - zero-trust-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  access-proxy:
+    build: ./access-proxy
+    ports:
+      - "3003:3003"
+    depends_on:
+      - identity-provider
+      - policy-engine
+      - protected-service
+    networks:
+      - zero-trust-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  protected-service:
+    build: ./protected-service
+    ports:
+      - "3004:3004"
+    networks:
+      - zero-trust-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - identity-provider
+      - policy-engine
+      - access-proxy
+    networks:
+      - zero-trust-net
+
+networks:
+  zero-trust-net:
+    driver: bridge
