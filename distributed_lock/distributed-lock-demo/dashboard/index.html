@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Lock Demo - Live Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+
+        .mode-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+        .mode-unsafe {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .mode-safe {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .workers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .worker-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .worker-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .worker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .worker-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .worker-1 { color: #4A90E2; }
+        .worker-2 { color: #50C878; }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .status-waiting {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .status-paused {
+            background: #fed7d7;
+            color: #c53030;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .counter-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .counter-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .counter-value {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .operation-log {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            font-size: 13px;
+            color: #4a5568;
+            padding: 5px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .timestamp {
+            color: #a0aec0;
+            font-size: 11px;
+        }
+
+        .alert {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .alert-title {
+            color: #c53030;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .alert-text {
+            color: #742a2a;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .connected {
+            color: #2f855a;
+        }
+
+        .disconnected {
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        <span class="disconnected">⚫ Connecting...</span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>
+                Distributed Lock Race Condition Demo
+                <span class="mode-indicator mode-unsafe" id="modeIndicator">UNSAFE MODE</span>
+            </h1>
+            <p class="subtitle">Watch two processes compete for a distributed lock. Worker 1 will experience a simulated GC pause.</p>
+        </div>
+
+        <div class="workers">
+            <div class="worker-card">
+                <div class="worker-header">
+                    <div class="worker-name worker-1">⚡ Worker 1</div>
+                    <div class="status-badge status-waiting" id="status1">Waiting</div>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Lock Status</span>
+                    <span class="stat-value" id="lock1">Not Held</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Fencing Token</span>
+                    <span class="stat-value" id="token1">-</span>
+                </div>
+                
+                <div class="counter-display">
+                    <div class="counter-label">Local Counter</div>
+                    <div class="counter-value" id="counter1">0</div>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Last Operation</span>
+                    <span class="stat-value" id="operation1">Initializing...</span>
+                </div>
+                
+                <div class="operation-log" id="log1"></div>
+            </div>
+
+            <div class="worker-card">
+                <div class="worker-header">
+                    <div class="worker-name worker-2">⚡ Worker 2</div>
+                    <div class="status-badge status-waiting" id="status2">Waiting</div>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Lock Status</span>
+                    <span class="stat-value" id="lock2">Not Held</span>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Fencing Token</span>
+                    <span class="stat-value" id="token2">-</span>
+                </div>
+                
+                <div class="counter-display">
+                    <div class="counter-label">Local Counter</div>
+                    <div class="counter-value" id="counter2">0</div>
+                </div>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Last Operation</span>
+                    <span class="stat-value" id="operation2">Initializing...</span>
+                </div>
+                
+                <div class="operation-log" id="log2"></div>
+            </div>
+        </div>
+
+        <div class="header" id="alertBox" style="display: none;">
+            <div class="alert-title">⚠️ Race Condition Detected!</div>
+            <div class="alert-text">Both workers incremented the counter. In unsafe mode, this causes data corruption. With fencing tokens, stale operations are rejected.</div>
+        </div>
+    </div>
+
+    <script>
+        let ws1, ws2;
+        const logs = { '1': [], '2': [] };
+        let lastCounters = { '1': 0, '2': 0 };
+
+        function connectWebSocket(workerId, port) {
+            const ws = new WebSocket(`ws://localhost:${port}/ws`);
+            
+            ws.onopen = () => {
+                console.log(`Worker ${workerId} connected`);
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateWorkerDisplay(workerId, data);
+            };
+
+            ws.onclose = () => {
+                console.log(`Worker ${workerId} disconnected`);
+                updateConnectionStatus(false);
+                setTimeout(() => connectWebSocket(workerId, port), 2000);
+            };
+
+            return ws;
+        }
+
+        function updateWorkerDisplay(workerId, data) {
+            const id = workerId === 'worker-1' ? '1' : '2';
+            
+            // Update mode indicator
+            const modeIndicator = document.getElementById('modeIndicator');
+            if (data.fencing_enabled) {
+                modeIndicator.textContent = 'SAFE MODE (Fencing Tokens)';
+                modeIndicator.className = 'mode-indicator mode-safe';
+            } else {
+                modeIndicator.textContent = 'UNSAFE MODE';
+                modeIndicator.className = 'mode-indicator mode-unsafe';
+            }
+
+            // Update status badge
+            const statusBadge = document.getElementById(`status${id}`);
+            if (data.is_gc_paused) {
+                statusBadge.textContent = 'GC PAUSED';
+                statusBadge.className = 'status-badge status-paused';
+            } else if (data.has_lock) {
+                statusBadge.textContent = 'Active';
+                statusBadge.className = 'status-badge status-active';
+            } else {
+                statusBadge.textContent = 'Waiting';
+                statusBadge.className = 'status-badge status-waiting';
+            }
+
+            // Update lock status
+            document.getElementById(`lock${id}`).textContent = data.has_lock ? '🔒 Held' : 'Not Held';
+            
+            // Update token
+            document.getElementById(`token${id}`).textContent = data.current_token || '-';
+            
+            // Update counter
+            document.getElementById(`counter${id}`).textContent = data.counter;
+            
+            // Update operation
+            document.getElementById(`operation${id}`).textContent = data.last_operation;
+
+            // Add to log
+            const timestamp = new Date(data.timestamp).toLocaleTimeString();
+            addLogEntry(id, `${timestamp} - ${data.last_operation}`);
+
+            // Check for race condition
+            if (data.counter > lastCounters[id]) {
+                lastCounters[id] = data.counter;
+                checkRaceCondition();
+            }
+        }
+
+        function addLogEntry(workerId, message) {
+            logs[workerId].unshift(message);
+            if (logs[workerId].length > 10) logs[workerId].pop();
+
+            const logContainer = document.getElementById(`log${workerId}`);
+            logContainer.innerHTML = logs[workerId]
+                .map(log => `<div class="log-entry">${log}</div>`)
+                .join('');
+        }
+
+        function checkRaceCondition() {
+            const counter1 = lastCounters['1'];
+            const counter2 = lastCounters['2'];
+            
+            if (counter1 > 0 && counter2 > 0 && Math.abs(counter1 - counter2) <= 1) {
+                document.getElementById('alertBox').style.display = 'block';
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.innerHTML = '<span class="connected">🟢 Connected</span>';
+            } else {
+                status.innerHTML = '<span class="disconnected">🔴 Disconnected</span>';
+            }
+        }
+
+        // Connect to both workers
+        ws1 = connectWebSocket('worker-1', 8080);
+        ws2 = connectWebSocket('worker-2', 8081);
+    </script>
+</body>
+</html>

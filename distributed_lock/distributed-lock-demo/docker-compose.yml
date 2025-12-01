@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - lock-network
+
+  worker-1:
+    build: ./worker
+    environment:
+      - WORKER_ID=worker-1
+      - USE_FENCING=${USE_FENCING:-false}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - lock-network
+
+  worker-2:
+    build: ./worker
+    environment:
+      - WORKER_ID=worker-2
+      - USE_FENCING=${USE_FENCING:-false}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - lock-network
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:80"
+    networks:
+      - lock-network
+
+networks:
+  lock-network:
+    driver: bridge
