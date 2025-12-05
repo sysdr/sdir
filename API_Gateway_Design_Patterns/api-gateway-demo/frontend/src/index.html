@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Gateway Design Patterns Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    
+    h1 {
+      color: #1a202c;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+    }
+    
+    .patterns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .pattern-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .pattern-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    
+    .pattern-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+    
+    .pattern-desc {
+      font-size: 14px;
+      color: #4a5568;
+      line-height: 1.6;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    .status-healthy {
+      background: #48bb78;
+    }
+    
+    .status-degraded {
+      background: #ed8936;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .metric:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-label {
+      font-size: 14px;
+      color: #4a5568;
+    }
+    
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #667eea;
+    }
+    
+    .metric-value.success {
+      color: #48bb78;
+    }
+    
+    .metric-value.warning {
+      color: #ed8936;
+    }
+    
+    .test-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+    
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+    
+    .btn-primary:disabled, .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .log-console {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 4px 0;
+    }
+    
+    .log-timestamp {
+      color: #718096;
+    }
+    
+    .log-success {
+      color: #68d391;
+    }
+    
+    .log-error {
+      color: #fc8181;
+    }
+    
+    .log-info {
+      color: #63b3ed;
+    }
+    
+    .service-status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    .service-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f7fafc;
+      border-radius: 8px;
+    }
+    
+    .service-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .service-latency {
+      font-size: 13px;
+      color: #718096;
+    }
+    
+    .chart-container {
+      height: 200px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚪 API Gateway Design Patterns</h1>
+      <p class="subtitle">Production-grade patterns demonstrating BFF, Orchestration, Rate Limiting, Caching & Security</p>
+    </header>
+    
+    <div class="patterns-grid">
+      <div class="pattern-card">
+        <div class="pattern-title">Pattern 1: Backend for Frontend</div>
+        <div class="pattern-desc">Separate gateways for mobile and web with optimized payloads</div>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-title">Pattern 2: Request Orchestration</div>
+        <div class="pattern-desc">Parallel service calls with graceful degradation</div>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-title">Pattern 3: Protocol Translation</div>
+        <div class="pattern-desc">REST gateway to diverse backend protocols</div>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-title">Pattern 4: Rate Limiting</div>
+        <div class="pattern-desc">Redis-backed token bucket with burst handling</div>
+      </div>
+      <div class="pattern-card">
+        <div class="pattern-title">Pattern 5: Security</div>
+        <div class="pattern-desc">Centralized JWT authentication and validation</div>
+      </div>
+    </div>
+    
+    <div class="dashboard-grid">
+      <div class="card">
+        <div class="card-title">
+          <span class="status-indicator status-healthy"></span>
+          Real-time Gateway Metrics
+        </div>
+        
+        <div class="metric">
+          <span class="metric-label">Total Requests</span>
+          <span class="metric-value" id="totalRequests">0</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Average Latency</span>
+          <span class="metric-value" id="avgLatency">0ms</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Cache Hit Rate</span>
+          <span class="metric-value success" id="cacheHitRate">0%</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Rate Limit Hits</span>
+          <span class="metric-value warning" id="rateLimitHits">0</span>
+        </div>
+        
+        <div class="test-buttons">
+          <button class="btn-primary" onclick="testWebBFF()">Test Web BFF</button>
+          <button class="btn-primary" onclick="testMobileBFF()">Test Mobile BFF</button>
+          <button class="btn-secondary" onclick="testRateLimit()">Test Rate Limit</button>
+        </div>
+        
+        <div style="margin-top: 24px;">
+          <div class="card-title">Service Health</div>
+          <div class="service-status-grid" id="serviceStatus"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Request Logs</div>
+        <div class="log-console" id="logConsole"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = 'http://localhost:3000';
+    const WS_URL = 'ws://localhost:3000';
+    let token = null;
+    let ws = null;
+    let metrics = {
+      totalRequests: 0,
+      totalLatency: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      rateLimitHits: 0
+    };
+    
+    function addLog(message, type = 'info') {
+      const logConsole = document.getElementById('logConsole');
+      const timestamp = new Date().toLocaleTimeString();
+      const logClass = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : 'log-info';
+      
+      const logEntry = document.createElement('div');
+      logEntry.className = 'log-entry';
+      logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> <span class="${logClass}">${message}</span>`;
+      
+      logConsole.insertBefore(logEntry, logConsole.firstChild);
+      
+      if (logConsole.children.length > 50) {
+        logConsole.removeChild(logConsole.lastChild);
+      }
+    }
+    
+    function updateMetrics() {
+      document.getElementById('totalRequests').textContent = metrics.totalRequests;
+      
+      const avgLatency = metrics.totalRequests > 0 
+        ? Math.round(metrics.totalLatency / metrics.totalRequests) 
+        : 0;
+      document.getElementById('avgLatency').textContent = avgLatency + 'ms';
+      
+      const totalCacheRequests = metrics.cacheHits + metrics.cacheMisses;
+      const hitRate = totalCacheRequests > 0 
+        ? Math.round((metrics.cacheHits / totalCacheRequests) * 100) 
+        : 0;
+      document.getElementById('cacheHitRate').textContent = hitRate + '%';
+      
+      document.getElementById('rateLimitHits').textContent = metrics.rateLimitHits;
+    }
+    
+    function connectWebSocket() {
+      ws = new WebSocket(WS_URL);
+      
+      ws.onopen = () => {
+        addLog('WebSocket connected - receiving real-time metrics', 'success');
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'request') {
+          metrics.totalRequests++;
+          metrics.totalLatency += data.latency;
+          addLog(`${data.pattern} request completed in ${data.latency}ms`, 'success');
+        } else if (data.type === 'cache_hit') {
+          metrics.cacheHits++;
+          addLog(`Cache HIT for ${data.endpoint}`, 'info');
+        }
+        
+        updateMetrics();
+      };
+      
+      ws.onerror = () => {
+        addLog('WebSocket connection error', 'error');
+      };
+      
+      ws.onclose = () => {
+        addLog('WebSocket disconnected - reconnecting...', 'error');
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+    
+    async function login() {
+      try {
+        const response = await fetch(`${API_URL}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'demo-user' })
+        });
+        
+        const data = await response.json();
+        token = data.token;
+        addLog('Authenticated successfully with JWT token', 'success');
+      } catch (error) {
+        addLog('Authentication failed: ' + error.message, 'error');
+      }
+    }
+    
+    async function testWebBFF() {
+      if (!token) {
+        addLog('Please wait, authenticating...', 'error');
+        return;
+      }
+      
+      try {
+        const start = Date.now();
+        const response = await fetch(`${API_URL}/api/web/dashboard`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        const latency = Date.now() - start;
+        
+        metrics.totalRequests++;
+        metrics.totalLatency += latency;
+        
+        if (data.cacheHit) {
+          metrics.cacheHits++;
+        } else {
+          metrics.cacheMisses++;
+        }
+        
+        addLog(`Web BFF: ${latency}ms, Cache: ${data.cacheHit ? 'HIT' : 'MISS'}`, 'success');
+        
+        if (data.metadata && data.metadata.servicesStatus) {
+          updateServiceStatus(data.metadata.servicesStatus);
+        }
+        
+        updateMetrics();
+      } catch (error) {
+        addLog('Web BFF request failed: ' + error.message, 'error');
+      }
+    }
+    
+    async function testMobileBFF() {
+      if (!token) {
+        addLog('Please wait, authenticating...', 'error');
+        return;
+      }
+      
+      try {
+        const start = Date.now();
+        const response = await fetch(`${API_URL}/api/mobile/dashboard`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        const latency = Date.now() - start;
+        
+        metrics.totalRequests++;
+        metrics.totalLatency += latency;
+        
+        if (data.cacheHit) {
+          metrics.cacheHits++;
+        } else {
+          metrics.cacheMisses++;
+        }
+        
+        addLog(`Mobile BFF: ${latency}ms, Payload optimized, Cache: ${data.cacheHit ? 'HIT' : 'MISS'}`, 'success');
+        updateMetrics();
+      } catch (error) {
+        addLog('Mobile BFF request failed: ' + error.message, 'error');
+      }
+    }
+    
+    async function testRateLimit() {
+      if (!token) {
+        addLog('Please wait, authenticating...', 'error');
+        return;
+      }
+      
+      addLog('Sending 10 rapid requests to test rate limiting...', 'info');
+      
+      for (let i = 0; i < 10; i++) {
+        try {
+          const response = await fetch(`${API_URL}/api/web/dashboard`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.status === 429) {
+            metrics.rateLimitHits++;
+            addLog(`Request ${i + 1}: Rate limit exceeded!`, 'error');
+          } else {
+            addLog(`Request ${i + 1}: Success`, 'success');
+          }
+        } catch (error) {
+          addLog(`Request ${i + 1}: ${error.message}`, 'error');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      updateMetrics();
+    }
+    
+    function updateServiceStatus(services) {
+      const container = document.getElementById('serviceStatus');
+      container.innerHTML = '';
+      
+      services.forEach(service => {
+        const item = document.createElement('div');
+        item.className = 'service-item';
+        item.innerHTML = `
+          <div>
+            <div class="service-name">${service.name}</div>
+            <div class="service-latency">${service.status}</div>
+          </div>
+          <div class="service-latency">${service.latency ? service.latency + 'ms' : 'N/A'}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+    
+    // Initialize
+    (async () => {
+      await login();
+      connectWebSocket();
+      
+      // Periodic health check
+      setInterval(async () => {
+        try {
+          const response = await fetch(`${API_URL}/health`);
+          const data = await response.json();
+          
+          if (data.status !== 'healthy') {
+            addLog('Gateway health check failed', 'error');
+          }
+        } catch (error) {
+          addLog('Health check error: ' + error.message, 'error');
+        }
+      }, 30000);
+    })();
+  </script>
+</body>
+</html>

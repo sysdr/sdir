@@ -1,0 +1,183 @@
+======================================
+API Gateway Design Patterns Demo
+======================================
+
+Creating project structure...
+Creating API Gateway service...
+Creating User Service...
+Creating Order Service...
+Creating Analytics Service...
+Creating Notification Service...
+Creating Frontend Dashboard...
+Creating test script...
+
+Building Docker containers...
+time="2025-12-05T10:12:07Z" level=warning msg="/home/systemdrllp5/git/sdir/API_Gateway_Design_Patterns/api-gateway-demo/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#1 [internal] load local bake definitions
+#1 reading from stdin 3.58kB done
+#1 DONE 0.0s
+
+#2 [gateway internal] load build definition from Dockerfile
+#2 transferring dockerfile: 149B done
+#2 DONE 0.0s
+
+#3 [frontend internal] load build definition from Dockerfile
+#3 transferring dockerfile: 143B done
+#3 DONE 0.1s
+
+#4 [order-service internal] load build definition from Dockerfile
+#4 transferring dockerfile: 149B done
+#4 DONE 0.1s
+
+#5 [notification-service internal] load build definition from Dockerfile
+#5 transferring dockerfile: 149B done
+#5 DONE 0.1s
+
+#6 [frontend internal] load metadata for docker.io/library/nginx:alpine
+#6 ...
+
+#7 [analytics-service internal] load build definition from Dockerfile
+#7 transferring dockerfile: 149B done
+#7 DONE 0.1s
+
+#8 [user-service internal] load build definition from Dockerfile
+#8 transferring dockerfile: 149B done
+#8 DONE 0.1s
+
+#9 [gateway internal] load metadata for docker.io/library/node:18-alpine
+#9 DONE 0.2s
+
+#10 [gateway internal] load .dockerignore
+#10 transferring context: 2B done
+#10 DONE 0.0s
+
+#11 [analytics-service 1/5] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#11 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.0s done
+#11 DONE 0.0s
+
+#12 [gateway internal] load build context
+#12 transferring context: 10.39kB done
+#12 DONE 0.0s
+
+#13 [order-service internal] load .dockerignore
+#13 transferring context: 2B done
+#13 DONE 0.1s
+
+#14 [analytics-service internal] load .dockerignore
+#14 transferring context: 2B done
+#14 DONE 0.1s
+
+#15 [user-service internal] load .dockerignore
+#15 transferring context: 2B done
+#15 DONE 0.1s
+
+#16 [notification-service internal] load .dockerignore
+#16 transferring context: 2B done
+#16 DONE 0.1s
+
+#17 [gateway 2/5] WORKDIR /app
+#17 CACHED
+
+#11 [user-service 1/5] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#11 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.0s done
+#11 DONE 0.0s
+
+#18 [order-service internal] load build context
+#18 transferring context: 1.37kB done
+#18 DONE 0.1s
+
+#19 [analytics-service internal] load build context
+#19 transferring context: 1.21kB done
+#19 DONE 0.1s
+
+#20 [notification-service internal] load build context
+#20 transferring context: 1.35kB done
+#20 DONE 0.1s
+
+#21 [user-service internal] load build context
+#21 transferring context: 1.16kB done
+#21 DONE 0.1s
+
+#22 [gateway 3/5] COPY package.json .
+#22 DONE 0.1s
+
+#23 [order-service 3/5] COPY package.json .
+#23 DONE 0.1s
+
+#24 [analytics-service 3/5] COPY package.json .
+#24 DONE 0.1s
+
+#25 [user-service 3/5] COPY package.json .
+#25 DONE 0.1s
+
+#26 [notification-service 3/5] COPY package.json .
+#26 DONE 0.1s
+
+#27 [notification-service 4/5] RUN npm install --production
+#27 1.111 npm warn config production Use `--omit=dev` instead.
+#27 ...
+
+#6 [frontend internal] load metadata for docker.io/library/nginx:alpine
+#6 DONE 3.5s
+
+#28 [frontend internal] load .dockerignore
+#28 transferring context: 2B done
+#28 DONE 0.0s
+
+#29 [frontend internal] load build context
+#29 transferring context: 15.13kB done
+#29 DONE 0.0s
+
+#30 [frontend 1/2] FROM docker.io/library/nginx:alpine@sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14
+#30 resolve docker.io/library/nginx:alpine@sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14 0.0s done
+#30 CACHED
+
+#31 [frontend 2/2] COPY src/index.html /usr/share/nginx/html/
+#31 DONE 0.0s
+
+#32 [frontend] exporting to image
+#32 exporting layers 0.1s done
+#32 exporting manifest sha256:47c98b2f9e51c4fac747d38fda0f445adaa9fda9e326c8aaf89037d87d737b0f 0.0s done
+#32 exporting config sha256:9b6a724b584fb659f3699189f15b8a7b95b15d7b898c09c00c5c7559656b9f5c
+#32 exporting config sha256:9b6a724b584fb659f3699189f15b8a7b95b15d7b898c09c00c5c7559656b9f5c 0.0s done
+#32 exporting attestation manifest sha256:3c8040dd9739091d7bbf29131e41ceab73853e31bec7f68ce82c983856a78f21 0.0s done
+#32 exporting manifest list sha256:335e01211fc1feab43c8e8ac5c5ddd64c02b3067601280af6d5773c5cd666c91 0.0s done
+#32 naming to docker.io/library/api-gateway-demo-frontend:latest done
+#32 unpacking to docker.io/library/api-gateway-demo-frontend:latest 0.0s done
+#32 DONE 0.3s
+
+#33 [frontend] resolving provenance for metadata file
+#33 DONE 0.0s
+
+#34 [user-service 4/5] RUN npm install --production
+#34 1.118 npm warn config production Use `--omit=dev` instead.
+#34 ...
+
+#35 [order-service 4/5] RUN npm install --production
+#35 1.162 npm warn config production Use `--omit=dev` instead.
+#35 ...
+
+#36 [gateway 4/5] RUN npm install --production
+#36 1.191 npm warn config production Use `--omit=dev` instead.
+#36 ...
+
+#37 [analytics-service 4/5] RUN npm install --production
+#37 1.129 npm warn config production Use `--omit=dev` instead.
+#37 ...
+
+#35 [order-service 4/5] RUN npm install --production
+#35 15.22 
+#35 15.22 added 75 packages, and audited 76 packages in 14s
+#35 15.22 
+#35 15.22 15 packages are looking for funding
+#35 15.22   run `npm fund` for details
+#35 15.22 
+#35 15.22 found 0 vulnerabilities
+#35 15.22 npm notice
+#35 15.22 npm notice New major version of npm available! 10.8.2 -> 11.6.4
+#35 15.22 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.4
+#35 15.22 npm notice To update run: npm install -g npm@11.6.4
+#35 15.22 npm notice
+#35 DONE 15.3s
+
+#37 [analytics-service 4/5] RUN npm install --production
