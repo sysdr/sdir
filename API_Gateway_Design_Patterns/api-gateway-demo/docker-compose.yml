@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - SERVICE_NAME=user-service
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - SERVICE_NAME=order-service
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - SERVICE_NAME=analytics-service
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - SERVICE_NAME=notification-service
+      - SIMULATE_TIMEOUT=true
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "3000:3000"
+      - "3005:3005"
+    depends_on:
+      - redis
+      - user-service
+      - order-service
+      - analytics-service
+      - notification-service
+    environment:
+      - PORT=3000
+      - METRICS_PORT=3005
+      - REDIS_URL=redis://redis:6379
+      - USER_SERVICE_URL=http://user-service:3001
+      - ORDER_SERVICE_URL=http://order-service:3002
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - gateway
+
