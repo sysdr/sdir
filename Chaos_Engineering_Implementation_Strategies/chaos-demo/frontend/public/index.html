@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos Engineering Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #4a5568;
+            font-size: 1.3em;
+            margin-bottom: 16px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-degraded {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .status-failed {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .circuit-breaker {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #f7fafc;
+        }
+
+        .circuit-state {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .state-closed {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .state-open {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .state-half-open {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+
+        .chaos-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .value-display {
+            min-width: 60px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .log-container {
+            background: #2d3748;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            color: #a0aec0;
+            margin-bottom: 6px;
+        }
+
+        .log-error {
+            color: #fc8181;
+        }
+
+        .log-success {
+            color: #68d391;
+        }
+
+        .log-warning {
+            color: #f6ad55;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Chaos Engineering Dashboard</h1>
+        
+        <div class="chaos-controls">
+            <h2 style="color: #4a5568; margin-bottom: 20px;">Chaos Injection Controls</h2>
+            
+            <div class="control-group">
+                <label>Payment Service - Error Rate: <span id="paymentErrorDisplay">0%</span></label>
+                <div class="control-row">
+                    <input type="range" id="paymentError" min="0" max="100" value="0" step="5">
+                    <button class="btn-danger" onclick="injectChaos('payment')">Inject Chaos</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Payment Service - Latency: <span id="paymentLatencyDisplay">0ms</span></label>
+                <div class="control-row">
+                    <input type="range" id="paymentLatency" min="0" max="5000" value="0" step="100">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Inventory Service - Error Rate: <span id="inventoryErrorDisplay">0%</span></label>
+                <div class="control-row">
+                    <input type="range" id="inventoryError" min="0" max="100" value="0" step="5">
+                    <button class="btn-danger" onclick="injectChaos('inventory')">Inject Chaos</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Inventory Service - Latency: <span id="inventoryLatencyDisplay">0ms</span></label>
+                <div class="control-row">
+                    <input type="range" id="inventoryLatency" min="0" max="5000" value="0" step="100">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="btn-success" onclick="generateLoad()">Generate Load (10 Orders)</button>
+                <button class="btn-primary" onclick="resetChaos()">Reset All</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Circuit Breakers</h2>
+                <div id="circuitBreakers"></div>
+            </div>
+
+            <div class="card">
+                <h2>Frontend Metrics</h2>
+                <div id="frontendMetrics"></div>
+            </div>
+
+            <div class="card">
+                <h2>Payment Service</h2>
+                <div id="paymentMetrics"></div>
+            </div>
+
+            <div class="card">
+                <h2>Inventory Service</h2>
+                <div id="inventoryMetrics"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Activity Log</h2>
+            <div class="log-container" id="activityLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Update slider displays
+        document.getElementById('paymentError').oninput = function() {
+            document.getElementById('paymentErrorDisplay').textContent = this.value + '%';
+        };
+        document.getElementById('paymentLatency').oninput = function() {
+            document.getElementById('paymentLatencyDisplay').textContent = this.value + 'ms';
+        };
+        document.getElementById('inventoryError').oninput = function() {
+            document.getElementById('inventoryErrorDisplay').textContent = this.value + '%';
+        };
+        document.getElementById('inventoryLatency').oninput = function() {
+            document.getElementById('inventoryLatencyDisplay').textContent = this.value + 'ms';
+        };
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+            if (log.children.length > 50) log.removeChild(log.lastChild);
+        }
+
+        async function injectChaos(service) {
+            const port = service === 'payment' ? 3001 : 3002;
+            const errorRate = parseFloat(document.getElementById(`${service}Error`).value) / 100;
+            const latency = parseInt(document.getElementById(`${service}Latency`).value);
+
+            try {
+                await fetch(`http://localhost:${port}/chaos/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: true, errorRate, latency })
+                });
+                addLog(`Chaos injected into ${service}: ${(errorRate * 100).toFixed(0)}% errors, ${latency}ms latency`, 'warning');
+            } catch (error) {
+                addLog(`Failed to inject chaos into ${service}`, 'error');
+            }
+        }
+
+        async function resetChaos() {
+            try {
+                await Promise.all([
+                    fetch('http://localhost:3001/chaos/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: false, errorRate: 0, latency: 0 })
+                    }),
+                    fetch('http://localhost:3002/chaos/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: false, errorRate: 0, latency: 0 })
+                    })
+                ]);
+                document.getElementById('paymentError').value = 0;
+                document.getElementById('paymentLatency').value = 0;
+                document.getElementById('inventoryError').value = 0;
+                document.getElementById('inventoryLatency').value = 0;
+                document.getElementById('paymentErrorDisplay').textContent = '0%';
+                document.getElementById('paymentLatencyDisplay').textContent = '0ms';
+                document.getElementById('inventoryErrorDisplay').textContent = '0%';
+                document.getElementById('inventoryLatencyDisplay').textContent = '0ms';
+                addLog('All chaos injection reset', 'success');
+            } catch (error) {
+                addLog('Failed to reset chaos', 'error');
+            }
+        }
+
+        async function generateLoad() {
+            const items = ['ITEM-001', 'ITEM-002', 'ITEM-003', 'ITEM-004', 'ITEM-005'];
+            addLog('Generating load: 10 orders...', 'info');
+            
+            for (let i = 0; i < 10; i++) {
+                const itemId = items[Math.floor(Math.random() * items.length)];
+                fetch('/api/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        itemId,
+                        quantity: Math.floor(Math.random() * 3) + 1,
+                        paymentAmount: Math.random() * 1000 + 50
+                    })
+                }).then(res => res.json())
+                  .then(data => {
+                      if (data.success) {
+                          addLog(`Order ${data.orderId} ${data.degraded ? 'accepted (degraded)' : 'successful'}`, data.degraded ? 'warning' : 'success');
+                      } else {
+                          addLog(`Order ${data.orderId} failed: ${data.error}`, 'error');
+                      }
+                  })
+                  .catch(() => addLog('Order request failed', 'error'));
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+
+                // Circuit Breakers
+                const cbHTML = `
+                    <div class="circuit-breaker">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #4a5568;">Payment Service</span>
+                            <span class="circuit-state state-${data.frontend.circuitBreakers.payment.state.toLowerCase()}">${data.frontend.circuitBreakers.payment.state}</span>
+                        </div>
+                        <div style="margin-top: 8px; color: #718096; font-size: 0.9em;">
+                            Failures: ${data.frontend.circuitBreakers.payment.failureCount}
+                        </div>
+                    </div>
+                    <div class="circuit-breaker">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; color: #4a5568;">Inventory Service</span>
+                            <span class="circuit-state state-${data.frontend.circuitBreakers.inventory.state.toLowerCase()}">${data.frontend.circuitBreakers.inventory.state}</span>
+                        </div>
+                        <div style="margin-top: 8px; color: #718096; font-size: 0.9em;">
+                            Failures: ${data.frontend.circuitBreakers.inventory.failureCount}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('circuitBreakers').innerHTML = cbHTML;
+
+                // Frontend Metrics
+                const frontendHTML = `
+                    <div class="metric">
+                        <span class="metric-label">Total Orders</span>
+                        <span class="metric-value">${data.frontend.totalOrders}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Successful</span>
+                        <span class="metric-value" style="color: #48bb78;">${data.frontend.successfulOrders}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Degraded</span>
+                        <span class="metric-value" style="color: #ed8936;">${data.frontend.degradedOrders}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Failed</span>
+                        <span class="metric-value" style="color: #f56565;">${data.frontend.failedOrders}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Success Rate</span>
+                        <span class="metric-value">${data.frontend.successRate}%</span>
+                    </div>
+                `;
+                document.getElementById('frontendMetrics').innerHTML = frontendHTML;
+
+                // Payment Metrics
+                if (data.payment.error) {
+                    document.getElementById('paymentMetrics').innerHTML = '<div class="status status-failed">Service Unavailable</div>';
+                } else {
+                    const paymentHTML = `
+                        <div class="metric">
+                            <span class="metric-label">Total Requests</span>
+                            <span class="metric-value">${data.payment.totalRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Successful</span>
+                            <span class="metric-value" style="color: #48bb78;">${data.payment.successfulRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Failed</span>
+                            <span class="metric-value" style="color: #f56565;">${data.payment.failedRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Success Rate</span>
+                            <span class="metric-value">${data.payment.successRate}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Latency</span>
+                            <span class="metric-value">${data.payment.avgLatency.toFixed(2)}ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Chaos Status</span>
+                            <span class="status ${data.payment.chaosConfig.enabled ? 'status-failed' : 'status-healthy'}">
+                                ${data.payment.chaosConfig.enabled ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                        </div>
+                    `;
+                    document.getElementById('paymentMetrics').innerHTML = paymentHTML;
+                }
+
+                // Inventory Metrics
+                if (data.inventory.error) {
+                    document.getElementById('inventoryMetrics').innerHTML = '<div class="status status-failed">Service Unavailable</div>';
+                } else {
+                    const inventoryHTML = `
+                        <div class="metric">
+                            <span class="metric-label">Total Requests</span>
+                            <span class="metric-value">${data.inventory.totalRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Successful</span>
+                            <span class="metric-value" style="color: #48bb78;">${data.inventory.successfulRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Failed</span>
+                            <span class="metric-value" style="color: #f56565;">${data.inventory.failedRequests}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Success Rate</span>
+                            <span class="metric-value">${data.inventory.successRate}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Avg Latency</span>
+                            <span class="metric-value">${data.inventory.avgLatency.toFixed(2)}ms</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Chaos Status</span>
+                            <span class="status ${data.inventory.chaosConfig.enabled ? 'status-failed' : 'status-healthy'}">
+                                ${data.inventory.chaosConfig.enabled ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                        </div>
+                    `;
+                    document.getElementById('inventoryMetrics').innerHTML = inventoryHTML;
+                }
+            } catch (error) {
+                console.error('Failed to fetch metrics:', error);
+            }
+        }
+
+        // Update metrics every 2 seconds
+        setInterval(updateMetrics, 2000);
+        updateMetrics();
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+echo "🎬 Chaos Engineering Demo"
+echo "========================="
+echo ""
+echo "This demo shows chaos engineering in action with:"
+echo "- Circuit breakers protecting against cascading failures"
+echo "- Retry logic with exponential backoff"
+echo "- Graceful degradation under failure conditions"
+echo "- Real-time monitoring and metrics"
+echo ""
+echo "Dashboard: http://localhost:3000"
+echo ""
+echo "Try these experiments:"
+echo "1. Generate normal load (no chaos)"
+echo "2. Inject 30% errors into payment service and observe retries"
+echo "3. Inject 100% errors to trigger circuit breaker"
+echo "4. Add 2000ms latency to see timeout handling"
+echo "5. Reset chaos and watch system recover"
+echo ""
+echo "Services:"
+echo "- Frontend: http://localhost:3000"
+echo "- Payment: http://localhost:3001"
+echo "- Inventory: http://localhost:3002"
+echo ""
+echo "Press Ctrl+C to stop monitoring"
+echo ""
+
+# Monitor logs
+cd "$(dirname "$0")"
+docker-compose logs -f
