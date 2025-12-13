@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app-pdb
+  namespace: k8s-native-demo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: k8s-native-app

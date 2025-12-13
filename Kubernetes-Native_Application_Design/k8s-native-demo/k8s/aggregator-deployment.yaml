@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator-deployment
+  namespace: k8s-native-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aggregator
+  template:
+    metadata:
+      labels:
+        app: aggregator
+    spec:
+      containers:
+      - name: aggregator
+        image: node:18-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          cp /app/aggregator.js /tmp/aggregator.js && \
+          cd /tmp && \
+          npm init -y && \
+          npm install express && \
+          node aggregator.js
+        ports:
+        - containerPort: 4000
+        volumeMounts:
+        - name: aggregator-script
+          mountPath: /app
+          readOnly: true
+      volumes:
+      - name: aggregator-script
+        configMap:
+          name: aggregator-script

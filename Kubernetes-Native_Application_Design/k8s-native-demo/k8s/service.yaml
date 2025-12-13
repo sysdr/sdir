@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: k8s-native-demo
+spec:
+  selector:
+    app: k8s-native-app
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator-service
+  namespace: k8s-native-demo
+spec:
+  selector:
+    app: aggregator
+  ports:
+  - port: 4000
+    targetPort: 4000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service
+  namespace: k8s-native-demo
+spec:
+  selector:
+    app: dashboard
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+  type: NodePort

@@ -1,0 +1,61 @@
+🚀 Setting up Kubernetes-Native Application Design Demo...
+📦 Building Docker images...
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile:
+#1 transferring dockerfile: 188B 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/node:18-alpine
+#2 DONE 0.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.1s
+
+#4 [internal] load build context
+#4 transferring context: 5.45kB 0.0s done
+#4 DONE 0.3s
+
+#5 [1/5] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#5 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.3s done
+#5 DONE 0.3s
+
+#6 [2/5] WORKDIR /app
+#6 CACHED
+
+#7 [3/5] COPY package.json ./
+#7 DONE 0.1s
+
+#8 [4/5] RUN npm install --production
+#8 1.930 npm warn config production Use `--omit=dev` instead.
+#8 9.095 
+#8 9.095 added 105 packages, and audited 106 packages in 7s
+#8 9.095 
+#8 9.096 16 packages are looking for funding
+#8 9.096   run `npm fund` for details
+#8 9.099 
+#8 9.099 found 0 vulnerabilities
+#8 9.103 npm notice
+#8 9.103 npm notice New major version of npm available! 10.8.2 -> 11.7.0
+#8 9.103 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+#8 9.103 npm notice To update run: npm install -g npm@11.7.0
+#8 9.103 npm notice
+#8 DONE 9.3s
+
+#9 [5/5] COPY server.js ./
+#9 DONE 0.1s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 1.6s done
+#10 exporting manifest sha256:62a1be25f781a46210245007f6f06765017e15bcd2998d62252dc9844c148b38 0.0s done
+#10 exporting config sha256:d8656e0939a518a409789deb8fd66931ed513ab9b79664cf3675b90c3f490f77 0.0s done
+#10 exporting attestation manifest sha256:fbc2db52daff45d44e4eccb024e0b5ae68573b610e6e6185d8e32f1d77777bb2 0.1s done
+#10 exporting manifest list sha256:dd095ea0386027211df05f500b6c2c3fe670cb361fdf4c0291365ea8f14951cf
+#10 exporting manifest list sha256:dd095ea0386027211df05f500b6c2c3fe670cb361fdf4c0291365ea8f14951cf 0.0s done
+#10 naming to docker.io/library/k8s-native-app:latest 0.0s done
+#10 unpacking to docker.io/library/k8s-native-app:latest
+#10 unpacking to docker.io/library/k8s-native-app:latest 2.4s done
+#10 DONE 4.3s

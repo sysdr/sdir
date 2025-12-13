@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  namespace: k8s-native-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-native-app
+  template:
+    metadata:
+      labels:
+        app: k8s-native-app
+    spec:
+      containers:
+      - name: app
+        image: k8s-native-app:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3000
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: app-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 3000
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          failureThreshold: 30
+      - name: reporter
+        image: node:18-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          cd /app && node reporter.js
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: AGGREGATOR_URL
+          value: "http://aggregator-service:4000"
+        volumeMounts:
+        - name: reporter-script
+          mountPath: /app
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+      volumes:
+      - name: reporter-script
+        configMap:
+          name: reporter-script

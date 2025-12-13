@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: k8s-native-demo
+data:
+  MAX_CONCURRENT: "100"
+  RESPONSE_DELAY: "10"
+  FEATURE_FLAG: "v1.0"
