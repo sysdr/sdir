@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circular Dependencies Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .service-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .metric {
+            margin: 15px 0;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease, background 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+        
+        .logs {
+            background: #1e1e1e;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: #858585;
+        }
+        
+        .log-error {
+            color: #f48771;
+        }
+        
+        .log-success {
+            color: #89d185;
+        }
+        
+        .log-warning {
+            color: #e5c07b;
+        }
+        
+        .alert {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .flow-diagram {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .flow-arrow {
+            display: inline-block;
+            margin: 0 15px;
+            font-size: 2em;
+            color: #667eea;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .circular-indicator {
+            display: inline-block;
+            margin: 20px;
+            padding: 10px 20px;
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            border-radius: 25px;
+            color: #721c24;
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Circular Dependencies Monitor</h1>
+            <p>Real-time visualization of service dependencies and resource exhaustion</p>
+        </div>
+        
+        <div class="alert" id="circularAlert">
+            <strong>⚠️ WARNING:</strong> Circular dependency pattern detected! Request is looping through services.
+        </div>
+        
+        <div class="controls">
+            <div class="button-group">
+                <button class="btn-danger" onclick="triggerCircularCalls()">🔥 Trigger Circular Calls (10 req/s)</button>
+                <button class="btn-success" onclick="toggleCircular()">🛡️ Toggle Circuit Protection</button>
+                <button class="btn-warning" onclick="resetStats()">🔄 Reset Statistics</button>
+                <button class="btn-info" onclick="stopLoad()">⏹️ Stop Load</button>
+            </div>
+        </div>
+        
+        <div class="flow-diagram">
+            <h3>Service Call Flow</h3>
+            <div style="margin: 20px 0; font-size: 1.1em;">
+                <span style="color: #1976d2; font-weight: bold;">User Service</span>
+                <span class="flow-arrow">→</span>
+                <span style="color: #388e3c; font-weight: bold;">Order Service</span>
+                <span class="flow-arrow">→</span>
+                <span style="color: #f57c00; font-weight: bold;">Inventory Service</span>
+                <span class="flow-arrow" style="color: #f44336;">⤴</span>
+            </div>
+            <div id="circularIndicator" style="display: none;">
+                <span class="circular-indicator">🔁 CIRCULAR LOOP ACTIVE</span>
+            </div>
+        </div>
+        
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-header">
+                    <span class="service-name">👤 User Service</span>
+                    <span class="status-badge status-healthy" id="user-status">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Thread Pool Utilization</div>
+                    <div class="metric-value" id="user-threads">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="user-progress" style="width: 0%; background: #4caf50;"></div>
+                    </div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="user-requests">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests</div>
+                    <div class="metric-value" id="user-active">0</div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <span class="service-name">📦 Order Service</span>
+                    <span class="status-badge status-healthy" id="order-status">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Thread Pool Utilization</div>
+                    <div class="metric-value" id="order-threads">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="order-progress" style="width: 0%; background: #4caf50;"></div>
+                    </div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="order-requests">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests</div>
+                    <div class="metric-value" id="order-active">0</div>
+                </div>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-header">
+                    <span class="service-name">📊 Inventory Service</span>
+                    <span class="status-badge status-healthy" id="inventory-status">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Thread Pool Utilization</div>
+                    <div class="metric-value" id="inventory-threads">0%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="inventory-progress" style="width: 0%; background: #4caf50;"></div>
+                    </div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="inventory-requests">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests</div>
+                    <div class="metric-value" id="inventory-active">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Request Latency Over Time</h3>
+            <canvas id="latencyChart"></canvas>
+        </div>
+        
+        <div class="logs">
+            <h3 style="color: #d4d4d4; margin-bottom: 15px;">📝 System Logs</h3>
+            <div id="logs"></div>
+        </div>
+    </div>
+    
+    <script>
+        const ctx = document.getElementById('latencyChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'User Service',
+                    data: [],
+                    borderColor: '#1976d2',
+                    tension: 0.4
+                }, {
+                    label: 'Order Service',
+                    data: [],
+                    borderColor: '#388e3c',
+                    tension: 0.4
+                }, {
+                    label: 'Inventory Service',
+                    data: [],
+                    borderColor: '#f57c00',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Latency (ms)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        let loadInterval = null;
+        
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logsDiv.insertBefore(entry, logsDiv.firstChild);
+            
+            // Keep only last 50 logs
+            while (logsDiv.children.length > 50) {
+                logsDiv.removeChild(logsDiv.lastChild);
+            }
+        }
+        
+        async function updateStats() {
+            try {
+                // Measure latency for each service
+                const startUser = performance.now();
+                const userRes = await fetch('http://localhost:3001/stats');
+                const userLatency = Math.round(performance.now() - startUser);
+                const userData = await userRes.json();
+                
+                const startOrder = performance.now();
+                const orderRes = await fetch('http://localhost:3002/stats');
+                const orderLatency = Math.round(performance.now() - startOrder);
+                const orderData = await orderRes.json();
+                
+                const startInv = performance.now();
+                const invRes = await fetch('http://localhost:3003/stats');
+                const invLatency = Math.round(performance.now() - startInv);
+                const invData = await invRes.json();
+                
+                updateServiceCard('user', userData);
+                updateServiceCard('order', orderData);
+                updateServiceCard('inventory', invData);
+                
+                // Update chart with actual latency measurements
+                const time = new Date().toLocaleTimeString();
+                if (chart.data.labels.length > 20) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(d => d.data.shift());
+                }
+                chart.data.labels.push(time);
+                chart.data.datasets[0].data.push(userLatency);
+                chart.data.datasets[1].data.push(orderLatency);
+                chart.data.datasets[2].data.push(invLatency);
+                chart.update('none');
+                
+            } catch (error) {
+                addLog(`Failed to update stats: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateServiceCard(service, data) {
+            const util = data.threadUtilization || 0;
+            document.getElementById(`${service}-threads`).textContent = `${util}%`;
+            document.getElementById(`${service}-requests`).textContent = data.totalRequests;
+            document.getElementById(`${service}-active`).textContent = data.activeRequests;
+            
+            const progress = document.getElementById(`${service}-progress`);
+            progress.style.width = `${util}%`;
+            
+            // Color based on utilization
+            if (util < 50) {
+                progress.style.background = '#4caf50';
+                document.getElementById(`${service}-status`).className = 'status-badge status-healthy';
+                document.getElementById(`${service}-status`).textContent = 'Healthy';
+            } else if (util < 80) {
+                progress.style.background = '#ff9800';
+                document.getElementById(`${service}-status`).className = 'status-badge status-warning';
+                document.getElementById(`${service}-status`).textContent = 'Warning';
+            } else {
+                progress.style.background = '#f44336';
+                document.getElementById(`${service}-status`).className = 'status-badge status-critical';
+                document.getElementById(`${service}-status`).textContent = 'Critical';
+            }
+        }
+        
+        async function triggerCircularCalls() {
+            // Stop any existing load first
+            if (loadInterval) {
+                clearInterval(loadInterval);
+                loadInterval = null;
+            }
+            
+            addLog('🔥 Starting circular call pattern (10 req/s)', 'warning');
+            document.getElementById('circularAlert').classList.add('show');
+            document.getElementById('circularIndicator').style.display = 'block';
+            
+            loadInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('http://localhost:3001/user/123/orders');
+                    if (response.status === 508) {
+                        addLog('🛡️ Circuit breaker prevented circular dependency', 'success');
+                    } else if (!response.ok) {
+                        addLog(`⚠️ Request failed: ${response.status}`, 'error');
+                    } else {
+                        addLog('✓ Request completed successfully', 'success');
+                    }
+                } catch (error) {
+                    addLog(`❌ Request error: ${error.message}`, 'error');
+                }
+            }, 100); // 10 requests per second
+            
+            addLog('💡 Click "Stop Load" to stop the load generation', 'info');
+        }
+        
+        function stopLoad() {
+            try {
+                if (loadInterval !== null && loadInterval !== undefined) {
+                    clearInterval(loadInterval);
+                    loadInterval = null;
+                    addLog('⏹️ Load generation stopped', 'success');
+                    document.getElementById('circularAlert').classList.remove('show');
+                    document.getElementById('circularIndicator').style.display = 'none';
+                } else {
+                    addLog('ℹ️ No active load generation to stop', 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Error stopping load: ${error.message}`, 'error');
+                // Force clear anyway
+                loadInterval = null;
+            }
+        }
+        
+        // Make functions globally accessible
+        window.stopLoad = stopLoad;
+        window.triggerCircularCalls = triggerCircularCalls;
+        
+        async function toggleCircular() {
+            try {
+                const response = await fetch('http://localhost:3003/toggle-circular', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                addLog(`Circuit protection ${data.circularCallsEnabled ? 'DISABLED' : 'ENABLED'}`, 'warning');
+            } catch (error) {
+                addLog(`Failed to toggle: ${error.message}`, 'error');
+            }
+        }
+        
+        async function resetStats() {
+            try {
+                addLog('🔄 Resetting statistics...', 'info');
+                
+                // Reset service statistics
+                const [userRes, orderRes, invRes] = await Promise.all([
+                    fetch('http://localhost:3001/reset-stats', { method: 'POST' }),
+                    fetch('http://localhost:3002/reset-stats', { method: 'POST' }),
+                    fetch('http://localhost:3003/reset-stats', { method: 'POST' })
+                ]);
+                
+                const [userData, orderData, invData] = await Promise.all([
+                    userRes.json(),
+                    orderRes.json(),
+                    invRes.json()
+                ]);
+                
+                // Reset chart visualization
+                chart.data.labels = [];
+                chart.data.datasets.forEach(d => d.data = []);
+                chart.update();
+                
+                addLog('✅ Statistics reset successfully', 'success');
+                addLog(`User Service: ${userData.totalRequests} requests`, 'info');
+                addLog(`Order Service: ${orderData.totalRequests} requests`, 'info');
+                addLog(`Inventory Service: ${invData.totalRequests} requests`, 'info');
+                
+                // Update stats immediately to show reset values
+                updateStats();
+            } catch (error) {
+                addLog(`❌ Failed to reset statistics: ${error.message}`, 'error');
+                // Still reset the chart even if service reset fails
+                chart.data.labels = [];
+                chart.data.datasets.forEach(d => d.data = []);
+                chart.update();
+            }
+        }
+        
+        // Update stats every 200ms to catch fast-completing requests
+        // Order and Inventory services process requests very quickly (10-50ms),
+        // so we need frequent polling to see activeRequests > 0
+        setInterval(updateStats, 200);
+        updateStats();
+        
+        addLog('✅ Dashboard initialized', 'success');
+        addLog('💡 Click "Trigger Circular Calls" to see thread exhaustion in action', 'info');
+    </script>
+</body>
+</html>

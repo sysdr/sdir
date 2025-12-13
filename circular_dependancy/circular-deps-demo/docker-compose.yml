@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - ORDER_SERVICE_URL=http://order-service:3002
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - INVENTORY_SERVICE_URL=http://inventory-service:3003
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  inventory-service:
+    build: ./services/inventory-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - USER_SERVICE_URL=http://user-service:3001
+    networks:
+      - microservices
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  dashboard:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    networks:
+      - microservices
+    depends_on:
+      - user-service
+      - order-service
+      - inventory-service
+
+networks:
+  microservices:
+    driver: bridge
