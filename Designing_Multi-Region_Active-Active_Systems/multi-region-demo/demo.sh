@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "🌍 Multi-Region Active-Active Demo"
+echo "=================================="
+echo ""
+echo "Dashboard: http://localhost:3000"
+echo ""
+echo "Try these experiments:"
+echo "1. Write data to different regions and watch replication"
+echo "2. Click 'Simulate Conflict' to see concurrent write resolution"
+echo "3. Click 'Fail US-East' to simulate regional failure"
+echo "4. Generate load to see system under stress"
+echo ""
+echo "Regional APIs:"
+echo "- US-East: http://localhost:3001/health"
+echo "- US-West: http://localhost:3002/health"
+echo "- EU-West: http://localhost:3003/health"
+echo ""

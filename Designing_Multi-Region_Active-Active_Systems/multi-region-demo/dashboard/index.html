@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Region Active-Active Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #1e40af;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    .regions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .region-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .region-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
+    }
+
+    .region-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .region-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-healthy {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-unhealthy {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 16px;
+    }
+
+    .controls {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .controls h2 {
+      color: #1e40af;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      padding: 12px 20px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    button.danger {
+      background: #ef4444;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    button.success {
+      background: #10b981;
+    }
+
+    button.success:hover {
+      background: #059669;
+    }
+
+    .log {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    .log h2 {
+      color: #1e40af;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    .log-entries {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .log-entry {
+      padding: 8px;
+      margin-bottom: 8px;
+      border-left: 3px solid #3b82f6;
+      background: white;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .conflict {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌍 Multi-Region Active-Active System</h1>
+      <p class="subtitle">Real-time monitoring of distributed data replication and conflict resolution</p>
+    </header>
+
+    <div class="regions-grid" id="regions"></div>
+
+    <div class="controls">
+      <h2>Operations</h2>
+      <div class="control-group">
+        <select id="writeRegion">
+          <option value="us-east">US-East</option>
+          <option value="us-west">US-West</option>
+          <option value="eu-west">EU-West</option>
+        </select>
+        <input type="text" id="writeKey" placeholder="Key" value="user:123">
+        <input type="text" id="writeValue" placeholder="Value" value="data">
+        <button onclick="writeData()">Write Data</button>
+      </div>
+      <div class="control-group">
+        <button onclick="generateLoad()">Generate Load</button>
+        <button onclick="simulateConflict()">Simulate Conflict</button>
+      </div>
+      <div class="control-group">
+        <button class="danger" onclick="failRegion('us-east')">Fail US-East</button>
+        <button class="danger" onclick="failRegion('us-west')">Fail US-West</button>
+        <button class="danger" onclick="failRegion('eu-west')">Fail EU-West</button>
+      </div>
+      <div class="control-group">
+        <button class="success" onclick="recoverRegion('us-east')">Recover US-East</button>
+        <button class="success" onclick="recoverRegion('us-west')">Recover US-West</button>
+        <button class="success" onclick="recoverRegion('eu-west')">Recover EU-West</button>
+      </div>
+    </div>
+
+    <div class="log">
+      <h2>Event Log</h2>
+      <div class="log-entries" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3100');
+    const regions = ['us-east', 'us-west', 'eu-west'];
+
+    ws.onmessage = (event) => {
+      const stats = JSON.parse(event.data);
+      updateRegions(stats);
+    };
+
+    function updateRegions(stats) {
+      const container = document.getElementById('regions');
+      container.innerHTML = stats.map(stat => `
+        <div class="region-card">
+          <div class="region-header">
+            <div class="region-name">${stat.region.toUpperCase()}</div>
+            <div class="status-badge ${stat.healthy ? 'status-healthy' : 'status-unhealthy'}">
+              ${stat.healthy ? '● Online' : '● Offline'}
+            </div>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Writes</span>
+            <span class="stat-value">${stat.writes || 0}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Reads</span>
+            <span class="stat-value">${stat.reads || 0}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Replications</span>
+            <span class="stat-value">${stat.replications || 0}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Conflicts</span>
+            <span class="stat-value">${stat.conflicts || 0}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Data Size</span>
+            <span class="stat-value">${stat.dataSize || 0} keys</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function writeData() {
+      const region = document.getElementById('writeRegion').value;
+      const key = document.getElementById('writeKey').value;
+      const value = document.getElementById('writeValue').value;
+
+      try {
+        const response = await fetch('/api/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region, key, value })
+        });
+        const data = await response.json();
+        addLog(`✓ Write to ${region}: ${key} = ${value}`);
+      } catch (error) {
+        addLog(`✗ Write failed: ${error.message}`, true);
+      }
+    }
+
+    async function generateLoad() {
+      addLog('Generating load across all regions...');
+      for (let i = 0; i < 10; i++) {
+        const region = regions[Math.floor(Math.random() * regions.length)];
+        const key = `key:${Math.floor(Math.random() * 100)}`;
+        const value = `value-${Date.now()}`;
+        
+        await fetch('/api/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region, key, value })
+        });
+        
+        await new Promise(r => setTimeout(r, 100));
+      }
+      addLog('Load generation complete');
+    }
+
+    async function simulateConflict() {
+      const key = 'conflict-key';
+      addLog('⚠ Simulating concurrent writes to same key...');
+      
+      await Promise.all([
+        fetch('/api/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region: 'us-east', key, value: 'value-from-us-east' })
+        }),
+        fetch('/api/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ region: 'eu-west', key, value: 'value-from-eu-west' })
+        })
+      ]);
+      
+      addLog('⚠ Conflict created - check replication stats', true);
+    }
+
+    async function failRegion(region) {
+      await fetch(`/api/fail/${region}`, { method: 'POST' });
+      addLog(`✗ ${region} failed - traffic will reroute`, true);
+    }
+
+    async function recoverRegion(region) {
+      await fetch(`/api/recover/${region}`, { method: 'POST' });
+      addLog(`✓ ${region} recovered`);
+    }
+
+    function addLog(message, isConflict = false) {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${isConflict ? 'conflict' : ''}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.insertBefore(entry, log.firstChild);
+      
+      // Keep only last 50 entries
+      while (log.children.length > 50) {
+        log.removeChild(log.lastChild);
+      }
+    }
+  </script>
+</body>
+</html>

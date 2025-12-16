@@ -1,0 +1,54 @@
+services:
+  us-east:
+    build: .
+    container_name: us-east
+    command: node regions/us-east/server.js
+    ports:
+      - "3001:3001"
+    networks:
+      - multi-region
+
+  us-west:
+    build: .
+    container_name: us-west
+    command: node regions/us-west/server.js
+    ports:
+      - "3002:3002"
+    networks:
+      - multi-region
+
+  eu-west:
+    build: .
+    container_name: eu-west
+    command: node regions/eu-west/server.js
+    ports:
+      - "3003:3003"
+    networks:
+      - multi-region
+
+  dashboard:
+    build: .
+    container_name: dashboard
+    command: node dashboard/server.js
+    ports:
+      - "3000:3000"
+      - "3100:3100"
+    depends_on:
+      - us-east
+      - us-west
+      - eu-west
+    networks:
+      - multi-region
+
+  tests:
+    build: .
+    container_name: tests
+    command: node test.js
+    depends_on:
+      - dashboard
+    networks:
+      - multi-region
+
+networks:
+  multi-region:
+    driver: bridge
