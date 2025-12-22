@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cascading Timeouts Demo - System Design Interview Roadmap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1740f5 0%, #4dd74f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e40af;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel h2 {
+            color: #1e40af;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-slow {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-slow:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-reset {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .service-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .service-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-healthy {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .metric {
+            margin-bottom: 15px;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .metric-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: #10b981;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .metric-bar-fill.warning {
+            background: #f59e0b;
+        }
+
+        .metric-bar-fill.danger {
+            background: #ef4444;
+        }
+
+        .cascade-indicator {
+            background: linear-gradient(135deg, #fef3c7 0%, #fecaca 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .cascade-indicator.active {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .cascade-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #92400e;
+            text-align: center;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .info-box ul {
+            list-style-position: inside;
+            color: #475569;
+            line-height: 1.8;
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚨 Cascading Timeouts Demo</h1>
+            <p class="subtitle">Watch how a slow database query cascades through your entire system</p>
+        </header>
+
+        <div class="control-panel">
+            <h2><span class="live-indicator"></span>Control Panel</h2>
+            <div class="controls">
+                <button class="btn-start" onclick="startLoad()">▶ Start Load Test (10 req/s)</button>
+                <button class="btn-slow" onclick="makeSlow()">🐌 Make Service C Slow (10s)</button>
+                <button class="btn-reset" onclick="resetNormal()">⚡ Reset to Normal</button>
+                <button class="btn-stop" onclick="stopLoad()">⏹ Stop Load Test</button>
+            </div>
+        </div>
+
+        <div class="cascade-indicator" id="cascadeIndicator">
+            <div class="cascade-text">⚠️ CASCADE IN PROGRESS - Watch the timeouts propagate upward!</div>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Service A - API Gateway</div>
+                    <span class="status-badge status-healthy" id="statusA">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="requestsA">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Timeout Count</div>
+                    <div class="metric-value" id="timeoutsA">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests (max: 100)</div>
+                    <div class="metric-value" id="activeA">0</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" id="activeBarA"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Service B - Business Logic</div>
+                    <span class="status-badge status-healthy" id="statusB">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="requestsB">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Timeout Count</div>
+                    <div class="metric-value" id="timeoutsB">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests (max: 50)</div>
+                    <div class="metric-value" id="activeB">0</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" id="activeBarB"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-name">Service C - Database</div>
+                    <span class="status-badge status-healthy" id="statusC">Healthy</span>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="requestsC">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Artificial Delay</div>
+                    <div class="metric-value" id="delayC">0ms</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Active Requests</div>
+                    <div class="metric-value" id="activeC">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>📖 How to Use This Demo</h3>
+            <ul>
+                <li><strong>Step 1:</strong> Click "Start Load Test" to send 10 requests per second through the system</li>
+                <li><strong>Step 2:</strong> Watch the metrics - everything should be healthy with low active requests</li>
+                <li><strong>Step 3:</strong> Click "Make Service C Slow" to inject a 10-second delay in the database</li>
+                <li><strong>Step 4:</strong> Observe the cascade - Service B times out after 2s, Service A after 3s</li>
+                <li><strong>Step 5:</strong> Notice how active requests pile up and timeout counts spike</li>
+                <li><strong>Step 6:</strong> Click "Reset to Normal" to restore normal operation</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let loadInterval = null;
+
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                // Update Service A
+                if (data.serviceA && !data.serviceA.error) {
+                    document.getElementById('requestsA').textContent = data.serviceA.requestCount || 0;
+                    document.getElementById('timeoutsA').textContent = data.serviceA.timeoutCount || 0;
+                    document.getElementById('activeA').textContent = data.serviceA.activeRequests || 0;
+                    
+                    const activePercent = (data.serviceA.activeRequests / data.serviceA.maxConcurrent) * 100;
+                    const barA = document.getElementById('activeBarA');
+                    barA.style.width = activePercent + '%';
+                    barA.className = 'metric-bar-fill';
+                    if (activePercent > 70) barA.classList.add('danger');
+                    else if (activePercent > 50) barA.classList.add('warning');
+
+                    const statusA = document.getElementById('statusA');
+                    if (data.serviceA.timeoutCount > 10) {
+                        statusA.textContent = 'Degraded';
+                        statusA.className = 'status-badge status-error';
+                    } else if (data.serviceA.activeRequests > 50) {
+                        statusA.textContent = 'Warning';
+                        statusA.className = 'status-badge status-warning';
+                    } else {
+                        statusA.textContent = 'Healthy';
+                        statusA.className = 'status-badge status-healthy';
+                    }
+                }
+
+                // Update Service B
+                if (data.serviceB && !data.serviceB.error) {
+                    document.getElementById('requestsB').textContent = data.serviceB.requestCount || 0;
+                    document.getElementById('timeoutsB').textContent = data.serviceB.timeoutCount || 0;
+                    document.getElementById('activeB').textContent = data.serviceB.activeRequests || 0;
+                    
+                    const activePercent = (data.serviceB.activeRequests / data.serviceB.maxConcurrent) * 100;
+                    const barB = document.getElementById('activeBarB');
+                    barB.style.width = activePercent + '%';
+                    barB.className = 'metric-bar-fill';
+                    if (activePercent > 70) barB.classList.add('danger');
+                    else if (activePercent > 50) barB.classList.add('warning');
+
+                    const statusB = document.getElementById('statusB');
+                    if (data.serviceB.timeoutCount > 10) {
+                        statusB.textContent = 'Degraded';
+                        statusB.className = 'status-badge status-error';
+                    } else if (data.serviceB.activeRequests > 30) {
+                        statusB.textContent = 'Warning';
+                        statusB.className = 'status-badge status-warning';
+                    } else {
+                        statusB.textContent = 'Healthy';
+                        statusB.className = 'status-badge status-healthy';
+                    }
+                }
+
+                // Update Service C
+                if (data.serviceC && !data.serviceC.error) {
+                    document.getElementById('requestsC').textContent = data.serviceC.requestCount || 0;
+                    document.getElementById('delayC').textContent = (data.serviceC.artificialDelay || 0) + 'ms';
+                    document.getElementById('activeC').textContent = '—';
+
+                    const statusC = document.getElementById('statusC');
+                    if (data.serviceC.artificialDelay > 2000) {
+                        statusC.textContent = 'Slow';
+                        statusC.className = 'status-badge status-error';
+                    } else {
+                        statusC.textContent = 'Healthy';
+                        statusC.className = 'status-badge status-healthy';
+                    }
+                }
+
+                // Show cascade indicator if timeouts are happening
+                const cascadeIndicator = document.getElementById('cascadeIndicator');
+                if ((data.serviceA?.timeoutCount > 0 || data.serviceB?.timeoutCount > 0) && 
+                    data.serviceC?.artificialDelay > 2000) {
+                    cascadeIndicator.classList.add('active');
+                } else {
+                    cascadeIndicator.classList.remove('active');
+                }
+
+            } catch (error) {
+                console.error('Error updating metrics:', error);
+            }
+        }
+
+        async function makeSlow() {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delay: 10000 })
+            });
+            alert('Service C is now responding in 10 seconds. Watch the cascade happen!');
+        }
+
+        async function resetNormal() {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delay: 0 })
+            });
+            alert('Service C reset to normal (50-100ms). System recovering...');
+        }
+
+        function startLoad() {
+            if (loadInterval) return;
+            
+            loadInterval = setInterval(async () => {
+                // Send 10 requests per second
+                for (let i = 0; i < 10; i++) {
+                    fetch('http://localhost:3001/api/data').catch(() => {});
+                }
+            }, 1000);
+            
+            alert('Load test started: 10 requests/second');
+        }
+
+        function stopLoad() {
+            if (loadInterval) {
+                clearInterval(loadInterval);
+                loadInterval = null;
+                alert('Load test stopped');
+            }
+        }
+
+        // Update metrics every 500ms
+        setInterval(updateMetrics, 500);
+        updateMetrics();
+    </script>
+</body>
+</html>

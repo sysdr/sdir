@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  service-c:
+    build: ./service-c
+    container_name: cascade-service-c
+    ports:
+      - "3003:3003"
+    networks:
+      - cascade-net
+
+  service-b:
+    build: ./service-b
+    container_name: cascade-service-b
+    ports:
+      - "3002:3002"
+    depends_on:
+      - service-c
+    networks:
+      - cascade-net
+
+  service-a:
+    build: ./service-a
+    container_name: cascade-service-a
+    ports:
+      - "3001:3001"
+    depends_on:
+      - service-b
+    networks:
+      - cascade-net
+
+  dashboard:
+    build: ./dashboard
+    container_name: cascade-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - service-a
+      - service-b
+      - service-c
+    networks:
+      - cascade-net
+
+networks:
+  cascade-net:
+    driver: bridge

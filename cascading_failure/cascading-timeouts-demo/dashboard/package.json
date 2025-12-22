@@ -1,0 +1,9 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  }
+}
