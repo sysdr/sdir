@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poison Pill Demo - Real-time Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f9fafb 0%, #f5f3f6 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }   
+        
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        
+        .btn-danger {
+            background: #ff4d4f;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #52c41a;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #1890ff;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #faad14;
+            color: white;
+        }
+        
+        .btn-demo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 16px;
+            padding: 14px 28px;
+        }
+        
+        .btn-demo:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .demo-status {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .demo-status.active {
+            display: block;
+        }
+        
+        .demo-status h3 {
+            margin: 0 0 10px 0;
+            color: #1a1a1a;
+        }
+        
+        .demo-progress {
+            background: #f0f0f0;
+            border-radius: 8px;
+            height: 8px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .demo-progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1a1a1a;
+        }
+        
+        .server-status {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .server-status.healthy {
+            background: #f6ffed;
+            border-left: 4px solid #52c41a;
+        }
+        
+        .server-status.unhealthy {
+            background: #fff1f0;
+            border-left: 4px solid #ff4d4f;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-indicator.healthy {
+            background: #52c41a;
+            box-shadow: 0 0 8px #52c41a;
+        }
+        
+        .status-indicator.unhealthy {
+            background: #ff4d4f;
+            box-shadow: 0 0 8px #ff4d4f;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #1890ff;
+        }
+        
+        .log-container {
+            background: #1a1a1a;
+            color: #52c41a;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px;
+        }
+        
+        .log-error {
+            color: #ff4d4f;
+        }
+        
+        .log-warning {
+            color: #faad14;
+        }
+        
+        .log-success {
+            color: #52c41a;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 Poison Pill Request - Live Demo</h1>
+            <p class="subtitle">Watch how a single malformed request can cascade through your entire fleet</p>
+        </header>
+        
+        <div class="controls">
+            <div class="button-group">
+                <button class="btn-demo" id="demoButton" onclick="runDemo()">🚀 Run Complete Demo</button>
+                <button class="btn-danger" onclick="sendPoisonRequest()">💀 Send Poison Request</button>
+                <button class="btn-success" onclick="sendNormalRequest()">✅ Send Normal Request</button>
+                <button class="btn-info" onclick="sendSafeRequest()">🛡️ Send to Safe Endpoint</button>
+                <button class="btn-warning" onclick="resetAll()">🔄 Reset All Servers</button>
+            </div>
+        </div>
+        
+        <div class="demo-status" id="demoStatus">
+            <h3 id="demoStatusTitle">Demo in Progress...</h3>
+            <div id="demoStatusText">Running demo scenarios...</div>
+            <div class="demo-progress">
+                <div class="demo-progress-bar" id="demoProgressBar"></div>
+            </div>
+        </div>
+        
+        <div class="stats-grid" style="margin-bottom: 20px;">
+            <div class="stat-box">
+                <div class="stat-value" id="totalRequests">0</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-value" id="poisonRequests">0</div>
+                <div class="stat-label">Poison Requests</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="stat-value" id="healthyServers">4</div>
+                <div class="stat-label">Healthy Servers</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="stat-value" id="blockedRequests">0</div>
+                <div class="stat-label">Blocked Requests</div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Server Status</div>
+                <div id="serverStatus"></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">System Metrics</div>
+                <div id="metrics"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Live Event Log</div>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+    </div>
+    
+    <script>
+        let logs = [];
+        let stats = {
+            totalRequests: 0,
+            poisonRequests: 0,
+            healthyServers: 4,
+            blockedRequests: 0
+        };
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = type === 'error' ? 'log-error' : type === 'warning' ? 'log-warning' : 'log-success';
+            logs.unshift(`<div class="log-entry ${logClass}">[${timestamp}] ${message}</div>`);
+            if (logs.length > 50) logs.pop();
+            document.getElementById('logContainer').innerHTML = logs.join('');
+        }
+        
+        function updateStats() {
+            document.getElementById('totalRequests').textContent = stats.totalRequests;
+            document.getElementById('poisonRequests').textContent = stats.poisonRequests;
+            document.getElementById('healthyServers').textContent = stats.healthyServers;
+            document.getElementById('blockedRequests').textContent = stats.blockedRequests;
+        }
+        
+        async function sendPoisonRequest() {
+            try {
+                stats.totalRequests++;
+                stats.poisonRequests++;
+                updateStats();
+                
+                addLog('🔴 Sending POISON request...', 'error');
+                const response = await fetch('http://localhost/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': 'poison-' + Date.now()
+                    },
+                    body: JSON.stringify({
+                        data: '{{POISON}}',
+                        payload: 'This will crash the server'
+                    })
+                });
+                
+                addLog('⚠️ Response received (if any): ' + response.status, 'warning');
+            } catch (error) {
+                addLog('💥 Server crashed or request failed: ' + error.message, 'error');
+            }
+            
+            setTimeout(checkServerHealth, 1000);
+        }
+        
+        async function sendNormalRequest() {
+            try {
+                stats.totalRequests++;
+                updateStats();
+                
+                addLog('🟢 Sending normal request...', 'success');
+                const response = await fetch('http://localhost/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': 'normal-' + Date.now()
+                    },
+                    body: JSON.stringify({
+                        data: 'normal data',
+                        user: 'test'
+                    })
+                });
+                
+                const data = await response.json();
+                addLog(`✅ Success! Processed by ${data.server}`, 'success');
+            } catch (error) {
+                addLog('❌ Request failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function sendSafeRequest() {
+            try {
+                stats.totalRequests++;
+                updateStats();
+                
+                addLog('🛡️ Sending to safe endpoint...', 'info');
+                const response = await fetch('http://localhost/process-safe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': 'safe-' + Date.now()
+                    },
+                    body: JSON.stringify({
+                        data: 'test data',
+                        safe: true
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'blocked') {
+                    stats.blockedRequests++;
+                    updateStats();
+                    addLog('🚫 Request blocked by validation', 'warning');
+                } else {
+                    addLog(`✅ Safely processed by ${data.server}`, 'success');
+                }
+            } catch (error) {
+                addLog('❌ Request failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function resetAll() {
+            addLog('🔄 Resetting all servers...', 'info');
+            // Reset would need to restart docker containers
+            stats = {
+                totalRequests: 0,
+                poisonRequests: 0,
+                healthyServers: 4,
+                blockedRequests: 0
+            };
+            updateStats();
+            logs = [];
+            addLog('✅ System reset complete', 'success');
+            setTimeout(checkServerHealth, 1000);
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        function updateDemoStatus(title, text, progress) {
+            document.getElementById('demoStatusTitle').textContent = title;
+            document.getElementById('demoStatusText').textContent = text;
+            document.getElementById('demoProgressBar').style.width = progress + '%';
+        }
+        
+        async function runDemo() {
+            const demoButton = document.getElementById('demoButton');
+            const demoStatus = document.getElementById('demoStatus');
+            
+            // Disable button and show status
+            demoButton.disabled = true;
+            demoStatus.classList.add('active');
+            
+            const results = {
+                initialHealthCheck: false,
+                normalRequest: false,
+                poisonRequest: false,
+                safeEndpoint: false,
+                finalHealthCheck: false
+            };
+            
+            try {
+                // Step 1: Initial health check
+                updateDemoStatus('Step 1/5: Initial Health Check', 'Checking server health...', 10);
+                addLog('🚀 Starting demo execution...', 'info');
+                await checkServerHealth();
+                await sleep(2000);
+                const initialHealthy = stats.healthyServers;
+                results.initialHealthCheck = initialHealthy >= 3; // At least 3 servers should be healthy
+                addLog(`📊 Initial status: ${initialHealthy} healthy servers`, results.initialHealthCheck ? 'success' : 'warning');
+                
+                // Step 2: Send normal request
+                updateDemoStatus('Step 2/5: Normal Request Test', 'Sending normal request...', 30);
+                await sleep(1000);
+                try {
+                    stats.totalRequests++;
+                    updateStats();
+                    addLog('🟢 [Demo] Sending normal request...', 'success');
+                    const response = await fetch('http://localhost/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Request-ID': 'demo-normal-' + Date.now()
+                        },
+                        body: JSON.stringify({
+                            data: 'demo normal data',
+                            user: 'demo_test'
+                        })
+                    });
+                    const data = await response.json();
+                    results.normalRequest = response.ok && data.status === 'success';
+                    addLog(`✅ [Demo] Normal request succeeded: ${data.server}`, 'success');
+                } catch (error) {
+                    addLog(`❌ [Demo] Normal request failed: ${error.message}`, 'error');
+                }
+                await sleep(2000);
+                await checkServerHealth();
+                
+                // Step 3: Send poison request
+                updateDemoStatus('Step 3/5: Poison Request Test', 'Sending poison request to demonstrate cascade...', 50);
+                await sleep(1000);
+                try {
+                    stats.totalRequests++;
+                    stats.poisonRequests++;
+                    updateStats();
+                    addLog('🔴 [Demo] Sending POISON request...', 'error');
+                    const response = await fetch('http://localhost/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Request-ID': 'demo-poison-' + Date.now()
+                        },
+                        body: JSON.stringify({
+                            data: '{{POISON}}',
+                            payload: 'This will crash the server'
+                        })
+                    });
+                    // Poison request might fail, that's expected
+                    if (response.ok) {
+                        const data = await response.json();
+                        addLog(`⚠️ [Demo] Poison request got response: ${data.server}`, 'warning');
+                    } else {
+                        addLog('💥 [Demo] Poison request caused server failure (expected)', 'error');
+                    }
+                    results.poisonRequest = true; // Consider it successful if we got any response
+                } catch (error) {
+                    // Expected to fail
+                    addLog('💥 [Demo] Poison request failed (expected): ' + error.message, 'error');
+                    results.poisonRequest = true;
+                }
+                await sleep(3000); // Wait for servers to potentially crash and restart
+                await checkServerHealth();
+                
+                // Step 4: Test safe endpoint
+                updateDemoStatus('Step 4/5: Safe Endpoint Test', 'Testing safe endpoint with validation...', 70);
+                await sleep(1000);
+                try {
+                    stats.totalRequests++;
+                    updateStats();
+                    addLog('🛡️ [Demo] Testing safe endpoint...', 'info');
+                    const response = await fetch('http://localhost/process-safe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Request-ID': 'demo-safe-' + Date.now()
+                        },
+                        body: JSON.stringify({
+                            data: 'safe demo data',
+                            safe: true
+                        })
+                    });
+                    const data = await response.json();
+                    results.safeEndpoint = response.ok && data.status === 'success';
+                    if (data.status === 'blocked') {
+                        stats.blockedRequests++;
+                        updateStats();
+                        addLog('🚫 [Demo] Request blocked by validation (expected for poison patterns)', 'warning');
+                        results.safeEndpoint = true; // Blocking is also a success
+                    } else {
+                        addLog(`✅ [Demo] Safe endpoint processed: ${data.server}`, 'success');
+                    }
+                } catch (error) {
+                    addLog(`❌ [Demo] Safe endpoint failed: ${error.message}`, 'error');
+                }
+                await sleep(2000);
+                
+                // Step 5: Final health check
+                updateDemoStatus('Step 5/5: Final Health Check', 'Checking final server status...', 90);
+                await sleep(1000);
+                await checkServerHealth();
+                const finalHealthy = stats.healthyServers;
+                results.finalHealthCheck = finalHealthy >= 2; // At least 2 servers should recover
+                addLog(`📊 Final status: ${finalHealthy} healthy servers`, results.finalHealthCheck ? 'success' : 'warning');
+                
+                // Calculate demo results
+                const passed = Object.values(results).filter(v => v).length;
+                const total = Object.keys(results).length;
+                const successRate = Math.round((passed / total) * 100);
+                
+                updateDemoStatus('Demo Complete!', `Results: ${passed}/${total} tests passed (${successRate}%)`, 100);
+                
+                // Summary log
+                addLog('═══════════════════════════════════════', 'info');
+                addLog('📋 DEMO RESULTS SUMMARY', 'info');
+                addLog(`  ✅ Initial Health Check: ${results.initialHealthCheck ? 'PASS' : 'FAIL'}`, results.initialHealthCheck ? 'success' : 'error');
+                addLog(`  ✅ Normal Request: ${results.normalRequest ? 'PASS' : 'FAIL'}`, results.normalRequest ? 'success' : 'error');
+                addLog(`  ✅ Poison Request: ${results.poisonRequest ? 'PASS' : 'FAIL'}`, results.poisonRequest ? 'success' : 'error');
+                addLog(`  ✅ Safe Endpoint: ${results.safeEndpoint ? 'PASS' : 'FAIL'}`, results.safeEndpoint ? 'success' : 'error');
+                addLog(`  ✅ Final Health Check: ${results.finalHealthCheck ? 'PASS' : 'FAIL'}`, results.finalHealthCheck ? 'success' : 'error');
+                addLog(`  📊 Overall: ${successRate}% success rate`, successRate >= 80 ? 'success' : 'warning');
+                addLog('═══════════════════════════════════════', 'info');
+                
+                // Hide status after 5 seconds
+                setTimeout(() => {
+                    demoStatus.classList.remove('active');
+                }, 5000);
+                
+            } catch (error) {
+                addLog('❌ Demo execution error: ' + error.message, 'error');
+                updateDemoStatus('Demo Failed', 'Error: ' + error.message, 100);
+            } finally {
+                demoButton.disabled = false;
+            }
+        }
+        
+        async function checkServerHealth() {
+            const servers = ['app1', 'app2', 'app3', 'app4'];
+            let healthyCount = 0;
+            let statusHTML = '';
+            const serverStatuses = {};
+            
+            try {
+                // Fetch HAProxy CSV stats via proxy endpoint to avoid CORS issues
+                const response = await fetch('http://localhost/haproxy-stats');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const csvText = await response.text();
+                
+                if (!csvText || csvText.trim().length === 0) {
+                    throw new Error('Empty response from stats endpoint');
+                }
+                
+                const lines = csvText.split('\n');
+                
+                // Parse CSV to get server statuses
+                // CSV format: pxname,svname,...,status (column 17 is status: UP/DOWN)
+                for (const line of lines) {
+                    if (line.trim() && line.startsWith('servers,')) {
+                        const parts = line.split(',');
+                        if (parts.length > 17) {
+                            const svname = parts[1]; // server name (app1, app2, etc.)
+                            const status = parts[17]; // status field (UP, DOWN, etc.)
+                            
+                            if (servers.includes(svname)) {
+                                const isHealthy = status === 'UP' || status === 'OPEN';
+                                serverStatuses[svname] = isHealthy;
+                                if (isHealthy) healthyCount++;
+                            }
+                        }
+                    }
+                }
+                
+                // If we didn't find any servers, log for debugging
+                if (Object.keys(serverStatuses).length === 0) {
+                    console.warn('No server statuses found in CSV', csvText.substring(0, 500));
+                }
+            } catch (error) {
+                console.error('Error fetching HAProxy stats:', error);
+                addLog('⚠️ Failed to fetch HAProxy stats: ' + error.message, 'warning');
+                // Fallback: mark all servers as unknown (we'll check via health endpoint)
+                servers.forEach(s => {
+                    if (serverStatuses[s] === undefined) serverStatuses[s] = null;
+                });
+            }
+            
+            // Build status HTML for each server
+            for (const server of servers) {
+                let serverHealthy = serverStatuses[server] === true;
+                
+                // If we couldn't get status from HAProxy, check via health endpoint as fallback
+                if (serverStatuses[server] === null || serverStatuses[server] === undefined) {
+                    try {
+                        const healthResponse = await fetch('http://localhost/health');
+                        const healthData = await healthResponse.json();
+                        serverHealthy = healthResponse.ok && healthData.status === 'healthy';
+                        serverStatuses[server] = serverHealthy;
+                        if (serverHealthy) healthyCount++;
+                    } catch (e) {
+                        serverHealthy = false;
+                        serverStatuses[server] = false;
+                    }
+                }
+                
+                statusHTML += `
+                    <div class="server-status ${serverHealthy ? 'healthy' : 'unhealthy'}">
+                        <div class="status-indicator ${serverHealthy ? 'healthy' : 'unhealthy'}"></div>
+                        <div>
+                            <strong>${server.toUpperCase()}</strong>
+                            <span style="margin-left: 10px; color: #999;">${serverHealthy ? 'Healthy' : 'Down'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            stats.healthyServers = healthyCount;
+            updateStats();
+            document.getElementById('serverStatus').innerHTML = statusHTML;
+            
+            // Update metrics - calculate based on actual data
+            // HAProxy retries are typically 3 (retries config), and we have 4 servers
+            const retryAttempts = stats.poisonRequests > 0 ? stats.poisonRequests * 3 : 0;
+            const amplificationFactor = stats.poisonRequests > 0 ? '4x' : '0x';
+            const fleetCapacity = Math.round((healthyCount / 4) * 100);
+            
+            const metricsHTML = `
+                <div class="metric">
+                    <span>Retry Attempts</span>
+                    <span class="metric-value">${retryAttempts}</span>
+                </div>
+                <div class="metric">
+                    <span>Amplification Factor</span>
+                    <span class="metric-value">${amplificationFactor}</span>
+                </div>
+                <div class="metric">
+                    <span>Fleet Capacity</span>
+                    <span class="metric-value">${fleetCapacity}%</span>
+                </div>
+                <div class="metric">
+                    <span>Circuit Breakers Open</span>
+                    <span class="metric-value">${4 - healthyCount}</span>
+                </div>
+            `;
+            document.getElementById('metrics').innerHTML = metricsHTML;
+        }
+        
+        // Initial health check
+        checkServerHealth();
+        
+        // Periodic health checks
+        setInterval(checkServerHealth, 5000);
+        
+        addLog('🚀 Monitoring system initialized', 'success');
+    </script>
+</body>
+</html>

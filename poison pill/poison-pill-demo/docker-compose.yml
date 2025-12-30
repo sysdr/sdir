@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  app1:
+    build: ./app
+    environment:
+      - SERVER_ID=app1
+    restart: always
+    networks:
+      - poison-net
+
+  app2:
+    build: ./app
+    environment:
+      - SERVER_ID=app2
+    restart: always
+    networks:
+      - poison-net
+
+  app3:
+    build: ./app
+    environment:
+      - SERVER_ID=app3
+    restart: always
+    networks:
+      - poison-net
+
+  app4:
+    build: ./app
+    environment:
+      - SERVER_ID=app4
+    restart: always
+    networks:
+      - poison-net
+
+  haproxy:
+    image: haproxy:2.8-alpine
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "80:80"
+      - "8404:8404"
+    depends_on:
+      - app1
+      - app2
+      - app3
+      - app4
+    networks:
+      - poison-net
+
+  dashboard:
+    image: nginx:alpine
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    networks:
+      - poison-net
+
+networks:
+  poison-net:
+    driver: bridge
