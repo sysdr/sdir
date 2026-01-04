@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot Key Problem - Live Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 0;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .header h1 {
+            color: white;
+            font-size: 2.75em;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.15em;
+            font-weight: 400;
+        }
+        .controls {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            margin-bottom: 32px;
+            border: 1px solid #e5e7eb;
+        }
+        .control-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-btn {
+            padding: 12px 24px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            color: #374151;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .control-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+        }
+        .control-btn:hover:not(.active) {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-standard.active { background: #ef4444; border-color: #ef4444; }
+        .btn-bounded.active { background: #3b82f6; border-color: #3b82f6; }
+        .btn-salting.active { background: #10b981; border-color: #10b981; }
+        .btn-hotstore.active { background: #8b5cf6; border-color: #8b5cf6; }
+        .btn-reset { background: #6b7280; color: white; border-color: #6b7280; }
+        .btn-reset:hover { background: #4b5563; border-color: #4b5563; }
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .panel {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+        }
+        .panel h2 {
+            color: #111827;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .server {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .server::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: currentColor;
+        }
+        .server.healthy {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+        .server.healthy::before {
+            background: #16a34a;
+        }
+        .server.warning {
+            background: #fffbeb;
+            color: #d97706;
+            border-color: #fcd34d;
+            animation: pulse 2s infinite;
+        }
+        .server.warning::before {
+            background: #d97706;
+        }
+        .server.crashed {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fca5a5;
+            animation: shake 0.5s;
+        }
+        .server.crashed::before {
+            background: #dc2626;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .server-id {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #111827;
+        }
+        .server-metric {
+            font-size: 0.875em;
+            margin: 6px 0;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .cpu-bar {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .cpu-fill {
+            height: 100%;
+            background: currentColor;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+        .events {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .events::-webkit-scrollbar {
+            width: 6px;
+        }
+        .events::-webkit-scrollbar-track {
+            background: #f9fafb;
+            border-radius: 3px;
+        }
+        .events::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+        .event {
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid;
+            font-size: 0.875em;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-left-width: 3px;
+        }
+        .event.crash {
+            background: #fef2f2;
+            border-color: #dc2626;
+            color: #991b1b;
+        }
+        .event.config {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+        .event.reset {
+            background: #f0fdf4;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        .event-time {
+            font-weight: 600;
+            margin-right: 12px;
+            color: #6b7280;
+            font-size: 0.8em;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white;
+            color: #111827;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+        .stat-value {
+            font-size: 2.25em;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.875em;
+            color: #6b7280;
+            margin-top: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .mode-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875em;
+            font-weight: 600;
+            margin-left: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .servers-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px 16px;
+            }
+            .header {
+                padding: 40px 24px;
+            }
+            .header h1 {
+                font-size: 1.75em;
+            }
+            .servers-grid {
+                grid-template-columns: 1fr;
+            }
+            .control-group {
+                flex-direction: column;
+            }
+            .control-btn {
+                width: 100%;
+            }
+            .panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [data, setData] = useState({ servers: [], events: [], config: {} });
+            const [mode, setMode] = useState('standard');
+
+            useEffect(() => {
+                const fetchData = async () => {
+                    try {
+                        const response = await fetch('http://localhost:8080/api/status');
+                        const json = await response.json();
+                        setData({
+                            servers: json.servers || [],
+                            events: json.events || [],
+                            config: json.config || {}
+                        });
+                        setMode(json.config?.mode || 'standard');
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                    }
+                };
+
+                fetchData();
+                const interval = setInterval(fetchData, 500);
+                return () => clearInterval(interval);
+            }, []);
+
+            const changeMode = async (newMode) => {
+                const config = {
+                    mode: newMode,
+                    boundedLoadC: 1.5,
+                    saltCount: 4,
+                    hotStoreActive: newMode === 'hot-store'
+                };
+
+                try {
+                    await fetch('http://localhost:8080/api/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+                } catch (error) {
+                    console.error('Error updating config:', error);
+                }
+            };
+
+            const reset = async () => {
+                try {
+                    await fetch('http://localhost:8080/api/reset', { method: 'POST' });
+                } catch (error) {
+                    console.error('Error resetting:', error);
+                }
+            };
+
+            const servers = data.servers || [];
+            const events = data.events || [];
+            const totalQPS = servers.reduce((sum, s) => sum + (s?.qps || 0), 0);
+            const crashedCount = servers.filter(s => s?.status === 'crashed').length;
+            const avgCPU = servers.reduce((sum, s) => sum + (s?.cpuUsage || 0), 0) / (servers.length || 1);
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>Hot Key Problem in Consistent Hashing</h1>
+                        <p>Real systems. Real problems. Real engineering.</p>
+                        <span className={`mode-indicator ${mode}`}>
+                            {mode.toUpperCase().replace('-', ' ')}
+                        </span>
+                    </div>
+
+                    <div className="controls">
+                        <div className="control-group">
+                            <button
+                                className={`control-btn btn-standard ${mode === 'standard' ? 'active' : ''}`}
+                                onClick={() => changeMode('standard')}
+                            >
+                                Standard CH
+                            </button>
+                            <button
+                                className={`control-btn btn-bounded ${mode === 'bounded-load' ? 'active' : ''}`}
+                                onClick={() => changeMode('bounded-load')}
+                            >
+                                Bounded Loads
+                            </button>
+                            <button
+                                className={`control-btn btn-salting ${mode === 'key-salting' ? 'active' : ''}`}
+                                onClick={() => changeMode('key-salting')}
+                            >
+                                Key Salting
+                            </button>
+                            <button
+                                className={`control-btn btn-hotstore ${mode === 'hot-store' ? 'active' : ''}`}
+                                onClick={() => changeMode('hot-store')}
+                            >
+                                Hot Store
+                            </button>
+                            <button
+                                className="control-btn btn-reset"
+                                onClick={reset}
+                            >
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="stats">
+                        <div className="stat-card">
+                            <div className="stat-value">{totalQPS.toLocaleString()}</div>
+                            <div className="stat-label">Total QPS</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-value">{crashedCount}</div>
+                            <div className="stat-label">Crashed Servers</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-value">{avgCPU.toFixed(1)}%</div>
+                            <div className="stat-label">Average CPU</div>
+                        </div>
+                    </div>
+
+                    <div className="grid">
+                        <div className="panel">
+                            <h2>Server Status</h2>
+                            <div className="servers-grid">
+                                {servers.map(server => (
+                                    <div key={server.id} className={`server ${server.status}`}>
+                                        <div className="server-id">Server {server.id}</div>
+                                        <div className="server-metric">
+                                            CPU: {server.cpuUsage.toFixed(1)}%
+                                        </div>
+                                        <div className="server-metric">
+                                            QPS: {server.qps.toLocaleString()}
+                                        </div>
+                                        <div className="cpu-bar">
+                                            <div className="cpu-fill" style={{
+                                                width: `${Math.min(server.cpuUsage, 100)}%`
+                                            }}></div>
+                                        </div>
+                                        <div className="server-metric" style={{ marginTop: '8px', fontSize: '0.8em' }}>
+                                            {server.status.toUpperCase()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="panel">
+                            <h2>Event Log</h2>
+                            <div className="events">
+                                {events.map((event, idx) => (
+                                    <div key={idx} className={`event ${event.type}`}>
+                                        <span className="event-time">{event.timestamp}</span>
+                                        <span>{event.message}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
