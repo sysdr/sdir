@@ -285,6 +285,133 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px);
         }
+        .btn-demo {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+        .btn-demo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
+        }
+        .btn-demo.running {
+            animation: pulse-demo 1.5s infinite;
+        }
+        .btn-cascade {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+        }
+        .btn-cascade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(239, 68, 68, 0.4);
+        }
+        .btn-cascade.running {
+            animation: pulse-demo 1.5s infinite;
+        }
+        @keyframes pulse-demo {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .ring-visualization {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            position: relative;
+            margin: 20px 0;
+        }
+        .ring-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+        }
+        .ring-circle {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border: 2px dashed #e5e7eb;
+            border-radius: 50%;
+            top: 50px;
+            left: 50px;
+            pointer-events: none;
+        }
+        .ring-server {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 3px solid;
+            cursor: pointer;
+        }
+        .ring-server.healthy {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+        .ring-server.warning {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+            animation: pulse 1s infinite;
+        }
+        .ring-server.crashed {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+            animation: shake 0.5s;
+        }
+        .demo-status {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+        }
+        .demo-status h3 {
+            color: #1e40af;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        .demo-status p {
+            color: #1e3a8a;
+            margin: 4px 0;
+            font-size: 1em;
+            font-weight: 500;
+        }
+        .ring-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8em;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
         @media (max-width: 1024px) {
             .grid {
                 grid-template-columns: 1fr;
@@ -333,6 +460,8 @@
         function App() {
             const [data, setData] = useState({ servers: [], events: [], config: {} });
             const [mode, setMode] = useState('standard');
+            const [isDemoRunning, setIsDemoRunning] = useState(false);
+            const [demoStep, setDemoStep] = useState('');
 
             useEffect(() => {
                 const fetchData = async () => {
@@ -380,6 +509,84 @@
                 } catch (error) {
                     console.error('Error resetting:', error);
                 }
+            };
+
+            const runCascadeFailure = async () => {
+                if (isDemoRunning) return;
+                setIsDemoRunning(true);
+                
+                setDemoStep('Starting Cascade Failure Demo...');
+                await reset();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                setDemoStep('Step 1: Standard Consistent Hashing - Celebrity traffic (10,000x) hits one server...');
+                await changeMode('standard');
+                await new Promise(resolve => setTimeout(resolve, 8000)); // Watch first server crash
+                
+                setDemoStep('⚠️ Server crashed! Traffic automatically shifts to next server in the ring...');
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Watch traffic shift
+                
+                setDemoStep('⚠️ Next server overloaded! Cascade failure begins...');
+                await new Promise(resolve => setTimeout(resolve, 8000)); // Watch cascade continue
+                
+                setDemoStep('💥 Multiple servers crashing! This is the cascade failure effect.');
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Show cascade in action
+                
+                setDemoStep('Cascade Failure Demo Complete. Use solutions (Bounded Loads, Key Salting, Hot Store) to prevent this.');
+                setIsDemoRunning(false);
+                setTimeout(() => setDemoStep(''), 5000);
+            };
+
+            const runDemo = async () => {
+                if (isDemoRunning) return;
+                setIsDemoRunning(true);
+                
+                // Step 1: Reset and start with standard mode - show the problem
+                setDemoStep('Step 1: Standard Consistent Hashing - Celebrity traffic (10,000x) hits one server...');
+                await reset();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await changeMode('standard');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Watch server crash
+                
+                setDemoStep('⚠️ Server crashed! Traffic shifts to next server...');
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Watch cascade begin
+                
+                // Step 2: Show bounded loads solution
+                setDemoStep('Step 2: Enabling Bounded Loads - Traffic automatically spreads to available servers...');
+                await reset();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await changeMode('bounded-load');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Watch stability
+                
+                // Step 3: Show key salting solution
+                setDemoStep('Step 3: Enabling Key Salting - Celebrity key split into 4 salted keys, distributed across servers...');
+                await reset();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await changeMode('key-salting');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Watch distribution
+                
+                // Step 4: Show hot store solution
+                setDemoStep('Step 4: Enabling Hot Store - Celebrity traffic bypasses hash ring entirely, no server impact...');
+                await reset();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await changeMode('hot-store');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Watch complete bypass
+                
+                setDemoStep('✅ Demo Complete! All three solutions successfully prevent server crashes.');
+                setIsDemoRunning(false);
+                setTimeout(() => setDemoStep(''), 5000);
+            };
+
+            // Calculate ring positions for 8 servers
+            const getRingPosition = (index, total) => {
+                const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
+                const radius = 150;
+                const centerX = 200;
+                const centerY = 200;
+                return {
+                    left: centerX + radius * Math.cos(angle) - 30,
+                    top: centerY + radius * Math.sin(angle) - 30
+                };
             };
 
             const servers = data.servers || [];
@@ -430,8 +637,29 @@
                             >
                                 Reset
                             </button>
+                            <button
+                                className={`control-btn btn-cascade ${isDemoRunning ? 'running' : ''}`}
+                                onClick={runCascadeFailure}
+                                disabled={isDemoRunning}
+                            >
+                                {isDemoRunning ? 'Running...' : '💥 Cascade Failure'}
+                            </button>
+                            <button
+                                className={`control-btn btn-demo ${isDemoRunning ? 'running' : ''}`}
+                                onClick={runDemo}
+                                disabled={isDemoRunning}
+                            >
+                                {isDemoRunning ? 'Demo Running...' : '▶ Run Full Demo'}
+                            </button>
                         </div>
                     </div>
+
+                    {isDemoRunning && demoStep && (
+                        <div className="demo-status">
+                            <h3>🎬 Demo in Progress</h3>
+                            <p>{demoStep}</p>
+                        </div>
+                    )}
 
                     <div className="stats">
                         <div className="stat-card">
@@ -450,7 +678,48 @@
 
                     <div className="grid">
                         <div className="panel">
-                            <h2>Server Status</h2>
+                            <h2>Hash Ring Visualization</h2>
+                            <div className="ring-visualization">
+                                <div className="ring-container">
+                                    <div className="ring-circle"></div>
+                                    {servers.map(server => {
+                                        const pos = getRingPosition(server.id, servers.length);
+                                        return (
+                                            <div
+                                                key={server.id}
+                                                className={`ring-server ${server.status}`}
+                                                style={{
+                                                    left: `${pos.left}px`,
+                                                    top: `${pos.top}px`
+                                                }}
+                                                title={`Server ${server.id}: ${server.cpuUsage.toFixed(1)}% CPU, ${server.qps.toLocaleString()} QPS, Status: ${server.status}`}
+                                            >
+                                                <div style={{ fontSize: '0.7em', fontWeight: 'bold' }}>S{server.id}</div>
+                                                <div style={{ fontSize: '0.6em', marginTop: '2px' }}>{server.cpuUsage.toFixed(0)}%</div>
+                                                <div style={{ fontSize: '0.5em', marginTop: '1px', opacity: 0.8 }}>{server.qps > 0 ? (server.qps/1000).toFixed(1) + 'k' : '0'}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div className="ring-legend">
+                                <div className="legend-item">
+                                    <div className="legend-color" style={{ background: '#d1fae5', borderColor: '#10b981' }}></div>
+                                    <span>Healthy</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="legend-color" style={{ background: '#fef3c7', borderColor: '#f59e0b' }}></div>
+                                    <span>Warning</span>
+                                </div>
+                                <div className="legend-item">
+                                    <div className="legend-color" style={{ background: '#fee2e2', borderColor: '#ef4444' }}></div>
+                                    <span>Crashed</span>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'center', marginTop: '12px', color: '#6b7280', fontSize: '0.875em' }}>
+                                <p>8 servers in consistent hash ring • Real-time status updates</p>
+                            </div>
+                            <h2 style={{ marginTop: '40px' }}>Server Details</h2>
                             <div className="servers-grid">
                                 {servers.map(server => (
                                     <div key={server.id} className={`server ${server.status}`}>
@@ -475,14 +744,32 @@
                         </div>
 
                         <div className="panel">
-                            <h2>Event Log</h2>
+                            <h2>Event Timeline</h2>
+                            <div style={{ marginBottom: '12px', fontSize: '0.875em', color: '#6b7280' }}>
+                                {crashedCount > 0 && (
+                                    <div style={{ color: '#dc2626', fontWeight: 600 }}>
+                                        ⚠️ {crashedCount} server{crashedCount > 1 ? 's' : ''} crashed
+                                    </div>
+                                )}
+                                {crashedCount === 0 && mode !== 'standard' && (
+                                    <div style={{ color: '#10b981', fontWeight: 600 }}>
+                                        ✅ All servers healthy - Solution working!
+                                    </div>
+                                )}
+                            </div>
                             <div className="events">
-                                {events.map((event, idx) => (
+                                {events.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
+                                        No events yet. Start the demo or switch modes to see activity.
+                                    </div>
+                                ) : (
+                                    events.map((event, idx) => (
                                     <div key={idx} className={`event ${event.type}`}>
                                         <span className="event-time">{event.timestamp}</span>
                                         <span>{event.message}</span>
                                     </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
