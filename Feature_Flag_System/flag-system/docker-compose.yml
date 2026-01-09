@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: flags
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  flag-service:
+    build:
+      context: ./flag-service
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  checkout-service:
+    build:
+      context: ./services/checkout
+      dockerfile: Dockerfile
+    depends_on:
+      - flag-service
+
+  payment-service:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+    depends_on:
+      - flag-service
+
+  recommendations-service:
+    build:
+      context: ./services/recommendations
+      dockerfile: Dockerfile
+    depends_on:
+      - flag-service
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - flag-service
+
+  tests:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    depends_on:
+      - flag-service
+      - checkout-service
+      - payment-service
+      - recommendations-service
+
+volumes:
+  postgres_data:
