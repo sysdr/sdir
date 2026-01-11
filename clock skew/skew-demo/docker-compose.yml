@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  # Simulated DB Node A (Reference Clock)
+  node-a:
+    build: ./backend
+    environment:
+      - NODE_ID=Node A
+      - FLASK_ENV=production
+    networks:
+      - demo-net
+
+  # Simulated DB Node B (Drifting Clock)
+  node-b:
+    build: ./backend
+    environment:
+      - NODE_ID=Node B
+      - FLASK_ENV=production
+    networks:
+      - demo-net
+
+  # Frontend Dashboard + Reverse Proxy
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "3000:80"
+    depends_on:
+      - node-a
+      - node-b
+    networks:
+      - demo-net
+
+networks:
+  demo-net:
+    driver: bridge
