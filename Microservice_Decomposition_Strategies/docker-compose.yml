@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  monolith:
+    build: ./monolith
+    ports:
+      - "3001:3001"
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  order-service:
+    build: ./services/order
+    ports:
+      - "3002:3002"
+    depends_on:
+      - payment-service
+      - inventory-service
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  payment-service:
+    build: ./services/payment
+    ports:
+      - "3003:3003"
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  inventory-service:
+    build: ./services/inventory
+    ports:
+      - "3004:3004"
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  strangler-gateway:
+    build: ./strangler/gateway
+    ports:
+      - "3005:3005"
+    depends_on:
+      - legacy-monolith
+      - new-payment-service
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  legacy-monolith:
+    build: ./strangler/legacy
+    ports:
+      - "3006:3006"
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  new-payment-service:
+    build: ./strangler/new-services
+    ports:
+      - "3007:3007"
+    networks:
+      - decomposition-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3007/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  decomposition-net:
+    driver: bridge

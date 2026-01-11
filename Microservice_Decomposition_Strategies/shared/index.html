@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservice Decomposition Strategies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #1a202c;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+        
+        .architectures {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .architecture-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .arch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .arch-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .arch-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4299e1;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .metric-unit {
+            font-size: 14px;
+            color: #a0aec0;
+        }
+        
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .action-button:active {
+            transform: translateY(0);
+        }
+        
+        .logs-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .logs-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        
+        .logs-container {
+            background: #1a202c;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: #4299e1;
+        }
+        
+        .log-arch {
+            color: #48bb78;
+            font-weight: 600;
+        }
+        
+        .log-latency {
+            color: #ed8936;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .comparison-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .comparison-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        
+        .comparison-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ Microservice Decomposition Strategies</h1>
+            <p class="subtitle">Compare monolithic, service-per-subdomain, and strangler pattern architectures</p>
+        </div>
+        
+        <div class="architectures">
+            <div class="architecture-card">
+                <div class="arch-header">
+                    <div class="arch-title">Monolithic</div>
+                    <div class="arch-status status-healthy">Healthy</div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-label">Requests</div>
+                        <div class="metric-value" id="monolith-requests">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Errors</div>
+                        <div class="metric-value" id="monolith-errors">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Avg Latency</div>
+                        <div class="metric-value">2-5<span class="metric-unit">ms</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Service Hops</div>
+                        <div class="metric-value" id="monolith-hops">0</div>
+                    </div>
+                </div>
+                <button class="action-button" onclick="testArchitecture('monolith')">
+                    Create Order (Monolith)
+                </button>
+            </div>
+            
+            <div class="architecture-card">
+                <div class="arch-header">
+                    <div class="arch-title">Microservices</div>
+                    <div class="arch-status status-healthy">Healthy</div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-label">Requests</div>
+                        <div class="metric-value" id="microservices-requests">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Errors</div>
+                        <div class="metric-value" id="microservices-errors">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Avg Latency</div>
+                        <div class="metric-value">30-50<span class="metric-unit">ms</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Service Hops</div>
+                        <div class="metric-value" id="microservices-hops">3</div>
+                    </div>
+                </div>
+                <button class="action-button" onclick="testArchitecture('microservices')">
+                    Create Order (Microservices)
+                </button>
+            </div>
+            
+            <div class="architecture-card">
+                <div class="arch-header">
+                    <div class="arch-title">Strangler Pattern</div>
+                    <div class="arch-status status-healthy">Migrating</div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-label">Total Requests</div>
+                        <div class="metric-value" id="strangler-requests">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Migration Progress</div>
+                        <div class="metric-value" id="strangler-progress">50<span class="metric-unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">New Service</div>
+                        <div class="metric-value" id="strangler-new">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Legacy</div>
+                        <div class="metric-value" id="strangler-legacy">0</div>
+                    </div>
+                </div>
+                <button class="action-button" onclick="testArchitecture('strangler')">
+                    Create Order (Strangler)
+                </button>
+            </div>
+        </div>
+        
+        <div class="logs-section">
+            <div class="logs-header">📊 Request Flow Analysis</div>
+            <div class="logs-container" id="logs"></div>
+            
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <div class="comparison-label">Total Requests</div>
+                    <div class="comparison-value" id="total-requests">0</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="comparison-label">Avg Latency (All)</div>
+                    <div class="comparison-value" id="avg-latency">0ms</div>
+                </div>
+                <div class="comparison-item">
+                    <div class="comparison-label">Success Rate</div>
+                    <div class="comparison-value" id="success-rate">100%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const logs = [];
+        let totalRequests = 0;
+        let totalLatency = 0;
+        let successfulRequests = 0;
+        
+        async function testArchitecture(type) {
+            const productId = ['PROD-001', 'PROD-002', 'PROD-003'][Math.floor(Math.random() * 3)];
+            const quantity = Math.floor(Math.random() * 3) + 1;
+            
+            try {
+                let response;
+                if (type === 'monolith') {
+                    response = await fetch('http://localhost:3001/api/monolith/order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, quantity })
+                    });
+                } else if (type === 'microservices') {
+                    response = await fetch('http://localhost:3002/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, quantity })
+                    });
+                } else if (type === 'strangler') {
+                    response = await fetch('http://localhost:3005/api/strangler/order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, quantity })
+                    });
+                }
+                
+                const data = await response.json();
+                
+                totalRequests++;
+                if (response.ok) {
+                    successfulRequests++;
+                }
+                
+                const latencyMs = parseInt(data.latency) || 0;
+                totalLatency += latencyMs;
+                
+                // Update Service Hops if available in response
+                if (data.hops !== undefined) {
+                    if (type === 'monolith') {
+                        document.getElementById('monolith-hops').textContent = data.hops;
+                    } else if (type === 'microservices') {
+                        document.getElementById('microservices-hops').textContent = data.hops;
+                    }
+                }
+                
+                addLog(type, data, response.ok);
+                updateMetrics(type);
+                updateGlobalMetrics();
+            } catch (error) {
+                console.error('Error:', error);
+                addLog(type, { error: error.message }, false);
+            }
+        }
+        
+        function addLog(architecture, data, success) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            const status = success ? '✓' : '✗';
+            const route = data.route ? ` [${data.route}]` : '';
+            const latency = data.latency || 'N/A';
+            const hops = data.hops !== undefined ? `${data.hops} hops` : '';
+            
+            logEntry.innerHTML = `
+                <span class="log-time">${timestamp}</span>
+                <span class="log-arch">[${architecture.toUpperCase()}]</span>${route}
+                ${status} Order ${data.order?.id || 'failed'}
+                <span class="log-latency">${latency} ${hops}</span>
+            `;
+            
+            const logsContainer = document.getElementById('logs');
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+            
+            if (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.lastChild);
+            }
+        }
+        
+        async function updateMetrics(type) {
+            try {
+                if (type === 'monolith') {
+                    const response = await fetch('http://localhost:3001/api/monolith/metrics');
+                    const data = await response.json();
+                    document.getElementById('monolith-requests').textContent = data.requests;
+                    document.getElementById('monolith-errors').textContent = data.errors;
+                } else if (type === 'microservices') {
+                    const response = await fetch('http://localhost:3002/api/orders/metrics');
+                    const data = await response.json();
+                    document.getElementById('microservices-requests').textContent = data.requests;
+                    document.getElementById('microservices-errors').textContent = data.errors;
+                } else if (type === 'strangler') {
+                    const response = await fetch('http://localhost:3005/api/strangler/metrics');
+                    const data = await response.json();
+                    document.getElementById('strangler-requests').textContent = data.totalRequests;
+                    document.getElementById('strangler-new').textContent = data.newServiceRequests;
+                    document.getElementById('strangler-legacy').textContent = data.legacyRequests;
+                }
+            } catch (error) {
+                console.error('Error updating metrics:', error);
+            }
+        }
+        
+        function updateGlobalMetrics() {
+            document.getElementById('total-requests').textContent = totalRequests;
+            
+            const avgLatency = totalRequests > 0 ? Math.round(totalLatency / totalRequests) : 0;
+            document.getElementById('avg-latency').textContent = avgLatency + 'ms';
+            
+            const successRate = totalRequests > 0 ? ((successfulRequests / totalRequests) * 100).toFixed(1) : 100;
+            document.getElementById('success-rate').textContent = successRate + '%';
+        }
+        
+        // Auto-refresh metrics every 5 seconds
+        setInterval(() => {
+            ['monolith', 'microservices', 'strangler'].forEach(updateMetrics);
+        }, 5000);
+    </script>
+</body>
+</html>
