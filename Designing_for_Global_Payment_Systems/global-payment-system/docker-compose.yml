@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-payment_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: ./services
+      dockerfile: ../docker/Dockerfile.gateway
+    ports:
+      - "3000:3000"
+    environment:
+      REGION: us-east
+      PROCESSOR_URL: http://processor:3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      processor:
+        condition: service_started
+
+  processor:
+    build:
+      context: ./services
+      dockerfile: ../docker/Dockerfile.processor
+    ports:
+      - "3001:3001"
+    environment:
+      REGION: processor-1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: ../docker/Dockerfile.dashboard
+    ports:
+      - "3002:3002"
+    depends_on:
+      - processor
+
+volumes:
+  postgres_data:
