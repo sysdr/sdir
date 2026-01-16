@@ -1,0 +1,7 @@
+FROM node:18-alpine
+WORKDIR /app
+COPY ingestion/package.json ./
+RUN npm install --production
+COPY ingestion/server.js ./
+EXPOSE 3001
+CMD ["node", "server.js"]
