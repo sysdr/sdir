@@ -1,0 +1,20 @@
+
+services:
+  server:
+    build: ./server
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    environment:
+      - NODE_ENV=development
