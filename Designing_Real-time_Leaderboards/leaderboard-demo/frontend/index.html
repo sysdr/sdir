@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Leaderboard Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-label {
+      color: #718096;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      color: #2d3748;
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-container {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .leaderboard-title {
+      color: #2d3748;
+      font-size: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+
+    .leaderboard-table thead th {
+      color: #718096;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .leaderboard-table tbody tr {
+      background: #f7fafc;
+      transition: all 0.3s ease;
+    }
+
+    .leaderboard-table tbody tr:hover {
+      background: #edf2f7;
+      transform: translateX(4px);
+    }
+
+    .leaderboard-table tbody td {
+      padding: 16px 12px;
+      color: #2d3748;
+      font-size: 15px;
+    }
+
+    .rank-cell {
+      font-weight: 700;
+      font-size: 18px;
+      width: 60px;
+    }
+
+    .rank-1 { color: #f59e0b; }
+    .rank-2 { color: #94a3b8; }
+    .rank-3 { color: #d97706; }
+
+    .player-cell {
+      font-weight: 600;
+      color: #4c51bf;
+    }
+
+    .score-cell {
+      font-weight: 700;
+      color: #10b981;
+      text-align: right;
+    }
+
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .live-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .update-time {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-top: 15px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><span class="live-indicator"></span>Real-Time Leaderboard</h1>
+      <p class="subtitle">Powered by Redis Sorted Sets • Live Updates Every Second</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Players</div>
+        <div class="stat-value" id="totalPlayers">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top Score</div>
+        <div class="stat-value" id="topScore">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Memory Used</div>
+        <div class="stat-value" id="memoryUsed" style="font-size: 28px;">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Updates/sec</div>
+        <div class="stat-value" id="updatesPerSec">0</div>
+      </div>
+    </div>
+
+    <div class="leaderboard-container">
+      <h2 class="leaderboard-title">🏆 Global Top 20</h2>
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th style="text-align: right;">Score</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr><td colspan="3" style="text-align: center; padding: 40px;">Loading...</td></tr>
+        </tbody>
+      </table>
+      <div class="update-time" id="updateTime">Connecting...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    let updateCount = 0;
+    let lastUpdate = Date.now();
+
+    // Fetch statistics
+    async function fetchStats() {
+      try {
+        const response = await fetch(`${API_URL}/stats`);
+        const data = await response.json();
+        
+        document.getElementById('totalPlayers').textContent = data.totalPlayers.toLocaleString();
+        document.getElementById('topScore').textContent = data.topScore?.score?.toLocaleString() || '0';
+        document.getElementById('memoryUsed').textContent = data.memoryUsed;
+      } catch (error) {
+        console.error('Stats fetch error:', error);
+      }
+    }
+
+    // Stream leaderboard updates
+    function streamLeaderboard() {
+      const eventSource = new EventSource(`${API_URL}/stream`);
+      
+      eventSource.onmessage = (event) => {
+        const leaderboard = JSON.parse(event.data);
+        updateLeaderboard(leaderboard);
+        
+        // Calculate updates per second
+        updateCount++;
+        const now = Date.now();
+        if (now - lastUpdate >= 1000) {
+          document.getElementById('updatesPerSec').textContent = updateCount;
+          updateCount = 0;
+          lastUpdate = now;
+        }
+      };
+
+      eventSource.onerror = () => {
+        console.error('Stream connection error');
+        setTimeout(streamLeaderboard, 5000);
+      };
+    }
+
+    function updateLeaderboard(data) {
+      const tbody = document.getElementById('leaderboardBody');
+      tbody.innerHTML = data.map((entry, index) => {
+        const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+        const medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+        
+        return `
+          <tr>
+            <td class="rank-cell ${rankClass}">${medal}#${entry.rank}</td>
+            <td class="player-cell">${entry.player}</td>
+            <td class="score-cell">${entry.score.toLocaleString()}</td>
+          </tr>
+        `;
+      }).join('');
+      
+      document.getElementById('updateTime').textContent = 
+        `Last update: ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Initialize
+    fetchStats();
+    setInterval(fetchStats, 5000);
+    streamLeaderboard();
+  </script>
+</body>
+</html>
