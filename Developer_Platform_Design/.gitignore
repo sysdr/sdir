@@ -1,0 +1,100 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.node_repl_history
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Generated files
+dev-platform/
+*.log
+*.tmp
+*.temp
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets and API keys
+secrets/
+*.pem
+*.key
+*.cert
+config/secrets.json
+**/secrets.yaml
+**/secrets.yml
+
+# Istio
+istio/
+*.istio.yaml
+*.istio.yml
+istio-*/
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+*.swp
+
+# Build artifacts
+build/
+dist/
+*.tar.gz
+*.zip
+
+# Test coverage
+.coverage
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+

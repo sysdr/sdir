@@ -1,0 +1,13 @@
+{
+  "name": "crdt-ot-client",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "yjs": "^13.6.8",
+    "y-websocket": "^1.5.0",
+    "lib0": "^0.2.89"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

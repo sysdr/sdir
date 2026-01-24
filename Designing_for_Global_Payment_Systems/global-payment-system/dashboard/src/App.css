@@ -1,0 +1,156 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.header h1 {
+  color: #1F2937;
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.header p {
+  color: #6B7280;
+  font-size: 1.1em;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.metric-value {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #3B82F6;
+  margin-bottom: 8px;
+}
+
+.metric-label {
+  color: #6B7280;
+  font-size: 0.95em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.chart-card h3 {
+  color: #1F2937;
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+.payments-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.payments-card h3 {
+  color: #1F2937;
+  margin-bottom: 20px;
+  font-size: 1.2em;
+}
+
+.payments-table {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #F3F4F6;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #E5E7EB;
+  color: #1F2937;
+}
+
+tr:hover {
+  background: #F9FAFB;
+}
+
+.state-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: white;
+  display: inline-block;
+}
+
+.region-badge {
+  background: #DBEAFE;
+  color: #1E40AF;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.high-risk {
+  color: #EF4444;
+  font-weight: bold;
+}

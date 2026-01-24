@@ -1,0 +1,8 @@
+{
+  "name": "processor-service",
+  "version": "1.0.0",
+  "main": "processor.js",
+  "dependencies": {
+    "ioredis": "^5.3.2"
+  }
+}

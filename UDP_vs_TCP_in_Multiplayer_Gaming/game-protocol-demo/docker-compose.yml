@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  game-server:
+    build: .
+    container_name: game-server
+    ports:
+      - "9001:9001/udp"
+      - "9002:9002"
+      - "3000:3000"
+    networks:
+      - game-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/metrics"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  game-clients:
+    build: .
+    container_name: game-clients
+    command: npm run client
+    environment:
+      - GAME_SERVER_HOST=game-server
+    depends_on:
+      game-server:
+        condition: service_healthy
+    networks:
+      - game-net
+
+  dashboard:
+    image: nginx:alpine
+    container_name: game-dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    networks:
+      - game-net
+
+networks:
+  game-net:
+    driver: bridge

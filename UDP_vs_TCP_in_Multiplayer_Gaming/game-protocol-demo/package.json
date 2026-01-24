@@ -1,0 +1,14 @@
+{
+  "name": "game-protocol-demo",
+  "version": "1.0.0",
+  "description": "UDP vs TCP multiplayer gaming demonstration",
+  "scripts": {
+    "server": "node server/gameServer.js",
+    "client": "node client/gameClient.js",
+    "test": "node tests/protocol.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4"
+  }
+}

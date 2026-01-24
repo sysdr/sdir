@@ -1,0 +1,57 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestion
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+
+  processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  query-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.query
+    ports:
+      - "3002:3002"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - query-service

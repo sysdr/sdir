@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRDTs vs OT Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .editor-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e8eef7;
+    }
+    
+    .panel-title {
+      font-size: 1.5em;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+    
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 500;
+    }
+    
+    .status-connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .editor-area {
+      position: relative;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 15px;
+      border: 2px solid #e8eef7;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      resize: vertical;
+      transition: border-color 0.3s;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .metrics {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    
+    .metric-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+      text-align: center;
+    }
+    
+    .metric-label {
+      font-size: 0.75em;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+    
+    .metric-value {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    
+    .simulator {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+    
+    .simulator h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+    
+    .user-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+    
+    .user-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 15px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .user-card.active {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .user-name {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    
+    .btn-insert {
+      background: #48bb78;
+      color: white;
+    }
+    
+    .btn-delete {
+      background: #f56565;
+      color: white;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .logs-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .logs-panel h2 {
+      color: #2c3e50;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+    }
+    
+    .log-entry {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+    
+    .log-ot {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+    }
+    
+    .log-crdt {
+      background: #f3e5f5;
+      border-left: 4px solid #9c27b0;
+    }
+    
+    .timestamp {
+      color: #666;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 CRDTs vs Operational Transformation</h1>
+    
+    <div class="comparison">
+      <div class="editor-panel">
+        <div class="panel-header">
+          <div class="panel-title">Operational Transformation</div>
+          <div class="status-badge status-connected" id="ot-status">Connected</div>
+        </div>
+        <div class="editor-area">
+          <textarea id="ot-editor" placeholder="Central server transforms operations..."></textarea>
+        </div>
+        <div class="metrics">
+          <div class="metric-card">
+            <div class="metric-label">Version</div>
+            <div class="metric-value" id="ot-version">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Operations</div>
+            <div class="metric-value" id="ot-ops">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Latency</div>
+            <div class="metric-value" id="ot-latency">0ms</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="editor-panel">
+        <div class="panel-header">
+          <div class="panel-title">CRDT (Yjs)</div>
+          <div class="status-badge status-connected" id="crdt-status">Connected</div>
+        </div>
+        <div class="editor-area">
+          <textarea id="crdt-editor" placeholder="Peer-to-peer convergence..."></textarea>
+        </div>
+        <div class="metrics">
+          <div class="metric-card">
+            <div class="metric-label">Updates</div>
+            <div class="metric-value" id="crdt-updates">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">State Size</div>
+            <div class="metric-value" id="crdt-size">0 KB</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Peers</div>
+            <div class="metric-value" id="crdt-peers">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="simulator">
+      <h2>🤖 Conflict Simulator</h2>
+      <div class="user-controls">
+        <div class="user-card" id="user1">
+          <div class="user-name">Alice (NYC)</div>
+          <div class="action-buttons">
+            <button class="btn btn-insert" onclick="simulateInsert('Alice', 0)">Insert Start</button>
+            <button class="btn btn-delete" onclick="simulateDelete('Alice', 5, 5)">Delete Mid</button>
+          </div>
+        </div>
+        <div class="user-card" id="user2">
+          <div class="user-name">Bob (Tokyo)</div>
+          <div class="action-buttons">
+            <button class="btn btn-insert" onclick="simulateInsert('Bob', 10)">Insert Mid</button>
+            <button class="btn btn-delete" onclick="simulateDelete('Bob', 0, 3)">Delete Start</button>
+          </div>
+        </div>
+        <div class="user-card" id="user3">
+          <div class="user-name">Carol (London)</div>
+          <div class="action-buttons">
+            <button class="btn btn-insert" onclick="simulateInsert('Carol', -1)">Insert End</button>
+            <button class="btn btn-delete" onclick="simulateDelete('Carol', 15, 5)">Delete End</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="logs-panel">
+      <h2>📋 Operation Logs</h2>
+      <div id="logs"></div>
+    </div>
+  </div>
+  
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
