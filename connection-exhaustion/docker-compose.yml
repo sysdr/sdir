@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: connection_demo_backend
+    environment:
+      - PORT=8080
+    ports:
+      - "8081:8080"
+    networks:
+      - demo-network
+    restart: unless-stopped
+  
+  haproxy:
+    build: ./haproxy
+    container_name: connection_demo_haproxy_l4
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - demo-network
+    restart: unless-stopped
+  
+  nginx:
+    build: ./nginx
+    container_name: connection_demo_nginx_l7
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+    networks:
+      - demo-network
+    restart: unless-stopped
+  
+  frontend:
+    build: ./frontend
+    container_name: connection_demo_dashboard
+    ports:
+      - "3000:80"
+    networks:
+      - demo-network
+    restart: unless-stopped
+  
+  client-simulator:
+    build: ./client-simulator
+    container_name: connection_demo_clients
+    depends_on:
+      - haproxy
+      - backend
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+networks:
+  demo-network:
+    driver: bridge
