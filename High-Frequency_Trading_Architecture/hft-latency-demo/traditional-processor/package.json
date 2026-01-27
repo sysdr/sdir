@@ -1,0 +1,9 @@
+{
+  "name": "traditional-processor",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.14.2",
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+*.egg-info/
+*.egg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.manifest
+
+# Istio
+istio/
+istio-*/
+
+# Environment & secrets (no API keys)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build & logs
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.docker/
+
+# Misc
+*.pid
+.cache/

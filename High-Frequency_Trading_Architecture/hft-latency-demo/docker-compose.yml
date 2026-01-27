@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  packet-generator:
+    build: ./packet-generator
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  traditional-processor:
+    build: ./traditional-processor
+    ports:
+      - "3002:3002"
+    depends_on:
+      packet-generator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3002/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  optimized-processor:
+    build: ./optimized-processor
+    ports:
+      - "3003:3003"
+    depends_on:
+      packet-generator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3003/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  metrics-collector:
+    build: ./metrics-collector
+    ports:
+      - "3004:3004"
+    depends_on:
+      traditional-processor:
+        condition: service_healthy
+      optimized-processor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3004/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - metrics-collector
