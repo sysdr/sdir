@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Future System Design Patterns - Live Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(
+        135deg,
+        #F4C2C2 0%,
+        #F4C2C2 50%,
+        #F4C2C2 100%
+      );
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.95;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .card-header h2 {
+      font-size: 1.3rem;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon {
+      font-size: 1.5rem;
+    }
+
+    .badge {
+      background: #3b82f6;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .edge-node {
+      background: linear-gradient(135deg, #F4C2C2 0%, #F6B1C3 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .edge-node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .edge-node-id {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .load-bar {
+      background: rgba(255,255,255,0.3);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .load-fill {
+      background: #10b981;
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .metrics {
+      display: flex;
+      gap: 16px;
+      font-size: 0.9rem;
+    }
+
+    .log-entry {
+      background: #1f2937;
+      color: #10b981;
+      font-family: 'Courier New', monospace;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      border-left: 3px solid #3b82f6;
+    }
+
+    .timestamp {
+      color: #60a5fa;
+      margin-right: 8px;
+    }
+
+    .controls {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    button:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .request-log {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .success { color: #10b981; }
+    .warning { color: #f59e0b; }
+    .info { color: #3b82f6; }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .carbon-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 8px;
+    }
+
+    .carbon-low { background: #10b981; }
+    .carbon-medium { background: #f59e0b; }
+    .carbon-high { background: #ef4444; }
+
+    html, body, #root {
+      background: #F6B1C3 !important;
+      min-height: 100vh !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Future System Design Patterns</h1>
+      <p>AI-Powered Routing • Edge Computing • eBPF Observability • Wasm Execution</p>
+    </header>
+
+    <div class="controls">
+      <div class="card-header">
+        <h2><span class="icon">🎮</span> Workload Generator</h2>
+      </div>
+      <div class="button-group">
+        <button onclick="sendRequest('compute', 'us-west')">🇺🇸 US West Request</button>
+        <button onclick="sendRequest('wasm', 'eu-north')">🇪🇺 EU North Request</button>
+        <button onclick="sendRequest('storage', 'asia-east')">🇯🇵 Asia Request</button>
+        <button onclick="sendBurst()">⚡ Send Burst (10 req)</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <h2><span class="icon">🧠</span> AI Router</h2>
+          <span class="badge pulse" id="router-status">Active</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-value" id="total-requests">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Active Nodes</div>
+            <div class="stat-value" id="active-nodes">4</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Avg Latency</div>
+            <div class="stat-value" id="avg-latency">0ms</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Routing Score</div>
+            <div class="stat-value" id="routing-score">-</div>
+          </div>
+        </div>
+        <div class="request-log" id="routing-log"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2><span class="icon">⚡</span> Edge Network</h2>
+          <span class="badge">4 Nodes</span>
+        </div>
+        <div id="edge-nodes"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2><span class="icon">📊</span> eBPF Metrics</h2>
+          <span class="badge">Real-time</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="stat-label">CPU Usage</div>
+            <div class="stat-value" id="cpu-usage">0%</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Memory</div>
+            <div class="stat-value" id="memory-usage">0%</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Network I/O</div>
+            <div class="stat-value" id="network-io">0 MB/s</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Traces</div>
+            <div class="stat-value" id="trace-count">0</div>
+          </div>
+        </div>
+        <div class="request-log" id="metrics-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let requestCount = 0;
+    let latencies = [];
+
+    function connectWebSocket() {
+      ws = new WebSocket('ws://localhost:3001');
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        addLog('routing', '✓ Connected to AI Router', 'success');
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'routing-decision') {
+          handleRoutingDecision(message.data);
+        } else if (message.type === 'stats') {
+          updateEdgeNodes(message.data.nodes);
+        }
+      };
+
+      ws.onerror = () => {
+        addLog('routing', '✗ WebSocket error', 'warning');
+      };
+
+      ws.onclose = () => {
+        addLog('routing', '⟳ Reconnecting...', 'info');
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    function handleRoutingDecision(data) {
+      requestCount++;
+      document.getElementById('total-requests').textContent = requestCount;
+
+      if (data.decision) {
+        const latency = Math.round(Math.random() * 50 + 10);
+        latencies.push(latency);
+        if (latencies.length > 20) latencies.shift();
+        
+        const avgLatency = Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+        document.getElementById('avg-latency').textContent = avgLatency + 'ms';
+        document.getElementById('routing-score').textContent = Math.round(data.decision.score);
+
+        const breakdown = data.decision.breakdown;
+        addLog('routing', 
+          `→ ${data.decision.nodeId} | Score: ${Math.round(data.decision.score)} | ` +
+          `Geo: ${breakdown.geoScore} Carbon: ${Math.round(breakdown.carbonScore)} ` +
+          `Load: ${Math.round(breakdown.loadScore)}`, 
+          'success'
+        );
+
+        // Send trace to metrics collector
+        fetch('http://localhost:3003/trace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service: 'router',
+            operation: 'route',
+            duration: latency,
+            node: data.decision.nodeId
+          })
+        });
+      }
+    }
+
+    function updateEdgeNodes(nodes) {
+      const container = document.getElementById('edge-nodes');
+      container.innerHTML = nodes.map(node => {
+        const carbonClass = node.carbonIntensity < 0.3 ? 'carbon-low' : 
+                           node.carbonIntensity < 0.5 ? 'carbon-medium' : 'carbon-high';
+        const loadPercent = Math.min(100, node.load * 10);
+        
+        return `
+          <div class="edge-node">
+            <div class="edge-node-header">
+              <span class="edge-node-id">${node.id}</span>
+              <span>${node.region}<span class="carbon-indicator ${carbonClass}"></span></span>
+            </div>
+            <div class="load-bar">
+              <div class="load-fill" style="width: ${loadPercent}%"></div>
+            </div>
+            <div class="metrics">
+              <span>Load: ${node.load}</span>
+              <span>Latency: ${Math.round(node.latency)}ms</span>
+              <span>Carbon: ${(node.carbonIntensity * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function sendRequest(type, region) {
+      try {
+        const response = await fetch('http://localhost:3001/route', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type,
+            priority: Math.random() > 0.5 ? 'high' : 'normal',
+            userRegion: region
+          })
+        });
+        
+        const data = await response.json();
+        addLog('routing', `✓ Request sent: ${type} from ${region}`, 'info');
+      } catch (error) {
+        addLog('routing', `✗ Error: ${error.message}`, 'warning');
+      }
+    }
+
+    async function sendBurst() {
+      const regions = ['us-west', 'eu-north', 'asia-east', 'us-east'];
+      const types = ['compute', 'wasm', 'storage'];
+      
+      for (let i = 0; i < 10; i++) {
+        const region = regions[Math.floor(Math.random() * regions.length)];
+        const type = types[Math.floor(Math.random() * types.length)];
+        sendRequest(type, region);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    function addLog(containerId, message, type = 'info') {
+      const logContainer = document.getElementById(`${containerId}-log`);
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="timestamp">[${time}]</span><span class="${type}">${message}</span>`;
+      logContainer.insertBefore(entry, logContainer.firstChild);
+      
+      // Keep only last 10 entries
+      while (logContainer.children.length > 10) {
+        logContainer.removeChild(logContainer.lastChild);
+      }
+    }
+
+    // Fetch metrics periodically
+    setInterval(async () => {
+      try {
+        const response = await fetch('http://localhost:3003/metrics');
+        const data = await response.json();
+        
+        document.getElementById('cpu-usage').textContent = 
+          Math.round(data.system.cpu) + '%';
+        document.getElementById('memory-usage').textContent = 
+          Math.round(data.system.memory) + '%';
+        document.getElementById('network-io').textContent = 
+          (data.system.network / 1000).toFixed(2) + ' MB/s';
+        document.getElementById('trace-count').textContent = data.totalTraces;
+
+        if (data.recent.length > 0) {
+          const latest = data.recent[data.recent.length - 1];
+          addLog('metrics', 
+            `Trace: ${latest.service || 'system'} | ${Math.round(latest.userTime)}ms`, 
+            'success'
+          );
+        }
+      } catch (error) {
+        console.error('Metrics fetch error:', error);
+      }
+    }, 3000);
+
+    // Initialize
+    connectWebSocket();
+    
+    // Send initial requests
+    setTimeout(() => {
+      sendRequest('compute', 'us-west');
+    }, 2000);
+  </script>
+</body>
+</html>

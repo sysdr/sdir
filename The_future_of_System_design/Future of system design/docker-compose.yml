@@ -1,0 +1,38 @@
+services:
+  router:
+    build: src/router
+    ports:
+      - "3001:3001"
+    networks:
+      - future-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  metrics:
+    build: src/metrics-collector
+    ports:
+      - "3003:3003"
+    networks:
+      - future-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dashboard:
+    build: src/dashboard
+    ports:
+      - "8080:80"
+    networks:
+      - future-net
+    depends_on:
+      - router
+      - metrics
+
+networks:
+  future-net:
+    driver: bridge
