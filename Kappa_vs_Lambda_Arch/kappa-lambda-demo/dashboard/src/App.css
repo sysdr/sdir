@@ -1,0 +1,272 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #ffe4ec 0%, #ffc8dd 50%, #ffb3d9 100%) !important;
+  background-attachment: fixed;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  color: white;
+  margin-bottom: 40px;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.architectures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.architecture {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.architecture h2 {
+  color: #2d3748;
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.metric-card {
+  background: #f7fafc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  border: 2px solid #e2e8f0;
+}
+
+.metric-label {
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  color: #2d3748;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.metric-value.large {
+  font-size: 3rem;
+  color: #3182ce;
+}
+
+.waiting-msg {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #718096;
+  font-style: italic;
+}
+
+.dual-values {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.dual-values > div {
+  flex: 1;
+  text-align: center;
+}
+
+.layer-tag {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.layer-tag.batch {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.layer-tag.speed {
+  background: #fbb6ce;
+  color: #97266d;
+}
+
+.dual-values .value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.drift-warning {
+  margin-top: 12px;
+  padding: 10px;
+  background: #fed7d7;
+  color: #9b2c2c;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.drift {
+  border-color: #fc8181;
+}
+
+.consistency {
+  margin-top: 10px;
+  color: #38a169;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.version {
+  font-size: 1.5rem;
+  color: #3182ce;
+  font-weight: 700;
+  text-align: center;
+}
+
+.replay-badge {
+  display: inline-block;
+  margin-left: 10px;
+  background: #fbd38d;
+  color: #7c2d12;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.replay-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: transform 0.2s;
+}
+
+.replay-btn:hover {
+  transform: scale(1.02);
+}
+
+.replay-status {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 15px;
+  text-align: center;
+}
+.replay-status.success {
+  background: #c6f6d5;
+  color: #22543d;
+}
+.replay-status.error {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.breakdown-item span:first-child {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.breakdown-item span:last-child {
+  color: #2d3748;
+  font-weight: 700;
+}
+
+.insights {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.insight-card h3 {
+  color: #2d3748;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.insight-card p {
+  color: #4a5568;
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+.insight-card strong {
+  color: #3182ce;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .architectures {
+    grid-template-columns: 1fr;
+  }
+}

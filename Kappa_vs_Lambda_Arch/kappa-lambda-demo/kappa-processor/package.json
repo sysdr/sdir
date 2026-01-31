@@ -1,0 +1,9 @@
+{
+  "name": "kappa-processor",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "express": "^4.18.2"
+  }
+}
