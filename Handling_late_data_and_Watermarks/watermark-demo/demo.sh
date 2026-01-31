@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "============================================"
+echo "Watermarks & Late Data Demo"
+echo "============================================"
+echo ""
+echo "The demo is now running!"
+echo ""
+echo "🌐 Dashboard: http://localhost:3002"
+echo ""
+echo "What you'll see:"
+echo "  • Events streaming in real-time (15% arrive late)"
+echo "  • Watermark advancing 20 seconds behind latest event"
+echo "  • Windows triggering when watermark passes"
+echo "  • Late events updating already-triggered windows"
+echo "  • Very late events being dropped (>30s lateness)"
+echo ""
+echo "Experiment:"
+echo "  • Watch window computations trigger as watermark advances"
+echo "  • See late events cause result updates (shown in yellow)"
+echo "  • Observe dropped events that exceed allowed lateness"
+echo ""
+echo "Press Ctrl+C to stop watching logs"
+echo ""
+
+docker-compose -f docker-compose.yml logs -f

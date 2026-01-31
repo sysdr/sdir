@@ -1,0 +1,43 @@
+services:
+  producer:
+    build: ./producer
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - watermark-net
+
+  processor:
+    build: ./processor
+    ports:
+      - "3001:3001"
+    depends_on:
+      producer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - watermark-net
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3002:80"
+    depends_on:
+      - producer
+      - processor
+    networks:
+      - watermark-net
+
+networks:
+  watermark-net:
+    driver: bridge
