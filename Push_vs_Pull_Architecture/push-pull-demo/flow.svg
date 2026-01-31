@@ -1,0 +1,131 @@
+<svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1000" height="700" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="500" y="40" font-size="28" font-weight="bold" text-anchor="middle" fill="#1e40af">
+    Data Flow Patterns Over Time
+  </text>
+  
+  <!-- Timeline -->
+  <line x1="100" y1="350" x2="900" y2="350" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,5"/>
+  <text x="50" y="355" font-size="14" fill="#64748b">Time →</text>
+  
+  <!-- Push Flow (Top) -->
+  <g transform="translate(0, 80)">
+    <text x="100" y="20" font-size="20" font-weight="bold" fill="#2563eb">Push: Event-Driven Flow</text>
+    
+    <!-- Event 1 -->
+    <g transform="translate(150, 80)">
+      <circle cx="0" cy="0" r="8" fill="#ef4444" filter="url(#shadow)"/>
+      <text x="0" y="-20" font-size="12" text-anchor="middle" fill="#dc2626">Event</text>
+      <path d="M 0 0 L 0 185" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="15" y="95" font-size="11" fill="#60a5fa">Instant</text>
+    </g>
+    
+    <!-- Event 2 -->
+    <g transform="translate(350, 80)">
+      <circle cx="0" cy="0" r="8" fill="#ef4444" filter="url(#shadow)"/>
+      <path d="M 0 0 L 0 185" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="15" y="95" font-size="11" fill="#60a5fa">Push</text>
+    </g>
+    
+    <!-- Event 3 -->
+    <g transform="translate(550, 80)">
+      <circle cx="0" cy="0" r="8" fill="#ef4444" filter="url(#shadow)"/>
+      <path d="M 0 0 L 0 185" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+    </g>
+    
+    <!-- Event 4 -->
+    <g transform="translate(750, 80)">
+      <circle cx="0" cy="0" r="8" fill="#ef4444" filter="url(#shadow)"/>
+      <path d="M 0 0 L 0 185" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+    </g>
+    
+    <!-- Consumer -->
+    <g transform="translate(450, 270)">
+      <rect x="-100" y="0" width="200" height="60" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="35" font-size="14" text-anchor="middle" fill="#1e40af">Consumer</text>
+    </g>
+    
+    <text x="100" y="360" font-size="13" fill="#64748b" font-style="italic">Latency: ~0ms • No wasted requests</text>
+  </g>
+  
+  <!-- Pull Flow (Bottom) -->
+  <g transform="translate(0, 400)">
+    <text x="100" y="20" font-size="20" font-weight="bold" fill="#2563eb">Pull: Polling-Based Flow</text>
+    
+    <!-- Events (same timing) -->
+    <circle cx="150" cy="80" r="8" fill="#ef4444" filter="url(#shadow)"/>
+    <circle cx="350" cy="80" r="8" fill="#ef4444" filter="url(#shadow)"/>
+    <circle cx="550" cy="80" r="8" fill="#ef4444" filter="url(#shadow)"/>
+    <circle cx="750" cy="80" r="8" fill="#ef4444" filter="url(#shadow)"/>
+    
+    <!-- Polling requests -->
+    <g transform="translate(200, 185)">
+      <path d="M 0 0 L 0 -100" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+      <path d="M 10 -100 L 10 0" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="25" y="-50" font-size="11" fill="#60a5fa">Poll 1</text>
+      <text x="25" y="-35" font-size="11" fill="#64748b">(empty)</text>
+    </g>
+    
+    <g transform="translate(400, 185)">
+      <path d="M 0 0 L 0 -100" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+      <path d="M 10 -100 L 10 0" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="25" y="-50" font-size="11" fill="#60a5fa">Poll 2</text>
+      <text x="25" y="-35" font-size="11" fill="#10b981">(2 events)</text>
+    </g>
+    
+    <g transform="translate(600, 185)">
+      <path d="M 0 0 L 0 -100" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+      <path d="M 10 -100 L 10 0" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="25" y="-50" font-size="11" fill="#60a5fa">Poll 3</text>
+      <text x="25" y="-35" font-size="11" fill="#10b981">(1 event)</text>
+    </g>
+    
+    <g transform="translate(800, 185)">
+      <path d="M 0 0 L 0 -100" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+      <path d="M 10 -100 L 10 0" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+      <text x="25" y="-50" font-size="11" fill="#60a5fa">Poll 4</text>
+      <text x="25" y="-35" font-size="11" fill="#10b981">(1 event)</text>
+    </g>
+    
+    <!-- Consumer -->
+    <g transform="translate(450, 185)">
+      <rect x="-100" y="0" width="200" height="60" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="0" y="35" font-size="14" text-anchor="middle" fill="#1e40af">Consumer</text>
+    </g>
+    
+    <text x="100" y="275" font-size="13" fill="#64748b" font-style="italic">Latency: up to poll interval • Includes empty polls</text>
+  </g>
+  
+  <!-- Metrics Comparison -->
+  <g transform="translate(100, 620)">
+    <rect x="0" y="0" width="800" height="60" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+    <text x="20" y="25" font-size="14" font-weight="bold" fill="#1e40af">Push:</text>
+    <text x="80" y="25" font-size="13" fill="#059669">4 messages sent</text>
+    <text x="210" y="25" font-size="13" fill="#059669">0 wasted bandwidth</text>
+    <text x="380" y="25" font-size="13" fill="#059669">100% efficient</text>
+    
+    <text x="20" y="48" font-size="14" font-weight="bold" fill="#1e40af">Pull:</text>
+    <text x="80" y="48" font-size="13" fill="#dc2626">8 messages (4 req + 4 res)</text>
+    <text x="280" y="48" font-size="13" fill="#dc2626">1 empty poll</text>
+    <text x="400" y="48" font-size="13" fill="#dc2626">75% efficient</text>
+  </g>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowlight" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#60a5fa"/>
+    </marker>
+  </defs>
+</svg>

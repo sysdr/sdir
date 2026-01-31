@@ -1,0 +1,125 @@
+<svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1000" height="600" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="500" y="40" font-size="28" font-weight="bold" text-anchor="middle" fill="#1e40af">
+    Push vs Pull Architectures
+  </text>
+  
+  <!-- Push Architecture (Top Half) -->
+  <g transform="translate(0, 80)">
+    <!-- Label -->
+    <text x="100" y="20" font-size="20" font-weight="bold" fill="#2563eb">PUSH Architecture</text>
+    
+    <!-- Data Source -->
+    <g transform="translate(80, 60)">
+      <rect x="0" y="0" width="140" height="80" rx="15" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="70" y="35" font-size="16" text-anchor="middle" fill="#1e40af">Data Source</text>
+      <text x="70" y="55" font-size="13" text-anchor="middle" fill="#60a5fa">(Sensors)</text>
+    </g>
+    
+    <!-- Push Server -->
+    <g transform="translate(280, 60)">
+      <rect x="0" y="0" width="140" height="80" rx="15" fill="#bfdbfe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="70" y="35" font-size="16" text-anchor="middle" fill="#1e40af">Push Server</text>
+      <text x="70" y="55" font-size="13" text-anchor="middle" fill="#60a5fa">(WebSocket)</text>
+    </g>
+    
+    <!-- Clients -->
+    <g transform="translate(480, 40)">
+      <rect x="0" y="0" width="100" height="60" rx="12" fill="#93c5fd" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="50" y="35" font-size="14" text-anchor="middle" fill="#1e3a8a">Client 1</text>
+    </g>
+    <g transform="translate(480, 110)">
+      <rect x="0" y="0" width="100" height="60" rx="12" fill="#93c5fd" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="50" y="35" font-size="14" text-anchor="middle" fill="#1e3a8a">Client 2</text>
+    </g>
+    
+    <!-- Arrows -->
+    <path d="M 220 100 L 280 100" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+    <path d="M 420 90 L 480 70" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+    <path d="M 420 110 L 480 140" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrowblue)"/>
+    
+    <!-- Label -->
+    <text x="240" y="130" font-size="12" fill="#60a5fa">Instant push</text>
+    <text x="430" y="60" font-size="12" fill="#60a5fa">Live stream</text>
+  </g>
+  
+  <!-- Pull Architecture (Bottom Half) -->
+  <g transform="translate(0, 340)">
+    <!-- Label -->
+    <text x="100" y="20" font-size="20" font-weight="bold" fill="#2563eb">PULL Architecture</text>
+    
+    <!-- Data Source -->
+    <g transform="translate(80, 60)">
+      <rect x="0" y="0" width="140" height="80" rx="15" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="70" y="35" font-size="16" text-anchor="middle" fill="#1e40af">Data Source</text>
+      <text x="70" y="55" font-size="13" text-anchor="middle" fill="#60a5fa">(Sensors)</text>
+    </g>
+    
+    <!-- Pull Server -->
+    <g transform="translate(280, 60)">
+      <rect x="0" y="0" width="140" height="80" rx="15" fill="#bfdbfe" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="70" y="35" font-size="16" text-anchor="middle" fill="#1e40af">Pull Server</text>
+      <text x="70" y="55" font-size="13" text-anchor="middle" fill="#60a5fa">(REST API)</text>
+    </g>
+    
+    <!-- Clients -->
+    <g transform="translate(480, 40)">
+      <rect x="0" y="0" width="100" height="60" rx="12" fill="#93c5fd" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="50" y="35" font-size="14" text-anchor="middle" fill="#1e3a8a">Client 1</text>
+    </g>
+    <g transform="translate(480, 110)">
+      <rect x="0" y="0" width="100" height="60" rx="12" fill="#93c5fd" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+      <text x="50" y="35" font-size="14" text-anchor="middle" fill="#1e3a8a">Client 2</text>
+    </g>
+    
+    <!-- Bidirectional arrows (polling) -->
+    <path d="M 220 95 L 280 95" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+    <path d="M 280 105 L 220 105" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+    
+    <path d="M 420 90 L 460 70" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+    <path d="M 480 75 L 420 95" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+    
+    <path d="M 420 110 L 460 140" stroke="#60a5fa" stroke-width="2" fill="none" marker-end="url(#arrowlight)" stroke-dasharray="4,4"/>
+    <path d="M 480 135 L 420 115" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#arrowblue)"/>
+    
+    <!-- Label -->
+    <text x="240" y="130" font-size="12" fill="#60a5fa">Periodic polls</text>
+    <text x="430" y="55" font-size="12" fill="#60a5fa">Request/Response</text>
+  </g>
+  
+  <!-- Comparison Box -->
+  <g transform="translate(650, 150)">
+    <rect x="0" y="0" width="320" height="280" rx="15" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+    <text x="160" y="30" font-size="18" font-weight="bold" text-anchor="middle" fill="#1e40af">Trade-offs</text>
+    
+    <text x="20" y="65" font-size="14" font-weight="bold" fill="#2563eb">Push Benefits:</text>
+    <text x="25" y="85" font-size="12" fill="#1e40af">• Instant delivery</text>
+    <text x="25" y="105" font-size="12" fill="#1e40af">• Low latency</text>
+    <text x="25" y="125" font-size="12" fill="#1e40af">• Efficient bandwidth</text>
+    
+    <text x="20" y="160" font-size="14" font-weight="bold" fill="#2563eb">Pull Benefits:</text>
+    <text x="25" y="180" font-size="12" fill="#1e40af">• Client-controlled rate</text>
+    <text x="25" y="200" font-size="12" fill="#1e40af">• Simple debugging</text>
+    <text x="25" y="220" font-size="12" fill="#1e40af">• Stateless servers</text>
+    <text x="25" y="240" font-size="12" fill="#1e40af">• Graceful degradation</text>
+  </g>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowlight" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#60a5fa"/>
+    </marker>
+  </defs>
+</svg>

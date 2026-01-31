@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push vs Pull Architecture Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background-color: #FAD4D4;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .panel h2 {
+      color: #2563eb;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      border-bottom: 3px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    
+    .stat-box {
+      background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-label {
+      color: #1e40af;
+      font-size: 0.9em;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      color: #2563eb;
+      font-size: 1.8em;
+      font-weight: bold;
+    }
+    
+    .data-stream {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 15px;
+      height: 300px;
+      overflow-y: auto;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .data-item {
+      background: white;
+      border-left: 4px solid #3b82f6;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .timestamp {
+      color: #64748b;
+      font-size: 0.85em;
+    }
+    
+    .value {
+      color: #0ea5e9;
+      font-weight: bold;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+    
+    .status.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status.polling {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .comparison {
+      grid-column: 1 / -1;
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    .metric-row {
+      display: grid;
+      grid-template-columns: 200px 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+    
+    .metric-name {
+      color: #1e40af;
+      font-weight: 600;
+    }
+    
+    .metric-bar {
+      background: #e0f2fe;
+      border-radius: 8px;
+      height: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .metric-fill {
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Push vs Pull Architecture Comparison</h1>
+    
+    <div class="grid">
+      <!-- Push Panel -->
+      <div class="panel">
+        <h2>⚡ PUSH Architecture (WebSocket)</h2>
+        <div class="stat-box">
+          <div class="stat-label">Status</div>
+          <span class="status connected" id="push-status">Connected</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Messages Received</div>
+          <div class="stat-value" id="push-messages">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Average Latency</div>
+          <div class="stat-value" id="push-latency">~50ms</div>
+        </div>
+        <h3 style="color: #2563eb; margin: 20px 0 10px;">Live Data Stream</h3>
+        <div class="data-stream" id="push-stream"></div>
+      </div>
+      
+      <!-- Pull Panel -->
+      <div class="panel">
+        <h2>🔃 PULL Architecture (Polling)</h2>
+        <div class="stat-box">
+          <div class="stat-label">Status</div>
+          <span class="status polling" id="pull-status">Polling</span>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Requests</div>
+          <div class="stat-value" id="pull-requests">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Empty Polls</div>
+          <div class="stat-value" id="pull-empty">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Efficiency</div>
+          <div class="stat-value" id="pull-efficiency">100%</div>
+        </div>
+        <h3 style="color: #2563eb; margin: 20px 0 10px;">Polled Data</h3>
+        <div class="data-stream" id="pull-stream"></div>
+      </div>
+    </div>
+    
+    <!-- Comparison Panel -->
+    <div class="comparison">
+      <h2>📊 Performance Comparison</h2>
+      <div class="metric-row">
+        <div class="metric-name">Messages Delivered</div>
+        <div class="metric-bar">
+          <div class="metric-fill" id="push-msg-bar" style="width: 0%">0</div>
+        </div>
+        <div class="metric-bar">
+          <div class="metric-fill" id="pull-msg-bar" style="width: 0%">0</div>
+        </div>
+      </div>
+      <div class="metric-row">
+        <div class="metric-name">Network Efficiency</div>
+        <div class="metric-bar">
+          <div class="metric-fill" id="push-eff-bar" style="width: 100%">100%</div>
+        </div>
+        <div class="metric-bar">
+          <div class="metric-fill" id="pull-eff-bar" style="width: 100%">100%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Push WebSocket Connection
+    let pushMessages = 0;
+    let pullMessages = 0;
+    let pullRequests = 0;
+    let pullEmpty = 0;
+    let lastPullId = 0;
+    
+    const ws = new WebSocket('ws://localhost:3002');
+    const pushStream = document.getElementById('push-stream');
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      document.getElementById('push-status').textContent = 'Connected';
+      document.getElementById('push-status').className = 'status connected';
+    };
+    ws.onclose = () => {
+      document.getElementById('push-status').textContent = 'Disconnected';
+      document.getElementById('push-status').className = 'status polling';
+    };
+    ws.onerror = () => {
+      document.getElementById('push-status').textContent = 'Error';
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      pushMessages++;
+      
+      const item = document.createElement('div');
+      item.className = 'data-item';
+      item.innerHTML = `
+        <div><strong>${data.sensor}</strong>: <span class="value">${data.value}</span></div>
+        <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+      `;
+      pushStream.insertBefore(item, pushStream.firstChild);
+      
+      // Keep only last 20 items
+      while (pushStream.children.length > 20) {
+        pushStream.removeChild(pushStream.lastChild);
+      }
+      
+      document.getElementById('push-messages').textContent = pushMessages;
+      updateComparison();
+    };
+    
+    // Pull Polling
+    const pullStream = document.getElementById('pull-stream');
+    
+    async function pollData() {
+      try {
+        pullRequests++;
+        const response = await fetch(`http://localhost:3003/poll?since=${lastPullId}`);
+        const result = await response.json();
+        
+        if (result.data.length === 0) {
+          pullEmpty++;
+        } else {
+          lastPullId = result.latest;
+          result.data.forEach(data => {
+            pullMessages++;
+            
+            const item = document.createElement('div');
+            item.className = 'data-item';
+            item.innerHTML = `
+              <div><strong>${data.sensor}</strong>: <span class="value">${data.value}</span></div>
+              <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+            `;
+            pullStream.insertBefore(item, pullStream.firstChild);
+          });
+          
+          while (pullStream.children.length > 20) {
+            pullStream.removeChild(pullStream.lastChild);
+          }
+        }
+        
+        document.getElementById('pull-requests').textContent = pullRequests;
+        document.getElementById('pull-empty').textContent = pullEmpty;
+        const efficiency = pullRequests > 0 ? ((pullRequests - pullEmpty) / pullRequests * 100).toFixed(1) : 100;
+        document.getElementById('pull-efficiency').textContent = efficiency + '%';
+        
+        updateComparison();
+      } catch (error) {
+        console.error('Poll error:', error);
+      }
+    }
+    
+    setInterval(pollData, 1000); // Poll every 1 second
+    pollData(); // Initial poll so metrics update immediately
+    
+    function updateComparison() {
+      const maxMsg = Math.max(pushMessages, pullMessages, 1);
+      document.getElementById('push-msg-bar').style.width = (pushMessages / maxMsg * 100) + '%';
+      document.getElementById('push-msg-bar').textContent = pushMessages;
+      document.getElementById('pull-msg-bar').style.width = (pullMessages / maxMsg * 100) + '%';
+      document.getElementById('pull-msg-bar').textContent = pullMessages;
+      
+      const pullEff = pullRequests > 0 ? ((pullRequests - pullEmpty) / pullRequests * 100) : 100;
+      document.getElementById('pull-eff-bar').style.width = pullEff + '%';
+      document.getElementById('pull-eff-bar').textContent = pullEff.toFixed(1) + '%';
+    }
+  </script>
+</body>
+</html>

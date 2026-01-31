@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  data-generator:
+    build: ./data-generator
+    container_name: data-generator
+    ports:
+      - "3001:3001"
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  push-service:
+    build: ./push-service
+    container_name: push-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - data-generator
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  pull-service:
+    build: ./pull-service
+    container_name: pull-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - data-generator
+    networks:
+      - demo-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    ports:
+      - "8080:80"
+    depends_on:
+      - push-service
+      - pull-service
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    driver: bridge
