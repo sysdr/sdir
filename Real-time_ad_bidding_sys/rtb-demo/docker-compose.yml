@@ -1,0 +1,71 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  exchange:
+    build: ./exchange
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./shared:/app/shared:ro
+    environment:
+      - NODE_ENV=production
+
+  bidder-cached:
+    build: ./bidder
+    ports:
+      - "3003:3003"
+    depends_on:
+      - redis
+    volumes:
+      - ./shared:/app/shared:ro
+    environment:
+      - PORT=3003
+      - STRATEGY=cached
+      - BIDDER_NAME=FastBidder
+
+  bidder-ml:
+    build: ./bidder
+    ports:
+      - "3004:3004"
+    depends_on:
+      - redis
+    volumes:
+      - ./shared:/app/shared:ro
+    environment:
+      - PORT=3004
+      - STRATEGY=ml
+      - BIDDER_NAME=SmartBidder
+
+  bidder-aggressive:
+    build: ./bidder
+    ports:
+      - "3005:3005"
+    depends_on:
+      - redis
+    volumes:
+      - ./shared:/app/shared:ro
+    environment:
+      - PORT=3005
+      - STRATEGY=aggressive
+      - BIDDER_NAME=AggressiveBidder
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - exchange
+    environment:
+      - NODE_ENV=production

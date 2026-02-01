@@ -1,0 +1,14 @@
+{
+  "name": "rtb-exchange",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5"
+  }
+}

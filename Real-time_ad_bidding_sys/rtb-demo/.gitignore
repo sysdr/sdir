@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Istio / k8s generated
+istio/
+*.istio.yaml
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+tmp/
+temp/
+.cache/
+
+# Docker
+.docker/
+
+# Secrets (no API keys or secrets in repo)
+*.pem
+*.key
+secrets/
+.secret

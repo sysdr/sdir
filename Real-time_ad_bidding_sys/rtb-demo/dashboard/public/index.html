@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RTB System Monitor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%) !important;
+      color: #1a202c;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-label {
+      color: #718096;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      color: #2d3748;
+      font-size: 36px;
+      font-weight: bold;
+    }
+
+    .stat-unit {
+      color: #a0aec0;
+      font-size: 18px;
+      font-weight: normal;
+    }
+
+    .auctions-container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      color: #2d3748;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #4299e1;
+      padding-bottom: 10px;
+    }
+
+    .auction-item {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 4px solid #4299e1;
+    }
+
+    .auction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .auction-id {
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .latency-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .latency-good {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .latency-warn {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+
+    .latency-bad {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .bids-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .bid-card {
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .bid-card.winner {
+      border: 2px solid #48bb78;
+      background: #f0fff4;
+    }
+
+    .bid-card.timeout {
+      opacity: 0.5;
+      border: 2px solid #fc8181;
+    }
+
+    .bidder-name {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .bid-price {
+      font-size: 20px;
+      color: #48bb78;
+      font-weight: bold;
+    }
+
+    .bid-latency {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 4px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-connected {
+      background: #48bb78;
+      box-shadow: 0 0 8px #48bb78;
+    }
+
+    .status-disconnected {
+      background: #fc8181;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Real-Time Bidding System Monitor</h1>
+      <p class="subtitle">
+        <span class="status-indicator status-connected pulse"></span>
+        Live Auction Stream • Sub-100ms Latency Target
+      </p>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Auctions</div>
+        <div class="stat-value" id="totalAuctions">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P50 Latency</div>
+        <div class="stat-value">
+          <span id="p50">0</span><span class="stat-unit">ms</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P95 Latency</div>
+        <div class="stat-value">
+          <span id="p95">0</span><span class="stat-unit">ms</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P99 Latency</div>
+        <div class="stat-value">
+          <span id="p99">0</span><span class="stat-unit">ms</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="auctions-container">
+      <h2 class="section-title">🎯 Recent Auctions</h2>
+      <div id="auctionsList"></div>
+    </div>
+  </div>
+
+  <script>
+    const EXCHANGE_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://localhost:3001' : (location.protocol + '//' + location.hostname + ':3001');
+    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.hostname + ':3002';
+    const ws = new WebSocket(WS_URL);
+    const auctions = [];
+    const maxAuctions = 10;
+    let serverStats = { auctions: 0, latency: { p50: 0, p95: 0, p99: 0 } };
+
+    function updateUI() {
+      updateStats();
+      updateAuctionsList();
+    }
+
+    function updateStats() {
+      var total = serverStats.auctions;
+      var p50 = serverStats.latency.p50;
+      var p95 = serverStats.latency.p95;
+      var p99 = serverStats.latency.p99;
+      if (auctions.length > 0) {
+        const latencies = auctions.map(a => a.totalLatency).sort((a, b) => a - b);
+        p50 = latencies[Math.floor(latencies.length * 0.5)] ?? p50;
+        p95 = latencies[Math.floor(latencies.length * 0.95)] ?? p95;
+        p99 = latencies[Math.floor(latencies.length * 0.99)] ?? p99;
+        var lastId = auctions[0].auctionId;
+        if (lastId) total = parseInt(String(lastId).split('-')[1], 10) || total;
+      }
+      document.getElementById('totalAuctions').textContent = total;
+      document.getElementById('p50').textContent = Math.round(p50);
+      document.getElementById('p95').textContent = Math.round(p95);
+      document.getElementById('p99').textContent = Math.round(p99);
+    }
+
+    function fetchInitialStats() {
+      fetch(EXCHANGE_API + '/stats').then(function(r) { return r.json(); }).then(function(data) {
+        serverStats = { auctions: data.auctions || 0, latency: data.latency || { p50: 0, p95: 0, p99: 0 } };
+        updateStats();
+      }).catch(function() {});
+    }
+
+    fetchInitialStats();
+    setInterval(fetchInitialStats, 5000);
+
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      if (message.type === 'auction') {
+        auctions.unshift(message.data);
+        if (auctions.length > maxAuctions) auctions.pop();
+        updateUI();
+      }
+    };
+
+    function updateAuctionsList() {
+      const list = document.getElementById('auctionsList');
+      list.innerHTML = auctions.map(auction => `
+        <div class="auction-item">
+          <div class="auction-header">
+            <span class="auction-id">${auction.auctionId}</span>
+            <span class="latency-badge ${getLatencyClass(auction.totalLatency)}">
+              ${auction.totalLatency}ms
+            </span>
+          </div>
+          <div class="bids-grid">
+            ${auction.bids.map(bid => `
+              <div class="bid-card ${bid.bidder === auction.winner ? 'winner' : ''} ${!bid.success ? 'timeout' : ''}">
+                <div class="bidder-name">
+                  ${bid.success && bid.bidder === auction.winner ? '🏆 ' : ''}
+                  ${bid.bidder}
+                </div>
+                <div class="bid-price">
+                  ${bid.success ? '$' + bid.price.toFixed(2) : 'timeout'}
+                </div>
+                <div class="bid-latency">${bid.latency}ms</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getLatencyClass(latency) {
+      if (latency <= 80) return 'latency-good';
+      if (latency <= 100) return 'latency-warn';
+      return 'latency-bad';
+    }
+
+    // Initial connection
+    ws.onopen = () => {
+      console.log('Connected to RTB exchange');
+      document.querySelector('.status-indicator').className = 'status-indicator status-connected pulse';
+    };
+
+    ws.onerror = () => {
+      document.querySelector('.status-indicator').className = 'status-indicator status-disconnected';
+    };
+  </script>
+</body>
+</html>
