@@ -1,0 +1,12 @@
+services:
+  demo:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
