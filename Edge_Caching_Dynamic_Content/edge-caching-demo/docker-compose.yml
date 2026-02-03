@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  origin:
+    build: .
+    container_name: edge-origin
+    working_dir: /app/origin
+    environment:
+      - NODE_ENV=production
+    networks:
+      - edge-network
+
+  edge-us-west:
+    build: .
+    container_name: edge-us-west
+    working_dir: /app/edge
+    environment:
+      - REGION=us-west
+    networks:
+      - edge-network
+    depends_on:
+      - origin
+      - redis-us-west
+
+  edge-us-east:
+    build: .
+    container_name: edge-us-east
+    working_dir: /app/edge
+    environment:
+      - REGION=us-east
+    networks:
+      - edge-network
+    depends_on:
+      - origin
+      - redis-us-east
+
+  edge-eu:
+    build: .
+    container_name: edge-eu
+    working_dir: /app/edge
+    environment:
+      - REGION=eu
+    networks:
+      - edge-network
+    depends_on:
+      - origin
+      - redis-eu
+
+  redis-us-west:
+    image: redis:7-alpine
+    container_name: redis-us-west
+    networks:
+      - edge-network
+
+  redis-us-east:
+    image: redis:7-alpine
+    container_name: redis-us-east
+    networks:
+      - edge-network
+
+  redis-eu:
+    image: redis:7-alpine
+    container_name: redis-eu
+    networks:
+      - edge-network
+
+  dashboard:
+    build: .
+    container_name: edge-dashboard
+    working_dir: /app/dashboard
+    ports:
+      - "3000:3000"
+    networks:
+      - edge-network
+
+  load-generator:
+    build: .
+    container_name: edge-load-generator
+    working_dir: /app/load-generator
+    command: ["node", "generator.js"]
+    networks:
+      - edge-network
+    depends_on:
+      - edge-us-west
+      - edge-us-east
+      - edge-eu
+      - dashboard
+
+networks:
+  edge-network:
+    driver: bridge

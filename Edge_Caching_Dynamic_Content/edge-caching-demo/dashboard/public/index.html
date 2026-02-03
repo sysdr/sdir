@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge Caching Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #334155 100%);
+      padding: 20px;
+      color: #1a202c;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      color: #2d3748;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #718096;
+      font-size: 16px;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .region-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .region-us-west { background: #bee3f8; color: #2c5282; }
+    .region-us-east { background: #c6f6d5; color: #276749; }
+    .region-eu { background: #fed7d7; color: #9b2c2c; }
+    
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-label {
+      color: #718096;
+      font-size: 14px;
+    }
+    
+    .metric-value {
+      font-weight: 600;
+      font-size: 16px;
+      color: #2d3748;
+    }
+    
+    .metric-value.good { color: #38a169; }
+    .metric-value.warning { color: #d69e2e; }
+    .metric-value.bad { color: #e53e3e; }
+    
+    .chart {
+      height: 200px;
+      position: relative;
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 15px;
+    }
+    
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      height: 100%;
+      gap: 10px;
+    }
+    
+    .bar {
+      flex: 1;
+      background: linear-gradient(180deg, #4299e1 0%, #3182ce 100%);
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      min-height: 5px;
+      transition: height 0.3s ease;
+    }
+    
+    .bar-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #718096;
+      white-space: nowrap;
+    }
+    
+    .bar-value {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    
+    .event-log {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    
+    .event-item {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: white;
+      border-radius: 6px;
+      font-size: 13px;
+      border-left: 3px solid #4299e1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .event-time {
+      color: #718096;
+      font-size: 11px;
+    }
+    
+    .cache-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    
+    .cache-fresh { background: #c6f6d5; color: #276749; }
+    .cache-stale { background: #feebc8; color: #7c2d12; }
+    .cache-miss { background: #fed7d7; color: #9b2c2c; }
+    
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4299e1 0%, #3182ce 100%);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌍 Edge Caching Dynamic Content</h1>
+      <p class="subtitle">Real-time monitoring of global edge nodes with fragment caching and stale-while-revalidate</p>
+    </div>
+    
+    <div class="grid">
+      <div class="card">
+        <h2><span class="region-badge region-us-west">US West</span> Edge Node</h2>
+        <div id="metrics-us-west"></div>
+        <div class="chart">
+          <div id="chart-us-west" class="bar-chart"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2><span class="region-badge region-us-east">US East</span> Edge Node</h2>
+        <div id="metrics-us-east"></div>
+        <div class="chart">
+          <div id="chart-us-east" class="bar-chart"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2><span class="region-badge region-eu">EU</span> Edge Node</h2>
+        <div id="metrics-eu"></div>
+        <div class="chart">
+          <div id="chart-eu" class="bar-chart"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>📊 Global Performance</h2>
+      <div id="global-metrics"></div>
+    </div>
+    
+    <div class="card">
+      <h2>📜 Recent Requests</h2>
+      <div id="event-log" class="event-log"></div>
+    </div>
+  </div>
+  
+  <script>
+    const ws = new WebSocket(`ws://${window.location.host}`);
+    const events = [];
+    const MAX_EVENTS = 50;
+    
+    const formatMetric = (label, value, unit = '', good = null) => {
+      let className = '';
+      if (good !== null) {
+        className = value >= good ? 'good' : value >= good * 0.7 ? 'warning' : 'bad';
+      }
+      return `
+        <div class="metric-row">
+          <span class="metric-label">${label}</span>
+          <span class="metric-value ${className}">${value}${unit}</span>
+        </div>
+      `;
+    };
+    
+    const updateMetrics = (region, data) => {
+      const container = document.getElementById(`metrics-${region}`);
+      if (!container || data.error) return;
+      
+      container.innerHTML = `
+        ${formatMetric('Cache Hit Rate', data.hitRate?.toFixed(1) || '0', '%', 80)}
+        ${formatMetric('Total Requests', data.totalRequests?.toLocaleString() || '0')}
+        ${formatMetric('Cache Hits', data.cacheHits?.toLocaleString() || '0')}
+        ${formatMetric('Stale Served', data.staleServed?.toLocaleString() || '0')}
+        ${formatMetric('Cache Misses', data.cacheMisses?.toLocaleString() || '0')}
+        ${formatMetric('Avg Latency', data.avgLatency?.toFixed(0) || '0', 'ms')}
+      `;
+      
+      // Update chart
+      const chartContainer = document.getElementById(`chart-${region}`);
+      if (chartContainer) {
+        const maxVal = Math.max(data.cacheHits || 0, data.cacheMisses || 0, data.staleServed || 0);
+        chartContainer.innerHTML = `
+          <div class="bar" style="height: ${(data.cacheHits || 0) / maxVal * 100}%">
+            <div class="bar-value">${data.cacheHits || 0}</div>
+            <div class="bar-label">Hits</div>
+          </div>
+          <div class="bar" style="height: ${(data.staleServed || 0) / maxVal * 100}%">
+            <div class="bar-value">${data.staleServed || 0}</div>
+            <div class="bar-label">Stale</div>
+          </div>
+          <div class="bar" style="height: ${(data.cacheMisses || 0) / maxVal * 100}%">
+            <div class="bar-value">${data.cacheMisses || 0}</div>
+            <div class="bar-label">Misses</div>
+          </div>
+        `;
+      }
+    };
+    
+    const updateGlobalMetrics = (allMetrics) => {
+      const container = document.getElementById('global-metrics');
+      if (!container) return;
+      
+      let totalRequests = 0;
+      let totalHits = 0;
+      let totalStale = 0;
+      let avgHitRate = 0;
+      let count = 0;
+      
+      Object.entries(allMetrics).forEach(([region, data]) => {
+        if (region !== 'origin' && !data.error) {
+          totalRequests += data.totalRequests || 0;
+          totalHits += data.cacheHits || 0;
+          totalStale += data.staleServed || 0;
+          avgHitRate += data.hitRate || 0;
+          count++;
+        }
+      });
+      
+      avgHitRate = count > 0 ? avgHitRate / count : 0;
+      const originRequests = allMetrics.origin?.requests || 0;
+      const offloadRate = totalRequests > 0 ? ((totalRequests - originRequests) / totalRequests * 100) : 0;
+      
+      container.innerHTML = `
+        ${formatMetric('Global Requests', totalRequests.toLocaleString())}
+        ${formatMetric('Origin Requests', originRequests.toLocaleString())}
+        ${formatMetric('Offload Rate', offloadRate.toFixed(1), '%', 80)}
+        ${formatMetric('Avg Hit Rate', avgHitRate.toFixed(1), '%', 80)}
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${avgHitRate}%"></div>
+        </div>
+      `;
+    };
+    
+    const addEvent = (event) => {
+      events.unshift(event);
+      if (events.length > MAX_EVENTS) events.pop();
+      
+      const container = document.getElementById('event-log');
+      if (!container) return;
+      
+      const getCacheClass = (status) => {
+        if (status?.includes('fresh')) return 'cache-fresh';
+        if (status?.includes('stale')) return 'cache-stale';
+        return 'cache-miss';
+      };
+      
+      container.innerHTML = events.map(e => `
+        <div class="event-item">
+          <span class="event-time">${new Date(e.timestamp).toLocaleTimeString()}</span>
+          <span class="region-badge region-${e.region}">${e.region}</span>
+          ${e.endpoint}
+          <span class="cache-status ${getCacheClass(e.cacheStatus)}">${e.cacheStatus || 'unknown'}</span>
+          <span style="color: #718096; margin-left: 10px;">${e.latency}ms</span>
+        </div>
+      `).join('');
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'metrics') {
+        Object.entries(data.data).forEach(([region, metrics]) => {
+          if (region !== 'origin') {
+            updateMetrics(region, metrics);
+          }
+        });
+        updateGlobalMetrics(data.data);
+      } else if (data.type === 'request') {
+        addEvent(data);
+      }
+    };
+  </script>
+</body>
+</html>

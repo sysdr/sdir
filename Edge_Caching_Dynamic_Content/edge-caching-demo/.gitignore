@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+__pycache__/
+
+# Build/cache
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+.next/
+.cache/
+.parcel-cache/
+.vite/
+
+# Docker
+.docker/
+
+# Istio
+*istio*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.log.*
+
+# Env files (may contain secrets)
+.env
+.env.local
+.env.*.local
