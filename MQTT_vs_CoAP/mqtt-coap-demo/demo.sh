@@ -1,0 +1,26 @@
+#!/bin/bash
+
+echo "=================================================="
+echo "MQTT vs CoAP IoT Protocol Comparison Demo"
+echo "=================================================="
+echo ""
+echo "This demo compares MQTT and CoAP protocols side-by-side"
+echo ""
+echo "Dashboard: http://localhost:3000"
+echo ""
+echo "What you'll see:"
+echo "  • MQTT: Publish-subscribe pattern with persistent connections"
+echo "  • CoAP: Request-response pattern with UDP transport"
+echo "  • Real-time metrics showing bandwidth and message counts"
+echo "  • Live message streams from simulated IoT devices"
+echo ""
+echo "Key Observations:"
+echo "  1. MQTT maintains persistent connections (watch subscription count)"
+echo "  2. CoAP uses stateless requests (each request is independent)"
+echo "  3. Compare bytes sent/received to see efficiency differences"
+echo "  4. Notice message delivery patterns in real-time"
+echo ""
+echo "Press Ctrl+C to stop watching logs"
+echo ""
+
+docker-compose -f docker-compose.yml logs -f

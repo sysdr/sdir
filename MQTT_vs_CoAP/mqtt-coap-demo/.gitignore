@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+.env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Istio
+*istio*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment / Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# Docker
+.docker/
+
+# Build artifacts
+*.tar
+*.gz

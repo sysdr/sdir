@@ -1,0 +1,38 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-logs:/mosquitto/log
+      - ./mosquitto-config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  mqtt-service:
+    build: ./mqtt-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mosquitto
+    environment:
+      - NODE_ENV=production
+
+  coap-service:
+    build: ./coap-service
+    ports:
+      - "3002:3002"
+      - "5683:5683/udp"
+    environment:
+      - NODE_ENV=production
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mqtt-service
+      - coap-service
+
+volumes:
+  mosquitto-data:
+  mosquitto-logs:
