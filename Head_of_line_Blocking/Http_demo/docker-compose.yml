@@ -1,0 +1,32 @@
+services:
+  http2-server:
+    build: ./http2-server
+    ports:
+      - "8443:8443"
+    environment:
+      - PACKET_LOSS=0.1
+    networks:
+      - demo-network
+
+  http3-server:
+    build: ./http3-server
+    ports:
+      - "8444:8444"
+    environment:
+      - PACKET_LOSS=0.1
+    networks:
+      - demo-network
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - http2-server
+      - http3-server
+    networks:
+      - demo-network
+
+networks:
+  demo-network:
+    driver: bridge

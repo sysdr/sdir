@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP/2 vs HTTP/3: Head-of-Line Blocking Demo</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [http2Stats, setHttp2Stats] = useState(null);
+      const [http3Stats, setHttp3Stats] = useState(null);
+      const [packetLoss, setPacketLoss] = useState(10);
+      const [isRunning, setIsRunning] = useState(false);
+      const [http2Streams, setHttp2Streams] = useState([]);
+      const [http3Streams, setHttp3Streams] = useState([]);
+
+      useEffect(() => {
+        const fetchStats = async () => {
+          try {
+            const [res2, res3] = await Promise.all([
+              fetch('/api/http2/stats').catch(() => null),
+              fetch('/api/http3/stats').catch(() => null)
+            ]);
+            
+            if (res2) setHttp2Stats(await res2.json());
+            if (res3) setHttp3Stats(await res3.json());
+          } catch (err) {
+            console.error('Error fetching stats:', err);
+          }
+        };
+
+        const interval = setInterval(fetchStats, 300);
+        fetchStats();
+        return () => clearInterval(interval);
+      }, []);
+
+      const updatePacketLoss = async (value) => {
+        setPacketLoss(value);
+        try {
+          await Promise.all([
+            fetch('/api/http2/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ packetLoss: value / 100 })
+            }),
+            fetch('/api/http3/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ packetLoss: value / 100 })
+            })
+          ]);
+        } catch (err) {
+          console.error('Error updating config:', err);
+        }
+      };
+
+      const startDemo = async () => {
+        setIsRunning(true);
+        const streamCount = 20;
+        
+        // Simulate parallel requests
+        for (let i = 0; i < streamCount; i++) {
+          setTimeout(() => {
+            // HTTP/2 request
+            fetch('/api/http2/chunk/' + i)
+              .then(res => res.json())
+              .then(data => {
+                setHttp2Streams(prev => [...prev.slice(-19), { id: i, status: 'complete', latency: data.latency }]);
+              });
+
+            // HTTP/3 request
+            fetch('/api/http3/chunk/' + i)
+              .then(res => res.json())
+              .then(data => {
+                setHttp3Streams(prev => [...prev.slice(-19), { id: i, status: 'complete', latency: data.latency }]);
+              });
+          }, i * 100);
+        }
+
+        setTimeout(() => setIsRunning(false), streamCount * 100 + 2000);
+      };
+
+      return (
+        <div className="container">
+          <div className="header">
+            <h1>🚀 HTTP/2 vs HTTP/3: Head-of-Line Blocking Demo</h1>
+            <p>Visualize how packet loss affects multiplexed streams in HTTP/2 (TCP) vs HTTP/3 (QUIC)</p>
+          </div>
+
+          <div className="controls">
+            <div className="control-row">
+              <label>Packet Loss Rate:</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="10" 
+                step="0.5"
+                value={packetLoss}
+                onChange={(e) => updatePacketLoss(parseFloat(e.target.value))}
+                className="slider"
+              />
+              <span className="value-display">{packetLoss}%</span>
+            </div>
+            <div className="control-row">
+              <button onClick={startDemo} disabled={isRunning} className="button">
+                {isRunning ? 'Running...' : 'Start Load Test'}
+              </button>
+            </div>
+          </div>
+
+          <div className="servers-grid">
+            <div className="server-card">
+              <div className="server-header">
+                <h2 className="server-title">HTTP/2 Server</h2>
+                <span className="protocol-badge http2-badge">TCP</span>
+              </div>
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <div className="stat-label">Total Requests</div>
+                  <div className="stat-value">{http2Stats?.totalRequests || 0}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Stalled Streams</div>
+                  <div className="stat-value">{http2Stats?.totalStalls ?? http2Stats?.stalledStreams ?? 0}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Avg Latency</div>
+                  <div className="stat-value">{(Math.round((http2Stats?.avgLatency ?? 0) * 10) / 10).toFixed(1)}ms</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Completed</div>
+                  <div className="stat-value">{http2Stats?.completedStreams || 0}</div>
+                </div>
+              </div>
+              <div className="streams-container">
+                {http2Streams.map((stream, idx) => (
+                  <div key={idx} className="stream">
+                    <span className="stream-id">Stream {stream.id}</span>
+                    <div className={`stream-bar stream-${stream.status}`}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="server-card">
+              <div className="server-header">
+                <h2 className="server-title">HTTP/3 Server</h2>
+                <span className="protocol-badge http3-badge">QUIC</span>
+              </div>
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <div className="stat-label">Total Requests</div>
+                  <div className="stat-value">{http3Stats?.totalRequests || 0}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Stalled Streams</div>
+                  <div className="stat-value">{http3Stats?.totalStalls ?? http3Stats?.stalledStreams ?? 0}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Avg Latency</div>
+                  <div className="stat-value">{(Math.round((http3Stats?.avgLatency ?? 0) * 10) / 10).toFixed(1)}ms</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-label">Completed</div>
+                  <div className="stat-value">{http3Stats?.completedStreams || 0}</div>
+                </div>
+              </div>
+              <div className="streams-container">
+                {http3Streams.map((stream, idx) => (
+                  <div key={idx} className="stream">
+                    <span className="stream-id">Stream {stream.id}</span>
+                    <div className={`stream-bar stream-${stream.status}`}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="comparison">
+            <h2>📊 Performance Comparison</h2>
+            <div className="comparison-grid">
+              <div className="comparison-item">
+                <div className="comparison-label">HTTP/2 Stalls Experienced</div>
+                <div className="comparison-value" style={{color: '#fc8181'}}>
+                  {http2Stats?.totalStalls ?? http2Stats?.stalledStreams ?? 0}
+                </div>
+              </div>
+              <div className="comparison-item">
+                <div className="comparison-label">HTTP/3 Stalls Experienced</div>
+                <div className="comparison-value" style={{color: '#68d391'}}>
+                  {http3Stats?.totalStalls ?? http3Stats?.stalledStreams ?? 0}
+                </div>
+              </div>
+              <div className="comparison-item">
+                <div className="comparison-label">HTTP/2 Avg Latency</div>
+                <div className="comparison-value">
+                  {(Math.round((http2Stats?.avgLatency ?? 0) * 10) / 10).toFixed(1)}ms
+                </div>
+              </div>
+              <div className="comparison-item">
+                <div className="comparison-label">HTTP/3 Avg Latency</div>
+                <div className="comparison-value">
+                  {(Math.round((http3Stats?.avgLatency ?? 0) * 10) / 10).toFixed(1)}ms
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

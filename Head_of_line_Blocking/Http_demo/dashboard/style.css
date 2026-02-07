@@ -1,0 +1,262 @@
+/* Dashboard styles - edit this file to change appearance */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #fef9c3;  /* Light yellow */
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  color: #2d3748;
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.header p {
+  color: #718096;
+  font-size: 16px;
+}
+
+.controls {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.control-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.control-row label {
+  color: #4a5568;
+  font-weight: 600;
+  min-width: 150px;
+}
+
+.slider {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+}
+
+.value-display {
+  min-width: 80px;
+  text-align: right;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.button:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.servers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.server-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.server-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.server-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.protocol-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.http2-badge {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.http3-badge {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-item {
+  background: #f7fafc;
+  padding: 15px;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.stat-label {
+  color: #718096;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  color: #2d3748;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.streams-container {
+  background: #f7fafc;
+  padding: 20px;
+  border-radius: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.stream {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stream-id {
+  min-width: 60px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.stream-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.stream-active {
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.stream-stalled {
+  background: #fc8181;
+  animation: blink 0.5s ease-in-out infinite;
+}
+
+.stream-complete {
+  background: #68d391;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.comparison {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.comparison h2 {
+  color: #2d3748;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.comparison-item {
+  padding: 20px;
+  background: #f7fafc;
+  border-radius: 12px;
+}
+
+.comparison-label {
+  color: #718096;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.comparison-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2d3748;
+}
