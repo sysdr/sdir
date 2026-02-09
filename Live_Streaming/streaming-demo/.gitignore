@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env
+
+# Build / Output
+dist/
+build/
+*.log
+
+# Docker
+.docker/
+
+# Istio
+istio-*/
+*.istio.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+hls-output/

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Streaming Architecture Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎥</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #2d3748;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            color: #2d3748;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active {
+            background: #48bb78;
+            box-shadow: 0 0 10px #48bb78;
+        }
+        
+        .status-inactive {
+            background: #f56565;
+        }
+        
+        .video-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        #video-player {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .quality-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .quality-1080p { background: #667eea; color: white; }
+        .quality-720p { background: #48bb78; color: white; }
+        .quality-480p { background: #ed8936; color: white; }
+        .quality-360p { background: #f56565; color: white; }
+        
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: monospace;
+        }
+        
+        .viewer-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .viewer-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: #edf2f7;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Live Streaming Architecture Monitor</h1>
+        
+        <div class="video-container">
+            <h2 style="margin-bottom: 15px; color: #4a5568;">Live Stream Player</h2>
+            <video id="video-player" controls autoplay muted playsinline></video>
+            <div style="margin-top: 15px; color: #718096;">
+                <span id="current-quality">Current Quality: Loading...</span>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>📥 Ingest Status</h2>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator" id="ingest-status"></span>
+                        RTMP Server
+                    </span>
+                    <span class="metric-value" id="ingest-active">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Stream Protocol</span>
+                    <span class="metric-value">RTMP/TCP</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Input Bitrate</span>
+                    <span class="metric-value" id="input-bitrate">-</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>⚙️ Transcoding</h2>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator" id="transcode-status"></span>
+                        Status
+                    </span>
+                    <span class="metric-value" id="transcode-active">-</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">1080p Segments</span>
+                    <span class="metric-value" id="segments-1080p">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">720p Segments</span>
+                    <span class="metric-value" id="segments-720p">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">480p Segments</span>
+                    <span class="metric-value" id="segments-480p">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">360p Segments</span>
+                    <span class="metric-value" id="segments-360p">0</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📡 Delivery (CDN Edge)</h2>
+                <div class="metric">
+                    <span class="metric-label">Active Viewers</span>
+                    <span class="metric-value" id="active-viewers">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Segments Served</span>
+                    <span class="metric-value" id="segments-served">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cache Hit Rate</span>
+                    <span class="metric-value" id="cache-hit-rate">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Quality Switches</span>
+                    <span class="metric-value" id="quality-switches">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Data Transferred</span>
+                    <span class="metric-value" id="data-transferred">0 MB</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>👥 Viewer Sessions</h2>
+                <div class="viewer-list" id="viewer-list">
+                    <div style="text-align: center; color: #a0aec0; padding: 20px;">
+                        No active viewers
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 System Logs</h2>
+                <div style="max-height: 200px; overflow-y: auto;" id="logs">
+                    <div class="log-entry">System initialized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const viewerId = 'viewer-' + Math.random().toString(36).substr(2, 9);
+        let hls = null;
+        let currentQuality = '1080p';
+        
+        // Initialize HLS player with retry on stream unavailable
+        function initPlayer(retryCount = 0) {
+            const video = document.getElementById('video-player');
+            const masterPlaylist = `http://localhost:3002/live/master.m3u8?viewer=${viewerId}`;
+            const maxRetries = 30;
+            
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60
+                });
+                
+                hls.loadSource(masterPlaylist);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    addLog('HLS manifest loaded, starting playback');
+                    document.getElementById('current-quality').textContent = 'Current Quality: Loading...';
+                    video.play().catch(e => addLog('Autoplay prevented - click play'));
+                });
+                
+                hls.on(Hls.Events.FRAG_BUFFERED, () => {
+                    const level = hls.levels[hls.currentLevel];
+                    if (level) {
+                        currentQuality = level.name || level.height + 'p';
+                        document.getElementById('current-quality').innerHTML = 
+                            `Current Quality: <span class="quality-badge quality-${currentQuality}">${currentQuality}</span>`;
+                    }
+                });
+                
+                hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+                    const level = hls.levels[data.level];
+                    currentQuality = level.name || level.height + 'p';
+                    document.getElementById('current-quality').innerHTML = 
+                        `Current Quality: <span class="quality-badge quality-${currentQuality}">${currentQuality}</span>`;
+                    addLog(`Quality switched to ${currentQuality}`);
+                });
+                
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        const retryable = data.type === 'networkError' || data.type === 'mediaError';
+                        if (retryable && retryCount < maxRetries) {
+                            addLog(`Stream loading... retrying (${retryCount + 1}/${maxRetries})`);
+                            setTimeout(() => initPlayer(retryCount + 1), 5000);
+                        } else if (retryable) {
+                            addLog('Stream unavailable. Ensure ffmpeg stream is running.');
+                            document.getElementById('current-quality').textContent = 'Current Quality: Stream offline - run start.sh';
+                        } else {
+                            addLog(`Fatal error: ${data.type}`);
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = masterPlaylist;
+                video.addEventListener('loadedmetadata', () => video.play().catch(() => {}));
+            }
+        }
+        
+        // Fetch stats from all services
+        async function updateStats() {
+            try {
+                // Transcoder stats
+                let transcoderData = { startTime: null, segmentsGenerated: {}, currentBitrates: {} };
+                try {
+                    const transcoderRes = await fetch('http://localhost:3001/stats');
+                    transcoderData = await transcoderRes.json();
+                } catch (e) {
+                    document.getElementById('transcode-active').textContent = 'Error';
+                    document.getElementById('transcode-status').className = 'status-indicator status-inactive';
+                }
+                
+                document.getElementById('transcode-active').textContent = 
+                    transcoderData.startTime ? 'Active' : 'Idle';
+                document.getElementById('transcode-status').className = 
+                    'status-indicator ' + (transcoderData.startTime ? 'status-active' : 'status-inactive');
+                
+                // Input bitrate (use 1080p as primary stream)
+                const inputKbps = transcoderData.currentBitrates && transcoderData.currentBitrates['1080p'];
+                document.getElementById('input-bitrate').textContent = 
+                    inputKbps ? inputKbps.toFixed(0) + ' kbps' : (transcoderData.startTime ? 'Measuring...' : '-');
+                
+                if (transcoderData.segmentsGenerated) {
+                    document.getElementById('segments-1080p').textContent = 
+                        transcoderData.segmentsGenerated['1080p'] || 0;
+                    document.getElementById('segments-720p').textContent = 
+                        transcoderData.segmentsGenerated['720p'] || 0;
+                    document.getElementById('segments-480p').textContent = 
+                        transcoderData.segmentsGenerated['480p'] || 0;
+                    document.getElementById('segments-360p').textContent = 
+                        transcoderData.segmentsGenerated['360p'] || 0;
+                }
+                
+                // Delivery stats
+                let deliveryData = { delivery: { activeViewers: 0, totalSegmentsServed: 0, qualitySwitches: 0, bytesTransferred: 0, cacheHits: 0, cacheMisses: 0 }, viewers: [] };
+                try {
+                    const deliveryRes = await fetch('http://localhost:3002/api/stats');
+                    deliveryData = await deliveryRes.json();
+                } catch (e) {
+                    // Keep defaults on delivery fetch error
+                }
+                
+                document.getElementById('active-viewers').textContent = 
+                    deliveryData.delivery.activeViewers;
+                document.getElementById('segments-served').textContent = 
+                    deliveryData.delivery.totalSegmentsServed;
+                document.getElementById('quality-switches').textContent = 
+                    deliveryData.delivery.qualitySwitches;
+                document.getElementById('data-transferred').textContent = 
+                    (deliveryData.delivery.bytesTransferred / 1024 / 1024).toFixed(2) + ' MB';
+                
+                const hitRate = deliveryData.delivery.cacheHits + deliveryData.delivery.cacheMisses > 0
+                    ? (deliveryData.delivery.cacheHits / (deliveryData.delivery.cacheHits + deliveryData.delivery.cacheMisses) * 100).toFixed(1)
+                    : 0;
+                document.getElementById('cache-hit-rate').textContent = hitRate + '%';
+                
+                // Update viewer list
+                const viewerList = document.getElementById('viewer-list');
+                if (deliveryData.viewers && deliveryData.viewers.length > 0) {
+                    viewerList.innerHTML = deliveryData.viewers.map(v => `
+                        <div class="viewer-item">
+                            <div>
+                                <strong>${v.id}</strong><br>
+                                <small>Quality: <span class="quality-badge quality-${v.currentQuality}">${v.currentQuality}</span></small>
+                            </div>
+                            <div style="text-align: right;">
+                                <small>Segments: ${v.segmentsReceived}</small><br>
+                                <small>Switches: ${v.qualitySwitches}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    viewerList.innerHTML = '<div style="text-align: center; color: #a0aec0; padding: 20px;">No active viewers</div>';
+                }
+                
+                document.getElementById('ingest-active').textContent = 
+                    transcoderData.startTime ? 'Connected' : 'Waiting';
+                document.getElementById('ingest-status').className = 
+                    'status-indicator ' + (transcoderData.startTime ? 'status-active' : 'status-inactive');
+                
+            } catch (err) {
+                console.error('Error fetching stats:', err);
+            }
+        }
+        
+        function addLog(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${timestamp}] ${message}`;
+            logs.insertBefore(entry, logs.firstChild);
+            
+            // Keep only last 10 logs
+            while (logs.children.length > 10) {
+                logs.removeChild(logs.lastChild);
+            }
+        }
+        
+        // Initialize player after brief delay (let services start)
+        setTimeout(() => {
+            addLog('Initializing HLS player...');
+            initPlayer();
+        }, 3000);
+        
+        // Update stats every 2 seconds
+        setInterval(updateStats, 2000);
+        updateStats();
+    </script>
+</body>
+</html>

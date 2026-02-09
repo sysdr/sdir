@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  ingest:
+    image: alfg/nginx-rtmp
+    container_name: rtmp-ingest
+    ports:
+      - "1935:1935"
+      - "8080:80"
+    networks:
+      - streaming-net
+
+  transcoder:
+    build:
+      context: ./transcoder
+    container_name: transcoder
+    ports:
+      - "3001:3001"
+      - "1936:1936"
+    volumes:
+      - hls-output:/output
+    depends_on:
+      - ingest
+    networks:
+      - streaming-net
+
+  hls-server:
+    build:
+      context: ./hls-server
+    container_name: hls-delivery
+    ports:
+      - "3002:3002"
+    volumes:
+      - hls-output:/output:ro
+    depends_on:
+      - transcoder
+    networks:
+      - streaming-net
+
+  dashboard:
+    build:
+      context: ./dashboard
+    container_name: dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - hls-server
+    networks:
+      - streaming-net
+
+volumes:
+  hls-output:
+
+networks:
+  streaming-net:
+    driver: bridge
