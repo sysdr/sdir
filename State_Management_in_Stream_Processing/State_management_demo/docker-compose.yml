@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  jobmanager:
+    build: ./flink-job
+    command: standalone-job --job-classname com.example.StatefulWordCount
+    ports:
+      - "8081:8081"
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        state.backend: hashmap
+        state.checkpoints.dir: file:///tmp/checkpoints
+        state.backend.incremental: false
+        execution.checkpointing.interval: 5000
+        execution.checkpointing.mode: EXACTLY_ONCE
+    volumes:
+      - ./checkpoints:/tmp/checkpoints
+
+  taskmanager:
+    build: ./flink-job
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    volumes:
+      - ./checkpoints:/tmp/checkpoints
+
+  kafka-streams:
+    build: ./kafka-streams-app
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+  dashboard:
+    build: ./dashboard
+    depends_on:
+      - kafka
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./checkpoints:/tmp/checkpoints
+
+volumes:
+  checkpoints:

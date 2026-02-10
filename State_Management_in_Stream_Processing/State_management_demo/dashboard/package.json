@@ -1,0 +1,9 @@
+{
+  "name": "state-management-dashboard",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "kafkajs": "^2.2.4"
+  }
+}

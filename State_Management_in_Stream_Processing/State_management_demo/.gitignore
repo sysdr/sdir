@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Istio
+istio/
+*istio*
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# IDE and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+tmp/
+temp/
+.cache/
+
+# Docker
+.docker/
+
+# Build outputs (optional; uncomment if you don't want to track)
+# target/
+# checkpoints/
