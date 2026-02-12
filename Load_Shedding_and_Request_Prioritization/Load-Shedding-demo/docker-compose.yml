@@ -1,0 +1,26 @@
+services:
+  load-shedding:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/stats')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+  
+  load-generator:
+    build: .
+    command: node src/load-generator.js
+    environment:
+      - TARGET_HOST=load-shedding
+      - TARGET_PORT=3000
+    depends_on:
+      load-shedding:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
