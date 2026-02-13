@@ -1,0 +1,11 @@
+{
+  "name": "tail-latency-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "hdr-histogram-js": "^3.0.0",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
+  }
+}
