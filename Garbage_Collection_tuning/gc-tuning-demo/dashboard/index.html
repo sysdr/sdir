@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GC Tuning — Latency Impact Dashboard</title>
+  <script src="chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --card: #ffffff;
+      --blue-dark: #1e3a8a;
+      --blue-mid: #3b82f6;
+      --blue-light: #bfdbfe;
+      --blue-pale: #eff6ff;
+      --shadow: 0 2px 16px rgba(59,130,246,0.10);
+      --shadow-hover: 0 4px 24px rgba(59,130,246,0.18);
+      --red: #ef4444;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, var(--blue-dark) 0%, #2563eb 100%);
+      color: white;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(30,58,138,0.3);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+    header p { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80; display: inline-block;
+      margin-right: 6px; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:0.3; }
+    }
+    main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* Controls */
+    .controls {
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+      background: var(--card); border-radius: 12px; padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .controls label { font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 4px; display:block; }
+    .controls select, .controls button {
+      padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--blue-light);
+      font-size: 0.85rem; cursor: pointer; font-weight: 500;
+    }
+    .controls select { background: var(--blue-pale); color: var(--blue-dark); }
+    .btn-primary {
+      background: var(--blue-mid); color: white; border: none !important;
+      font-weight: 600; transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-danger {
+      background: #fef2f2; color: var(--red);
+      border-color: #fecaca !important; font-weight: 600;
+    }
+    .control-group { display: flex; flex-direction: column; }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border-radius: 14px;
+      padding: 20px; box-shadow: var(--shadow);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow-hover); }
+    .card-title {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 8px;
+    }
+    .metric-big {
+      font-size: 2.2rem; font-weight: 800; color: var(--blue-dark);
+      line-height: 1; margin-bottom: 4px;
+    }
+    .metric-unit { font-size: 0.8rem; color: #64748b; }
+    .metric-sub  { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+
+    .status-ok   { color: var(--green); font-weight: 700; }
+    .status-warn { color: var(--yellow); font-weight: 700; }
+    .status-bad  { color: var(--red); font-weight: 700; }
+
+    /* Comparison table */
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      border-radius: 12px; overflow: hidden;
+    }
+    .compare-col {
+      background: var(--card); padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .compare-col:first-child { border-right: 2px solid var(--blue-light); }
+    .compare-col h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .lang-badge {
+      padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+    }
+    .java-badge { background: #fef3c7; color: #92400e; }
+    .go-badge   { background: #d1fae5; color: #065f46; }
+
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 0.82rem; color: #64748b; }
+    .stat-value { font-size: 0.9rem; font-weight: 700; color: var(--blue-dark); }
+
+    /* Chart containers */
+    .chart-card { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+    .chart-card h3 { font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 14px; }
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* Log */
+    .log-area {
+      background: #0f172a; border-radius: 12px; padding: 14px 16px;
+      font-family: 'Courier New', monospace; font-size: 0.75rem;
+      line-height: 1.6; color: #94a3b8; height: 180px;
+      overflow-y: auto; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .log-area .log-ts  { color: #475569; }
+    .log-area .log-java{ color: #60a5fa; }
+    .log-area .log-go  { color: #34d399; }
+    .log-area .log-gc  { color: #f59e0b; font-weight: 700; }
+    .log-area .log-warn{ color: #f87171; }
+
+    /* Pause bar */
+    .pause-vis {
+      display: flex; align-items: flex-end; gap: 3px;
+      height: 60px; margin-top: 8px;
+    }
+    .pause-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      min-height: 2px; transition: height 0.3s;
+    }
+    .java-bar { background: linear-gradient(to top, #3b82f6, #93c5fd); }
+    .go-bar   { background: linear-gradient(to top, #10b981, #6ee7b7); }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-4, .compare { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🗑️ GC Tuning — Real-Time Latency Impact</h1>
+    <p>Article 202 · Section 8: Production Engineering & Optimization</p>
+  </div>
+  <div class="badge"><span class="live-dot"></span>LIVE</div>
+</header>
+
+<main>
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <label>Load Level</label>
+      <select id="loadLevel">
+        <option value="light">Light (500 allocs/req)</option>
+        <option value="medium" selected>Medium (2000 allocs/req)</option>
+        <option value="heavy">Heavy (5000 allocs/req)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Java GC</label>
+      <select id="javaGcMode">
+        <option value="g1gc">G1GC (default)</option>
+        <option value="zgc">ZGC (low-latency)</option>
+        <option value="parallel">ParallelGC (throughput)</option>
+        <option value="serial">SerialGC (small heap)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>GOGC Value</label>
+      <select id="gogcValue">
+        <option value="off">off (manual)</option>
+        <option value="50">50 (aggressive)</option>
+        <option value="100" selected>100 (default)</option>
+        <option value="200">200 (relaxed)</option>
+        <option value="400">400 (rare GC)</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; align-items:flex-end;">
+      <button class="btn-primary" onclick="startLoad()">▶ Start Load</button>
+      <button class="btn-danger" onclick="stopLoad()">■ Stop</button>
+      <button class="btn-primary" onclick="triggerGoGC()">⚡ Force Go GC</button>
+    </div>
+  </div>
+
+  <!-- Top KPI row -->
+  <div class="grid-4">
+    <div class="card">
+      <div class="card-title">Java P99 Latency</div>
+      <div class="metric-big" id="java-p99">—</div>
+      <div class="metric-unit">ms</div>
+      <div class="metric-sub" id="java-gc-type">Collector: —</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Go P99 Latency</div>
+      <div class="metric-big" id="go-p99">—</div>
+      <div class="metric-unit">ms</div>
+      <div class="metric-sub" id="go-gc-cycles">GC cycles: —</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Java GC Pause Total</div>
+      <div class="metric-big" id="java-gc-time">—</div>
+      <div class="metric-unit">ms cumulative</div>
+      <div class="metric-sub" id="java-gc-count">Collections: —</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Go GC Pause Last</div>
+      <div class="metric-big" id="go-gc-pause">—</div>
+      <div class="metric-unit">µs</div>
+      <div class="metric-sub" id="go-heap">Heap: —MB</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="chart-card">
+      <h3>📊 Java Latency Percentiles (ms)</h3>
+      <div class="chart-wrap"><canvas id="javaLatencyChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>📊 Go Latency Percentiles (ms)</h3>
+      <div class="chart-wrap"><canvas id="goLatencyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- GC Pause history -->
+  <div class="chart-card" style="margin-bottom:16px;">
+    <h3>⏱️ GC Pause Trend — Java vs Go over time</h3>
+    <div class="chart-wrap" style="height:160px;"><canvas id="pauseTrendChart"></canvas></div>
+  </div>
+
+  <!-- Detailed comparison + heap -->
+  <div class="compare" style="margin-bottom:16px;">
+    <div class="compare-col">
+      <h3><span class="lang-badge java-badge">JAVA</span> GC Details</h3>
+      <div id="java-detail">
+        <div class="stat-row"><span class="stat-label">Collector</span><span class="stat-value" id="jd-collector">—</span></div>
+        <div class="stat-row"><span class="stat-label">Heap Used</span><span class="stat-value" id="jd-heap-used">—</span></div>
+        <div class="stat-row"><span class="stat-label">Heap Max</span><span class="stat-value" id="jd-heap-max">—</span></div>
+        <div class="stat-row"><span class="stat-label">GC Count</span><span class="stat-value" id="jd-gc-count">—</span></div>
+        <div class="stat-row"><span class="stat-label">GC Time</span><span class="stat-value" id="jd-gc-time">—</span></div>
+        <div class="stat-row"><span class="stat-label">P50 / P95 / P99</span><span class="stat-value" id="jd-latency">—</span></div>
+        <div class="stat-row"><span class="stat-label">Requests</span><span class="stat-value" id="jd-requests">—</span></div>
+      </div>
+    </div>
+    <div class="compare-col">
+      <h3><span class="lang-badge go-badge">GO</span> GC Details</h3>
+      <div id="go-detail">
+        <div class="stat-row"><span class="stat-label">GOGC</span><span class="stat-value" id="gd-gogc">—</span></div>
+        <div class="stat-row"><span class="stat-label">Heap Alloc</span><span class="stat-value" id="gd-heap-alloc">—</span></div>
+        <div class="stat-row"><span class="stat-label">Heap Sys</span><span class="stat-value" id="gd-heap-sys">—</span></div>
+        <div class="stat-row"><span class="stat-label">GC Cycles</span><span class="stat-value" id="gd-gc-cycles">—</span></div>
+        <div class="stat-row"><span class="stat-label">Mallocs / Frees</span><span class="stat-value" id="gd-allocs">—</span></div>
+        <div class="stat-row"><span class="stat-label">P50 / P95 / P99</span><span class="stat-value" id="gd-latency">—</span></div>
+        <div class="stat-row"><span class="stat-label">Goroutines</span><span class="stat-value" id="gd-goroutines">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Log -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px;">📋 GC Event Log</div>
+    <div class="log-area" id="logArea">
+      <div><span class="log-ts">[ready]</span> Dashboard connected. Start load to see GC events...</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─────── State ───────
+let loadInterval = null;
+let pollInterval = null;
+const JAVA_URL = '/java';
+const GO_URL   = '/go';
+
+// Chart history
+const maxPoints = 40;
+const javaHistory = { p50: [], p95: [], p99: [] };
+const goHistory   = { p50: [], p95: [], p99: [] };
+const pauseHistory = { labels: [], java: [], go: [] };
+
+// ─────── Chart init ───────
+function makeLatencyChart(canvasId, label, color) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array(maxPoints).fill(''),
+      datasets: [
+        { label: 'P99',  data: Array(maxPoints).fill(null), borderColor: color[2], tension: 0.3, pointRadius: 0, borderWidth: 2, fill: false },
+        { label: 'P95',  data: Array(maxPoints).fill(null), borderColor: color[1], tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [4,2], fill: false },
+        { label: 'P50',  data: Array(maxPoints).fill(null), borderColor: color[0], tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [2,4], fill: false },
+      ]
+    },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function makePauseChart() {
+  const ctx = document.getElementById('pauseTrendChart').getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array(maxPoints).fill(''),
+      datasets: [
+        { label: 'Java GC Time (ms)', data: Array(maxPoints).fill(null), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.3, pointRadius: 0, fill: true },
+        { label: 'Go GC Pause (µs/100)', data: Array(maxPoints).fill(null), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.3, pointRadius: 0, fill: true }
+      ]
+    },
+    options: {
+      animation: false, responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+const javaChart = makeLatencyChart('javaLatencyChart', 'Java', ['#93c5fd','#60a5fa','#1d4ed8']);
+const goChart   = makeLatencyChart('goLatencyChart',   'Go',   ['#6ee7b7','#34d399','#059669']);
+const pauseChart = makePauseChart();
+
+function pushToChart(chart, history, p50, p95, p99) {
+  history.p50.push(p50); history.p95.push(p95); history.p99.push(p99);
+  if (history.p50.length > maxPoints) {
+    history.p50.shift(); history.p95.shift(); history.p99.shift();
+  }
+  chart.data.datasets[0].data = [...history.p99];
+  chart.data.datasets[1].data = [...history.p95];
+  chart.data.datasets[2].data = [...history.p50];
+  chart.update('none');
+}
+
+// ─────── Load generation ───────
+async function fireRequests(target, count, load) {
+  const promises = [];
+  for (let i = 0; i < count; i++) {
+    promises.push(fetch(`${target}/process?load=${load}`).catch(() => null));
+  }
+  return Promise.all(promises);
+}
+
+function startLoad() {
+  if (loadInterval) return;
+  const load = document.getElementById('loadLevel').value;
+  addLog('info', 'java', `Starting load: ${load} allocation level`);
+  addLog('info', 'go', `GOGC=${document.getElementById('gogcValue').value}`);
+
+  loadInterval = setInterval(async () => {
+    await Promise.all([
+      fireRequests(JAVA_URL, 5, load),
+      fireRequests(GO_URL, 5, load)
+    ]);
+  }, 500);
+
+  if (!pollInterval) {
+    pollInterval = setInterval(pollMetrics, 1500);
+  }
+}
+
+function stopLoad() {
+  clearInterval(loadInterval); loadInterval = null;
+  addLog('warn', 'java', 'Load stopped');
+}
+
+async function triggerGoGC() {
+  try {
+    await fetch(`${GO_URL}/gc`, { method: 'POST' });
+    addLog('gc', 'go', 'Manual GC trigger sent');
+  } catch(e) {
+    addLog('warn', 'go', 'GC trigger endpoint not available — GC runs automatically');
+  }
+  await pollMetrics();
+}
+
+// ─────── Metrics polling ───────
+let prevJavaGcCount = 0, prevGoGcCycles = 0;
+
+async function pollMetrics() {
+  const [javaRes, goRes] = await Promise.allSettled([
+    fetch(`${JAVA_URL}/metrics`),
+    fetch(`${GO_URL}/metrics`)
+  ]);
+
+  if (javaRes.status === 'fulfilled' && javaRes.value.ok) {
+    const j = await javaRes.value.json();
+    updateJavaUI(j);
+    pushToChart(javaChart, javaHistory, j.latencyP50||0, j.latencyP95||0, j.latencyP99||0);
+
+    // Log GC events
+    if (j.totalGcCount > prevJavaGcCount) {
+      const delta = j.totalGcCount - prevJavaGcCount;
+      addLog('gc', 'java', `GC event(s): +${delta} collections, total pause ${j.totalGcTimeMs}ms, heap ${j.heapUsedMB}/${j.heapMaxMB}MB`);
+      prevJavaGcCount = j.totalGcCount;
+    }
+
+    // Pause trend
+    pauseHistory.java.push(j.totalGcTimeMs || 0);
+  }
+
+  if (goRes.status === 'fulfilled' && goRes.value.ok) {
+    const g = await goRes.value.json();
+    updateGoUI(g);
+    pushToChart(goChart, goHistory, g.latencyP50||0, g.latencyP95||0, g.latencyP99||0);
+
+    if (g.gcCycles > prevGoGcCycles) {
+      const delta = g.gcCycles - prevGoGcCycles;
+      addLog('gc', 'go', `GC cycle(s): +${delta}, pause ${g.gcPauseLastUs}µs, heap ${g.heapAllocMB}MB, GOGC=${g.gogc}`);
+      prevGoGcCycles = g.gcCycles;
+    }
+
+    pauseHistory.go.push((g.gcPauseLastUs||0) / 100);
+  }
+
+  // Update pause trend chart
+  if (pauseHistory.java.length > maxPoints) {
+    pauseHistory.java.shift(); pauseHistory.go.shift();
+  }
+  pauseChart.data.datasets[0].data = [...pauseHistory.java];
+  pauseChart.data.datasets[1].data = [...pauseHistory.go];
+  pauseChart.update('none');
+}
+
+function fmt(val) { if (val === undefined || val === null) return '—'; return val; }
+function updateJavaUI(j) {
+  const hasSamples = (j.sampleCount ?? 0) > 0;
+  const p99 = hasSamples ? (j.latencyP99 ?? '—') : '—';
+  const el = document.getElementById('java-p99');
+  el.textContent = p99;
+  const p99Num = typeof p99 === 'number' ? p99 : 0;
+  el.className = 'metric-big ' + (p99Num > 100 ? 'status-bad' : p99Num > 30 ? 'status-warn' : 'status-ok');
+
+  document.getElementById('java-gc-type').textContent = `Collector: ${j.gcType}`;
+  document.getElementById('java-gc-time').textContent = j.totalGcTimeMs ?? '—';
+  document.getElementById('java-gc-count').textContent = `Collections: ${j.totalGcCount ?? '—'}`;
+
+  document.getElementById('jd-collector').textContent = j.gcType ?? '—';
+  document.getElementById('jd-heap-used').textContent = `${j.heapUsedMB}MB`;
+  document.getElementById('jd-heap-max').textContent = `${j.heapMaxMB}MB`;
+  document.getElementById('jd-gc-count').textContent = j.totalGcCount ?? '—';
+  document.getElementById('jd-gc-time').textContent = `${j.totalGcTimeMs}ms`;
+  document.getElementById('jd-latency').textContent = `${j.latencyP50} / ${j.latencyP95} / ${j.latencyP99}`;
+  document.getElementById('jd-requests').textContent = j.totalRequests ?? '—';
+}
+
+function updateGoUI(g) {
+  const p99 = g.latencyP99 ?? 0;
+  const el = document.getElementById('go-p99');
+  el.textContent = p99;
+  el.className = 'metric-big ' + (p99 > 50 ? 'status-bad' : p99 > 15 ? 'status-warn' : 'status-ok');
+
+  document.getElementById('go-gc-cycles').textContent = `GC cycles: ${g.gcCycles}`;
+  document.getElementById('go-gc-pause').textContent = g.gcPauseLastUs ?? '—';
+  document.getElementById('go-heap').textContent = `Heap: ${g.heapAllocMB}MB`;
+
+  document.getElementById('gd-gogc').textContent = g.gogc ?? '—';
+  document.getElementById('gd-heap-alloc').textContent = `${g.heapAllocMB}MB`;
+  document.getElementById('gd-heap-sys').textContent = `${g.heapSysMB}MB`;
+  document.getElementById('gd-gc-cycles').textContent = g.gcCycles ?? '—';
+  document.getElementById('gd-allocs').textContent = `${g.mallocsTotal} / ${g.freesTotal}`;
+  document.getElementById('gd-latency').textContent = `${g.latencyP50} / ${g.latencyP95} / ${g.latencyP99}`;
+  document.getElementById('gd-goroutines').textContent = g.goroutines ?? '—';
+}
+
+function addLog(type, runtime, msg) {
+  const area = document.getElementById('logArea');
+  const ts = new Date().toLocaleTimeString();
+  const div = document.createElement('div');
+  const rtClass = runtime === 'java' ? 'log-java' : 'log-go';
+  const msgClass = type === 'gc' ? 'log-gc' : (type === 'warn' ? 'log-warn' : '');
+  div.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="${rtClass}">[${runtime.toUpperCase()}]</span> <span class="${msgClass}">${msg}</span>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  // Keep last 100 lines
+  while (area.children.length > 100) area.removeChild(area.firstChild);
+}
+
+// Auto-poll on load
+setTimeout(() => {
+  pollInterval = setInterval(pollMetrics, 2000);
+  pollMetrics();
+}, 500);
+</script>
+</body>
+</html>
