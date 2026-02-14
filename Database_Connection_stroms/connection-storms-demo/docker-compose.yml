@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: demo_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password123
+    command: >
+      postgres
+        -c max_connections=20
+        -c shared_buffers=128MB
+        -c log_connections=on
+        -c log_disconnections=on
+        -c idle_in_transaction_session_timeout=30000
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d demo_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: app_user
+      DB_PASSWORD: app_password123
+      DB_NAME: demo_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "500"
+      DEFAULT_POOL_SIZE: "18"
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U app_user -d demo_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: demo_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password123
+      PGBOUNCER_HOST: pgbouncer
+      PGBOUNCER_PORT: "5432"
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  tests:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./tests:/app/tests
+    environment:
+      BACKEND_URL: http://backend:3001
+    command: ["node", "tests/storm.test.js"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    profiles:
+      - test
+
+volumes:
+  pg_data:
