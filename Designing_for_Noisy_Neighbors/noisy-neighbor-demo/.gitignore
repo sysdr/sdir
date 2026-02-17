@@ -1,0 +1,16 @@
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/
+.env
+.env.*
+*.log
+tmp/
+temp/
+.cache/
+istio-*/
+*.istio.yaml

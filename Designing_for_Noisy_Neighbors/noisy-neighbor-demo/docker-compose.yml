@@ -1,0 +1,57 @@
+services:
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: nn-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - nn-net
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: nn-api
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_HOST=redis
+      - PORT=3001
+      - NODE_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - nn-net
+    restart: unless-stopped
+
+  loadgen:
+    build:
+      context: ./loadgen
+      dockerfile: Dockerfile
+    container_name: nn-loadgen
+    environment:
+      - API_HOST=api
+      - API_PORT=3001
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - nn-net
+    restart: unless-stopped
+
+networks:
+  nn-net:
+    driver: bridge
