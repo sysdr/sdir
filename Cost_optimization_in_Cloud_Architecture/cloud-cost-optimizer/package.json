@@ -1,0 +1,15 @@
+{
+  "name": "cloud-cost-optimizer",
+  "version": "1.0.0",
+  "description": "Mixed-fleet cloud cost optimizer — Spot, Reserved, On-Demand simulation",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node tests/fleet.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.0"
+  }
+}
