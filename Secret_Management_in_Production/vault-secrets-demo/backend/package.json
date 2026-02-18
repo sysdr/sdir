@@ -1,0 +1,17 @@
+{
+  "name": "vault-secrets-backend",
+  "version": "1.0.0",
+  "description": "Vault dynamic secrets demo backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-vault": "^0.10.0",
+    "pg": "^8.11.5",
+    "ws": "^8.17.1",
+    "uuid": "^10.0.0"
+  }
+}

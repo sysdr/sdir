@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vault Secret Management — Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0e1621;
+      --surface:     #141e2d;
+      --surface2:    #1a2640;
+      --border:      #1e3050;
+      --blue-bright: #3b9eff;
+      --blue-dim:    #1e5799;
+      --blue-glow:   rgba(59,158,255,0.12);
+      --cyan:        #00d4ff;
+      --green:       #00e676;
+      --yellow:      #ffd740;
+      --red:         #ff5252;
+      --text:        #cdd9e8;
+      --text-dim:    #6e8ba8;
+      --mono:        'JetBrains Mono', monospace;
+      --sans:        'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #0b1a2e 0%, #0e2040 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--blue-dim), var(--blue-bright));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 12px var(--blue-glow);
+    }
+    .header-title { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
+    .header-sub   { font-size: 0.75rem; color: var(--text-dim); font-family: var(--mono); }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-family: var(--mono);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: all 0.3s;
+      box-shadow: 0 0 0 0 transparent;
+    }
+    .status-pill.online .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { box-shadow: 0 0 4px var(--green); }
+      50%      { box-shadow: 0 0 12px var(--green), 0 0 4px var(--green); }
+    }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      gap: 0;
+      height: calc(100vh - 64px);
+    }
+    .panel {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+    .panel:last-child { border-right: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Panel headers ───────────────────────────────── */
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-header h2 { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+    .panel-icon { font-size: 14px; }
+
+    /* ── Cards ───────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.875rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      border-color: var(--blue-dim);
+      box-shadow: 0 0 0 1px var(--blue-dim) inset, 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+    }
+    .card-path {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--blue-bright);
+      word-break: break-all;
+    }
+    .secret-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .secret-row:last-child { border-bottom: none; }
+    .secret-key   { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+    .secret-value {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text);
+      background: rgba(59,158,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .secret-value:hover { background: rgba(59,158,255,0.2); }
+    .version-badge {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      background: rgba(59,158,255,0.15);
+      color: var(--blue-bright);
+      border: 1px solid rgba(59,158,255,0.3);
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 6px;
+    }
+
+    /* ── Lease cards ─────────────────────────────────── */
+    .lease-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .lease-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue-bright), var(--cyan));
+      transition: width 0.5s linear;
+    }
+    .lease-card.expiring::before { background: linear-gradient(90deg, var(--yellow), var(--red)); }
+    .lease-card.expired {
+      border-color: var(--red);
+      opacity: 0.5;
+    }
+    .lease-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
+    .lease-username { font-family: var(--mono); font-size: 0.75rem; color: var(--cyan); }
+    .lease-role {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: rgba(0,212,255,0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(0,212,255,0.25);
+    }
+    .lease-role.readonly {
+      background: rgba(255,215,64,0.1);
+      color: var(--yellow);
+      border-color: rgba(255,215,64,0.25);
+    }
+    .ttl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .ttl-label { font-size: 0.68rem; color: var(--text-dim); font-family: var(--mono); }
+    .ttl-bar {
+      flex: 1;
+      height: 5px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .ttl-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue-bright), var(--cyan));
+      border-radius: 3px;
+      transition: width 0.5s linear;
+    }
+    .ttl-fill.warning  { background: linear-gradient(90deg, var(--yellow), #ff9800); }
+    .ttl-fill.critical { background: linear-gradient(90deg, var(--red), #ff1744); }
+    .ttl-seconds { font-family: var(--mono); font-size: 0.72rem; min-width: 42px; text-align: right; }
+    .ttl-seconds.warning  { color: var(--yellow); }
+    .ttl-seconds.critical { color: var(--red); }
+    .lease-actions { display: flex; gap: 6px; }
+    .btn-sm {
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-sm:hover { border-color: var(--blue-bright); color: var(--blue-bright); background: var(--blue-glow); }
+    .btn-sm.danger:hover { border-color: var(--red); color: var(--red); background: rgba(255,82,82,0.1); }
+    .btn-sm.verify:hover { border-color: var(--green); color: var(--green); background: rgba(0,230,118,0.08); }
+
+    /* ── Action panel ────────────────────────────────── */
+    .action-section { margin-bottom: 1.5rem; }
+    .action-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 7px;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 0.5rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1a4fa8, var(--blue-bright));
+      border: 1px solid var(--blue-bright);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(59,158,255,0.2);
+    }
+    .btn-primary:hover { box-shadow: 0 0 18px rgba(59,158,255,0.4); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { border-color: var(--blue-dim); color: var(--blue-bright); }
+    .btn-danger {
+      background: rgba(255,82,82,0.08);
+      border: 1px solid rgba(255,82,82,0.3);
+      color: var(--red);
+    }
+    .btn-danger:hover { background: rgba(255,82,82,0.15); border-color: var(--red); }
+    select, input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      margin-bottom: 0.5rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    select:focus, input[type="text"]:focus { border-color: var(--blue-bright); }
+
+    /* ── Audit log ───────────────────────────────────── */
+    .audit-log { list-style: none; }
+    .audit-entry {
+      display: flex;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 5px;
+      margin-bottom: 4px;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      line-height: 1.5;
+      background: rgba(255,255,255,0.02);
+      border-left: 2px solid transparent;
+      animation: slideIn 0.2s ease-out;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+    .audit-entry.info    { border-left-color: var(--blue-bright); }
+    .audit-entry.success { border-left-color: var(--green); }
+    .audit-entry.warn    { border-left-color: var(--yellow); }
+    .audit-entry.error   { border-left-color: var(--red); }
+    .audit-time { color: var(--text-dim); min-width: 55px; }
+    .audit-action { color: var(--blue-bright); }
+    .audit-entry.success .audit-action { color: var(--green); }
+    .audit-entry.warn    .audit-action { color: var(--yellow); }
+    .audit-entry.error   .audit-action { color: var(--red); }
+    .audit-detail { color: var(--text-dim); flex: 1; }
+
+    /* ── Stats bar ───────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat-val { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; color: var(--blue-bright); line-height: 1.2; }
+    .stat-lbl { font-size: 0.62rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+    /* ── Toast ───────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+    .toast-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      min-width: 280px;
+      animation: toastIn 0.2s ease-out;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+    .toast-item.success { border-left: 3px solid var(--green); }
+    .toast-item.error   { border-left: 3px solid var(--red); }
+    .toast-item.info    { border-left: 3px solid var(--blue-bright); }
+    .empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-dim); font-size: 0.8rem; }
+    .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-icon">🔐</div>
+      <div>
+        <div class="header-title">Vault Secret Management</div>
+        <div class="header-sub">Dynamic Credentials · KV Secrets · Lease Lifecycle</div>
+      </div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <div class="status-dot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT: KV Secrets -->
+    <div class="panel" id="secretsPanel">
+      <div class="panel-header">
+        <span class="panel-icon">🗄️</span>
+        <h2>KV Secrets (v2)</h2>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-card"><div class="stat-val" id="kvCount">—</div><div class="stat-lbl">Secrets</div></div>
+        <div class="stat-card"><div class="stat-val" id="leaseCount">—</div><div class="stat-lbl">Leases</div></div>
+        <div class="stat-card"><div class="stat-val" id="auditCount">—</div><div class="stat-lbl">Events</div></div>
+      </div>
+      <div id="secretsList"><div class="empty-state"><div class="empty-icon">⏳</div>Loading secrets...</div></div>
+    </div>
+
+    <!-- CENTER: Active Leases -->
+    <div class="panel" style="border-right: 1px solid var(--border);">
+      <div class="panel-header">
+        <span class="panel-icon">⏱️</span>
+        <h2>Dynamic Credentials & Leases</h2>
+      </div>
+      <div id="leasesList"><div class="empty-state"><div class="empty-icon">💡</div>No active leases.<br>Issue a dynamic credential →</div></div>
+    </div>
+
+    <!-- RIGHT: Actions + Audit -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-icon">⚡</span>
+        <h2>Actions</h2>
+      </div>
+
+      <div class="action-section">
+        <div class="action-title">Dynamic Credentials</div>
+        <select id="roleSelect">
+          <option value="app-role">app-role (TTL: 120s, R/W)</option>
+          <option value="readonly-role">readonly-role (TTL: 60s, R/O)</option>
+        </select>
+        <button class="btn btn-primary" onclick="issueCred()">⚡ Issue Dynamic Credential</button>
+      </div>
+
+      <div class="action-section">
+        <div class="action-title">KV Rotation</div>
+        <select id="rotatePathSelect">
+          <option value="app/stripe">app/stripe — api_key</option>
+          <option value="app/database">app/database — (no sensitive key)</option>
+          <option value="app/redis">app/redis — password</option>
+        </select>
+        <button class="btn btn-secondary" onclick="rotateSecret()">🔄 Rotate Secret Value</button>
+      </div>
+
+      <div class="action-section">
+        <div class="action-title">Write Custom Secret</div>
+        <input type="text" id="newSecretPath"  placeholder="Path (e.g. app/myservice)" value="app/custom">
+        <input type="text" id="newSecretKey"   placeholder="Key name">
+        <input type="text" id="newSecretValue" placeholder="Value">
+        <button class="btn btn-secondary" onclick="writeSecret()">✏️ Write Secret</button>
+      </div>
+
+      <div class="panel-header" style="margin-top: 1.5rem;">
+        <span class="panel-icon">📋</span>
+        <h2>Audit Stream</h2>
+      </div>
+      <ul class="audit-log" id="auditLog">
+        <li class="empty-state" style="list-style:none"><div class="empty-icon">📡</div>Waiting for events...</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const WS_URL = `ws://${location.host}`;
+    let ws, leaseData = [], auditData = [], kvData = [], totalTtl = {};
+
+    // ── WebSocket ─────────────────────────────────────
+    function connectWS() {
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => {
+        setStatus(true);
+        fetchAll();
+      };
+      ws.onclose = () => {
+        setStatus(false);
+        setTimeout(connectWS, 3000);
+      };
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        switch (msg.type) {
+          case 'init':
+            if (msg.payload.leases) renderLeases(msg.payload.leases);
+            if (msg.payload.audit)  renderAudit(msg.payload.audit);
+            break;
+          case 'leases':
+            renderLeases(msg.payload);
+            break;
+          case 'audit':
+            addAuditEntry(msg.payload);
+            break;
+          case 'status':
+            if (msg.payload.vaultInitialized) fetchAll();
+            break;
+        }
+      };
+    }
+
+    function setStatus(online) {
+      const pill = document.getElementById('statusPill');
+      const text = document.getElementById('statusText');
+      pill.className = `status-pill ${online ? 'online' : ''}`;
+      text.textContent = online ? 'Vault Connected' : 'Reconnecting...';
+    }
+
+    async function fetchAll() {
+      await fetchSecrets();
+    }
+
+    // ── Fetch secrets ─────────────────────────────────
+    async function fetchSecrets() {
+      try {
+        const r = await fetch('/api/secrets');
+        const d = await r.json();
+        if (d.ok) {
+          kvData = d.secrets;
+          renderSecrets(d.secrets);
+          document.getElementById('kvCount').textContent = d.secrets.length;
+        }
+      } catch (_) {}
+    }
+
+    function renderSecrets(secrets) {
+      const el = document.getElementById('secretsList');
+      if (!secrets.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div>';
+        return;
+      }
+      el.innerHTML = secrets.map(s => `
+        <div class="card">
+          <div class="card-title">
+            <span class="card-path">${s.path}</span>
+            <span class="version-badge">v${s.version}</span>
+          </div>
+          ${Object.entries(s.data).map(([k,v]) => `
+            <div class="secret-row">
+              <span class="secret-key">${k}</span>
+              <span class="secret-value" title="${v}" onclick="copyText('${v}')">
+                ${k.toLowerCase().includes('key') || k.toLowerCase().includes('pass') || k.toLowerCase().includes('secret')
+                  ? '••••••••••••' : v}
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    // ── Render leases ─────────────────────────────────
+    function renderLeases(leases) {
+      leaseData = leases;
+      document.getElementById('leaseCount').textContent = leases.length;
+      const el = document.getElementById('leasesList');
+      if (!leases.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">💡</div>No active leases.<br>Issue a dynamic credential →</div>';
+        return;
+      }
+      el.innerHTML = leases.map(l => {
+        const pct = totalTtl[l.id]
+          ? Math.round((l.remainingSec / totalTtl[l.id]) * 100)
+          : 100;
+        if (totalTtl[l.id] === undefined && l.remainingSec > 0) totalTtl[l.id] = l.remainingSec;
+        const cls  = pct < 25 ? 'critical' : pct < 50 ? 'warning' : '';
+        const roleCls = l.role === 'readonly-role' ? 'readonly' : '';
+        return `
+          <div class="lease-card ${l.expired ? 'expired' : ''} ${cls === 'critical' ? 'expiring' : ''}">
+            <div class="lease-header">
+              <span class="lease-username">${l.username}</span>
+              <span class="lease-role ${roleCls}">${l.role}</span>
+            </div>
+            <div class="ttl-row">
+              <span class="ttl-label">TTL</span>
+              <div class="ttl-bar"><div class="ttl-fill ${cls}" style="width:${pct}%"></div></div>
+              <span class="ttl-seconds ${cls}">${l.expired ? 'EXPIRED' : l.remainingSec + 's'}</span>
+            </div>
+            ${!l.expired ? `
+            <div class="lease-actions">
+              <button class="btn-sm verify" onclick="verifyCred('${l.id}')">🔌 Verify</button>
+              <button class="btn-sm" onclick="copyText('${l.username}:${l.password || ''}')">📋 Copy</button>
+              <button class="btn-sm danger" onclick="revokeCred('${l.id}')">🗑 Revoke</button>
+            </div>` : '<div style="font-size:0.65rem;color:var(--red);font-family:var(--mono)">— CREDENTIAL REVOKED BY VAULT —</div>'}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Render audit ──────────────────────────────────
+    function renderAudit(events) {
+      auditData = events;
+      document.getElementById('auditCount').textContent = events.length;
+      const el = document.getElementById('auditLog');
+      el.innerHTML = events.slice(0, 20).map(e => auditHtml(e)).join('');
+    }
+
+    function addAuditEntry(e) {
+      auditData.unshift(e);
+      document.getElementById('auditCount').textContent = auditData.length;
+      const el = document.getElementById('auditLog');
+      const li = document.createElement('li');
+      li.innerHTML = auditHtml(e);
+      li.querySelector('.audit-entry')?.classList.add(e.level || 'info');
+      if (el.firstChild && el.firstChild.tagName === 'LI') {
+        el.insertBefore(li, el.firstChild);
+      } else {
+        el.innerHTML = '';
+        el.appendChild(li);
+      }
+      // Keep max 20 visible
+      while (el.children.length > 20) el.removeChild(el.lastChild);
+    }
+
+    function auditHtml(e) {
+      const t = new Date(e.ts);
+      const time = `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}:${t.getSeconds().toString().padStart(2,'0')}`;
+      return `<li><div class="audit-entry ${e.level || 'info'}">
+        <span class="audit-time">${time}</span>
+        <span class="audit-action">${e.action}</span>
+        <span class="audit-detail">${e.detail}</span>
+      </div></li>`;
+    }
+
+    // ── Actions ───────────────────────────────────────
+    async function issueCred() {
+      const role = document.getElementById('roleSelect').value;
+      toast('⚡ Requesting dynamic credential...', 'info');
+      try {
+        const r = await fetch('/api/creds/dynamic', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ role }),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          totalTtl[d.id] = d.ttlSeconds;
+          toast(`✅ Issued: ${d.username} (TTL: ${d.ttlSeconds}s)`, 'success');
+          await fetchSecrets();
+        } else {
+          toast(`❌ ${d.error}`, 'error');
+        }
+      } catch (e) { toast('❌ Request failed', 'error'); }
+    }
+
+    async function verifyCred(id) {
+      const lease = leaseData.find(l => l.id === id);
+      if (!lease) return;
+      // We need username/password — fetch from leases endpoint
+      try {
+        const r = await fetch('/api/creds/dynamic/cached');
+      } catch (_) {}
+      // Just re-issue a verify using stored password (stored in DOM attr in a real app)
+      // For demo: show toast with connect info
+      toast(`🔌 To verify manually: psql -h localhost -p 5433 -U ${lease.username} appdb`, 'info', 6000);
+    }
+
+    async function revokeCred(id) {
+      try {
+        const r = await fetch(`/api/creds/${id}`, { method: 'DELETE' });
+        const d = await r.json();
+        if (d.ok) toast('🗑 Lease revoked', 'info');
+        else toast(`❌ ${d.error}`, 'error');
+      } catch (_) { toast('❌ Revoke failed', 'error'); }
+    }
+
+    async function rotateSecret() {
+      const path = document.getElementById('rotatePathSelect').value;
+      const keyMap = { 'app/stripe': 'api_key', 'app/database': 'host', 'app/redis': 'password' };
+      const key = keyMap[path] || 'password';
+      try {
+        const r = await fetch('/api/rotate', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ path, key }),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast(`🔄 Rotated ${path}/${key} → v${d.newVersion}`, 'success');
+          await fetchSecrets();
+        } else toast(`❌ ${d.error}`, 'error');
+      } catch (_) { toast('❌ Rotation failed', 'error'); }
+    }
+
+    async function writeSecret() {
+      const path  = document.getElementById('newSecretPath').value.trim();
+      const key   = document.getElementById('newSecretKey').value.trim();
+      const value = document.getElementById('newSecretValue').value.trim();
+      if (!path || !key || !value) { toast('⚠️ Fill in all fields', 'info'); return; }
+      try {
+        const r = await fetch('/api/secrets', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ path, key, value }),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          toast(`✅ Written to ${path}`, 'success');
+          await fetchSecrets();
+        } else toast(`❌ ${d.error}`, 'error');
+      } catch (_) { toast('❌ Write failed', 'error'); }
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => toast('📋 Copied!', 'info', 1500)).catch(() => {});
+    }
+
+    // ── Toast ─────────────────────────────────────────
+    function toast(msg, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast');
+      const el = document.createElement('div');
+      el.className = `toast-item ${type}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, duration);
+    }
+
+    // ── Init ─────────────────────────────────────────
+    connectWS();
+
+    // Periodic refresh
+    setInterval(fetchSecrets, 10000);
+    setInterval(async () => {
+      const r = await fetch('/api/audit').then(r => r.json()).catch(() => null);
+      if (r?.ok) renderAudit(r.events);
+    }, 5000);
+  </script>
+</body>
+</html>

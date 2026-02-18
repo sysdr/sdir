@@ -1,0 +1,66 @@
+networks:
+  vault-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+services:
+  vault:
+    image: hashicorp/vault:1.17
+    container_name: vault-demo
+    networks: [vault-net]
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "dev-root-token"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_LOG_LEVEL: "info"
+    cap_add: [IPC_LOCK]
+    command: server -dev
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://127.0.0.1:8200/v1/sys/health | grep -q '\"initialized\":true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-demo
+    networks: [vault-net]
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_root
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: vault-backend
+    networks: [vault-net]
+    ports:
+      - "3000:3000"
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "dev-root-token"
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DB: appdb
+      PG_ADMIN_USER: postgres
+      PG_ADMIN_PASS: postgres_root
+      PORT: 3000
+    depends_on:
+      vault:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy

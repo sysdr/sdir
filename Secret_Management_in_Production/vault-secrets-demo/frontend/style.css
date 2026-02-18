@@ -1,0 +1,4 @@
+/* Dashboard background - light red (loads last to override inline styles) */
+body {
+  background: #ffcccc !important;
+}
