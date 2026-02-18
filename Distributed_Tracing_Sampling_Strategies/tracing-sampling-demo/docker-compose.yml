@@ -1,0 +1,23 @@
+services:
+  collector:
+    build: ./collector
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  generator:
+    build: ./generator
+    depends_on:
+      collector:
+        condition: service_healthy
+    environment:
+      - COLLECTOR_URL=http://collector:3000
+      - TRACE_RATE=18
+    restart: unless-stopped

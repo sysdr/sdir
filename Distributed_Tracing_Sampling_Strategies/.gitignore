@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Istio
+*istio*
+istio/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+*.tmp
+.cache/
+
+# Docker (optional: uncomment to ignore)
+# docker-compose.override.yml
+
+# Secrets / keys (never commit)
+*.pem
+*.key
+*api*key*
+*secret*
+credentials*

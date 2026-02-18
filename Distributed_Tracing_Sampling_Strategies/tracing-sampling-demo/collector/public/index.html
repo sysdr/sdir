@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sampling Strategies — Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #ffc0cb;
+    --surface:   #081228;
+    --card:      #0c1a38;
+    --border:    #1a3060;
+    --accent:    #2563eb;
+    --accent2:   #3b82f6;
+    --accent3:   #60a5fa;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --keep:      #22d3ee;
+    --drop:      #475569;
+    --error:     #f87171;
+    --slow:      #fbbf24;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* Header */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left h1 {
+    font-size: 18px; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .header-left p {
+    font-size: 12px; color: var(--muted); margin-top: 3px;
+    font-family: var(--font-mono);
+  }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--keep);
+    box-shadow: 0 0 8px var(--keep);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block; margin-right: 8px;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+  /* Strategy Selector */
+  .strategy-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .strategy-btn {
+    padding: 8px 16px; border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.03em;
+    transition: all .2s;
+  }
+  .strategy-btn:hover { border-color: var(--accent2); color: var(--accent3); }
+  .strategy-btn.active {
+    background: var(--accent); border-color: var(--accent2);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(37,99,235,.4);
+  }
+
+  /* Metrics Grid */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px; margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    position: relative; overflow: hidden;
+  }
+  .metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+  }
+  .metric-label {
+    font-size: 10px; font-weight: 500; color: var(--muted);
+    letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .metric-value {
+    font-family: var(--font-mono); font-size: 28px; font-weight: 600;
+    color: var(--text); line-height: 1; transition: all .3s;
+  }
+  .metric-sub { font-size: 10px; color: var(--muted); margin-top: 6px; font-family: var(--font-mono); }
+  .metric-value.highlight { color: var(--keep); }
+  .metric-value.warn      { color: var(--slow); }
+  .metric-value.danger    { color: var(--error); }
+
+  /* Main Content Split */
+  .content { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+  @media (max-width: 1100px) { .content { grid-template-columns: 1fr; } }
+
+  /* Trace Feed */
+  .panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .panel-header {
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 12px; font-weight: 600; color: var(--text);
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  .panel-count {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  }
+  .trace-feed { overflow-y: auto; max-height: 520px; padding: 8px; }
+  .trace-item {
+    display: grid; grid-template-columns: auto 1fr auto auto;
+    gap: 12px; align-items: center;
+    padding: 8px 10px; border-radius: 6px; margin-bottom: 4px;
+    border: 1px solid transparent;
+    font-family: var(--font-mono); font-size: 11px;
+    transition: all .2s;
+  }
+  .trace-item.keep  { background: rgba(34,211,238,.05); border-color: rgba(34,211,238,.15); }
+  .trace-item.drop  { background: rgba(71,85,105,.05);  border-color: rgba(71,85,105,.15); opacity: .7; }
+  .trace-item.error-trace { background: rgba(248,113,113,.07); border-color: rgba(248,113,113,.2); }
+  .badge {
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: .05em;
+    min-width: 44px; text-align: center;
+  }
+  .badge.keep  { background: rgba(34,211,238,.2); color: var(--keep); }
+  .badge.drop  { background: rgba(71,85,105,.3);  color: #94a3b8; }
+  .badge.error { background: rgba(248,113,113,.2); color: var(--error); }
+  .trace-id    { color: var(--accent3); font-size: 10px; }
+  .trace-dur   { color: var(--slow); font-size: 10px; }
+  .trace-reason { color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+
+  /* Right Column */
+  .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Storage Bar */
+  .storage-visual {
+    padding: 18px;
+  }
+  .storage-label { font-size: 11px; color: var(--muted); margin-bottom: 10px; font-family: var(--font-mono); }
+  .storage-bar-bg {
+    height: 12px; background: rgba(71,85,105,.4); border-radius: 6px;
+    overflow: hidden; margin-bottom: 8px;
+  }
+  .storage-bar-fill {
+    height: 100%; border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--keep));
+    transition: width .8s ease;
+  }
+  .storage-stats {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  }
+  .kept-mb   { color: var(--keep); }
+  .dropped-mb { color: var(--drop); }
+
+  /* Strategy Explainer */
+  .explainer { padding: 16px 18px; }
+  .explainer-title { font-size: 11px; font-weight: 600; color: var(--accent3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; }
+  .explainer-text  { font-size: 12px; line-height: 1.7; color: #94a3b8; }
+
+  /* Legend */
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-top: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1><span class="pulse"></span>Distributed Tracing Sampling Dashboard</h1>
+    <p>Article 201 — Section 8: Production Engineering &amp; Optimization</p>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted)" id="conn-status">Connecting...</div>
+</div>
+
+<div class="strategy-bar" id="strategy-bar">
+  <button class="strategy-btn" data-s="head_probabilistic">Head Probabilistic</button>
+  <button class="strategy-btn" data-s="head_rate_limited">Head Rate-Limited</button>
+  <button class="strategy-btn active" data-s="tail_based">Tail-Based</button>
+  <button class="strategy-btn" data-s="adaptive">Adaptive</button>
+</div>
+
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-label">Traces Received</div>
+    <div class="metric-value" id="m-received">—</div>
+    <div class="metric-sub">total ingested</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Sample Rate</div>
+    <div class="metric-value highlight" id="m-rate">—</div>
+    <div class="metric-sub">% of traces kept</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Kept / sec</div>
+    <div class="metric-value" id="m-kps">—</div>
+    <div class="metric-sub">5-sec sliding window</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Errors Kept</div>
+    <div class="metric-value warn" id="m-err">—</div>
+    <div class="metric-sub">% of errors sampled</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Storage Saved</div>
+    <div class="metric-value highlight" id="m-saved">—</div>
+    <div class="metric-sub">bytes dropped vs total</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Dropped</div>
+    <div class="metric-value" id="m-dropped" style="color:var(--muted)">—</div>
+    <div class="metric-sub">not written to storage</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Live Sampling Decisions</span>
+      <span class="panel-count" id="feed-count">0 decisions</span>
+    </div>
+    <div class="trace-feed" id="trace-feed"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:var(--keep)"></div>KEEP</div>
+      <div class="legend-item"><div class="dot" style="background:var(--drop)"></div>DROP</div>
+      <div class="legend-item"><div class="dot" style="background:var(--error)"></div>ERROR trace</div>
+      <div class="legend-item"><div class="dot" style="background:var(--slow)"></div>slow trace</div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Storage Breakdown</span></div>
+      <div class="storage-visual">
+        <div class="storage-label">KEPT vs DROPPED bytes (estimated)</div>
+        <div class="storage-bar-bg"><div class="storage-bar-fill" id="storage-bar" style="width:10%"></div></div>
+        <div class="storage-stats">
+          <span class="kept-mb">Kept: <span id="s-kept">0</span> MB</span>
+          <span class="dropped-mb">Dropped: <span id="s-dropped">0</span> MB</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Active Strategy</span></div>
+      <div class="explainer">
+        <div class="explainer-title" id="strat-name">tail_based</div>
+        <div class="explainer-text" id="strat-desc">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DESCRIPTIONS = {
+  head_probabilistic: 'Sampling decision made at trace start. 10% probability — no information about downstream spans. Fast and cheap, but errors can be dropped before they happen.',
+  head_rate_limited:  'Token bucket allows ~12 traces/sec. Fills continuously; if token bucket is empty, traces are dropped regardless of content.',
+  tail_based:         'All spans buffered. Decision made after trace completes: keep if error detected OR latency > 400ms. 5% baseline sample for normal traces.',
+  adaptive:           'EWMA-adjusted rate targeting ~15 kept traces/sec. Auto-scales between 0.1% and 100%. Always keeps errors. Avoids oscillation via smoothing.',
+};
+
+let currentStrategy = 'tail_based';
+let ws;
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}`);
+  ws.onopen = () => {
+    document.getElementById('conn-status').textContent = '● Connected';
+    document.getElementById('conn-status').style.color = '#22d3ee';
+  };
+  ws.onclose  = () => { setTimeout(connect, 2000); };
+  ws.onerror  = () => { ws.close(); };
+  ws.onmessage = e => render(JSON.parse(e.data));
+}
+
+function num(n) { return Number(n).toLocaleString(); }
+function pct(n) { return `${n}%`; }
+const noData = '—';
+
+function render(data) {
+  const hasData = data.received > 0;
+  document.getElementById('m-received').textContent = num(data.received);
+  document.getElementById('m-rate').textContent     = hasData ? pct(data.keptRatePct) : noData;
+  document.getElementById('m-kps').textContent      = hasData ? data.keptPerSec : noData;
+  document.getElementById('m-err').textContent      = data.errorsKeptPct + (data.errorsKeptPct === '—' ? '' : '%');
+  document.getElementById('m-saved').textContent     = hasData ? pct(data.storageSavePct) : noData;
+  document.getElementById('m-dropped').textContent   = hasData ? num(data.dropped) : noData;
+
+  document.getElementById('s-kept').textContent    = hasData ? data.bytesKeptMB : '0';
+  document.getElementById('s-dropped').textContent = hasData ? data.bytesDroppedMB : '0';
+
+  const keptF = parseFloat(data.bytesKeptMB) || 0;
+  const totF  = keptF + (parseFloat(data.bytesDroppedMB) || 0);
+  const barW  = totF > 0 ? ((keptF / totF) * 100).toFixed(1) : 10;
+  document.getElementById('storage-bar').style.width = barW + '%';
+
+  // Update strategy if changed server-side
+  if (data.strategy !== currentStrategy) {
+    currentStrategy = data.strategy;
+    updateStrategyUI(currentStrategy);
+  }
+
+  document.getElementById('feed-count').textContent = hasData ? `${data.kept + data.dropped} decisions` : '0 decisions';
+  renderFeed(data.recentTraces || []);
+}
+
+function renderFeed(traces) {
+  const feed = document.getElementById('trace-feed');
+  feed.innerHTML = traces.map(t => {
+    const cls   = t.hasError ? 'error-trace' : (t.keep ? 'keep' : 'drop');
+    const badge = t.hasError ? 'error' : (t.keep ? 'keep' : 'drop');
+    const bl    = t.hasError ? 'ERR' : (t.keep ? 'KEEP' : 'DROP');
+    const durColor = t.duration > 400 ? 'color:var(--slow)' : '';
+    return `<div class="trace-item ${cls}">
+      <span class="badge ${badge}">${bl}</span>
+      <span class="trace-reason">${esc(t.reason)}</span>
+      <span class="trace-id">${t.traceId}</span>
+      <span class="trace-dur" style="${durColor}">${t.duration}ms</span>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+}
+
+function updateStrategyUI(s) {
+  document.querySelectorAll('.strategy-btn').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  document.getElementById('strat-name').textContent = s;
+  document.getElementById('strat-desc').textContent = DESCRIPTIONS[s] || '';
+}
+
+document.querySelectorAll('.strategy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const s = btn.dataset.s;
+    await fetch('/strategy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy: s }),
+    });
+    currentStrategy = s;
+    updateStrategyUI(s);
+  });
+});
+
+updateStrategyUI(currentStrategy);
+connect();
+</script>
+</body>
+</html>
