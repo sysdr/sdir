@@ -1,0 +1,83 @@
+# Docker Compose (no version - attribute obsolete in Compose v2)
+
+networks:
+  littles-law-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: littleslaw
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    networks: [littles-law-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d littleslaw"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app-server:
+    build: ./app-server
+    ports:
+      - "3002:3002"
+    environment:
+      PGHOST: postgres
+      PGDATABASE: littleslaw
+      PGUSER: demo
+      PGPASSWORD: demo
+      BASE_LATENCY_MS: "80"
+      CONCURRENCY_LIMIT: "30"
+      DB_POOL_SIZE: "5"
+    networks: [littles-law-net]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3001:3001"
+    environment:
+      PGHOST: postgres
+      PGDATABASE: littleslaw
+      PGUSER: demo
+      PGPASSWORD: demo
+      APP_SERVER_URL: http://app-server:3002
+      CONCURRENCY_LIMIT: "50"
+    networks: [littles-law-net]
+    depends_on:
+      app-server:
+        condition: service_healthy
+
+  load-generator:
+    build: ./load-generator
+    environment:
+      GATEWAY_URL: http://api-gateway:3001
+      TARGET_RPS: "10"
+      DURATION_SEC: "120"
+    networks: [littles-law-net]
+    depends_on:
+      - api-gateway
+    profiles: [load]
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "8080:80"
+    networks: [littles-law-net]
+    depends_on:
+      - api-gateway
+      - app-server

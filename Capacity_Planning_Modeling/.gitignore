@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+.env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Secrets / keys (never commit real credentials)
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# Build / generated (optional: uncomment if you want to ignore demo build artifacts)
+# littles-law-demo/
+
+# Istio (if generated or downloaded)
+istio/
