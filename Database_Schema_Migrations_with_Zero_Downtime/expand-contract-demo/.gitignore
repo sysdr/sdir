@@ -1,0 +1,89 @@
+# -----------------------------------------------------------------------------
+# Production-ready .gitignore — nothing below should be committed
+# -----------------------------------------------------------------------------
+
+# Generated demo (created by setup.sh — single source of truth is setup.sh)
+expand-contract-demo/
+
+# Dependencies (never commit)
+node_modules/
+venv/
+.venv/
+env/
+.env/
+*.env
+
+# Environment and secrets (never commit)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+*.pem
+secrets/
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Build and compiled artifacts
+dist/
+build/
+out/
+target/
+*.o
+*.so
+*.dll
+
+# Istio / k8s local
+istio/
+install/istio/
+*.kubeconfig
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Local database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker local overrides (if used later)
+docker-compose.override.yml
+.env.docker

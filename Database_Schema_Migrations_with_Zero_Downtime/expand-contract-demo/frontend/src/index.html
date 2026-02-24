@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expand-Contract Pattern Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #EDE9FE;
+      --surface: #F5F3FF;
+      --blue-50: #EDE9FE;
+      --blue-100: #DDD6FE;
+      --blue-200: #C4B5FD;
+      --blue-400: #A78BFA;
+      --blue-500: #8B5CF6;
+      --blue-600: #7C3AED;
+      --blue-700: #6D28D9;
+      --blue-900: #4C1D95;
+      --green: #22C55E;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --text: #1E293B;
+      --muted: #5B21B6;
+      --border: #C4B5FD;
+      --shadow: 0 4px 16px rgba(139,92,246,0.2);
+      --shadow-sm: 0 2px 8px rgba(139,92,246,0.15);
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #EDE9FE;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #6D28D9, #8B5CF6);
+      color: white;
+      padding: 28px 40px 32px;
+      box-shadow: 0 4px 24px rgba(109,40,217,0.4);
+      border-bottom: 3px solid rgba(255,255,255,0.15);
+    }
+    header h1 { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p { font-size: 0.9rem; opacity: 0.9; margin-top: 6px; letter-spacing: 0.01em; }
+    .container { max-width: 1320px; margin: 0 auto; padding: 32px 28px 48px; }
+
+    /* Phase progress */
+    .phase-bar {
+      display: flex;
+      gap: 0;
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow), 0 1px 0 rgba(255,255,255,0.5) inset;
+      overflow: hidden;
+      margin-bottom: 32px;
+      padding: 6px;
+      border: 1px solid var(--border);
+    }
+    .phase-step {
+      flex: 1;
+      padding: 18px 14px;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--blue-50);
+      border-radius: 12px;
+      margin: 0 3px;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+    .phase-step:first-child { margin-left: 0; }
+    .phase-step:last-child { margin-right: 0; }
+    .phase-step.active { background: var(--blue-500); color: white; box-shadow: 0 4px 14px rgba(139,92,246,0.4); border-color: rgba(255,255,255,0.2); }
+    .phase-step.done { background: var(--blue-100); color: var(--blue-700); }
+    .phase-step .step-icon { font-size: 1.35rem; display: block; margin-bottom: 6px; }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 24px; margin-bottom: 28px; }
+    .grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-bottom: 28px; }
+
+    .card {
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 24px 26px;
+      box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.6) inset;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.25s ease, transform 0.2s ease;
+    }
+    .card:hover { box-shadow: 0 8px 28px rgba(139,92,246,0.18), 0 1px 0 rgba(255,255,255,0.6) inset; }
+    .card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--blue-900);
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--blue-100);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h3 .badge {
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--blue-100);
+      color: var(--blue-700);
+    }
+
+    .card:first-of-type .actions { gap: 12px; }
+    /* Action buttons */
+    .actions { display: flex; flex-direction: column; gap: 10px; }
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary { background: var(--blue-500); color: white; }
+    .btn-primary:hover { background: var(--blue-600); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.35); }
+    .btn-secondary { background: var(--blue-100); color: var(--blue-700); }
+    .btn-secondary:hover { background: var(--blue-200); }
+    .btn-danger { background: #FEE2E2; color: #DC2626; }
+    .btn-danger:hover { background: #FECACA; }
+    .btn-warn { background: #FEF3C7; color: #92400E; }
+    .btn-warn:hover { background: #FDE68A; }
+    .btn-green { background: #DCFCE7; color: #166534; }
+    .btn-green:hover { background: #BBF7D0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Schema display */
+    .schema-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; border-radius: 10px; overflow: hidden; }
+    .schema-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--blue-50);
+      color: var(--blue-700);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .schema-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .schema-table tr:last-child td { border-bottom: none; }
+    .col-new { background: #FFFBEB; }
+    .col-dropped { background: #FEF2F2; text-decoration: line-through; color: #EF4444; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .pill-blue { background: var(--blue-100); color: var(--blue-700); }
+    .pill-green { background: #DCFCE7; color: #166534; }
+    .pill-amber { background: #FEF3C7; color: #92400E; }
+    .pill-red { background: #FEE2E2; color: #DC2626; }
+
+    /* Progress bar */
+    .progress-wrap { background: var(--blue-50); border-radius: 8px; height: 18px; overflow: hidden; margin: 8px 0; }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue-400), var(--blue-600));
+      border-radius: 8px;
+      transition: width 0.4s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    /* Stats */
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); }
+    .stat-value { font-size: 0.9rem; font-weight: 700; color: var(--blue-700); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.amber { color: var(--amber); }
+
+    /* Event log */
+    .event-log {
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.75rem;
+      font-family: 'Courier New', monospace;
+      padding-right: 4px;
+      border-radius: 10px;
+    }
+    .log-entry {
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .log-info { background: var(--blue-50); color: var(--blue-700); }
+    .log-success { background: #F0FDF4; color: #166534; }
+    .log-warn { background: #FFFBEB; color: #92400E; }
+    .log-error { background: #FEF2F2; color: #DC2626; }
+    .log-time { opacity: 0.6; white-space: nowrap; }
+    .log-msg { flex: 1; }
+
+    /* Sample data */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .data-table th { background: var(--blue-50); color: var(--blue-700); padding: 6px 10px; text-align: left; font-size: 0.72rem; }
+    .data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .null-val { color: #94A3B8; font-style: italic; }
+
+    /* Lock comparison */
+    .lock-bar-wrap { margin: 8px 0; }
+    .lock-bar-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .lock-bar-track { height: 14px; background: var(--blue-50); border-radius: 6px; overflow: hidden; }
+    .lock-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 6px; font-size: 0.65rem; font-weight: 700; color: white; }
+    .lock-bar-fill.safe { background: var(--green); }
+    .lock-bar-fill.dangerous { background: var(--red); width: 85%; }
+
+    /* Result toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--blue-700);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(30,58,95,0.3);
+      max-width: 400px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Full-width bottom card (Migration History) */
+    .container > .card { margin-top: 8px; }
+    .container > .card .schema-table th { padding: 12px 14px; }
+    .container > .card .schema-table td { padding: 12px 14px; }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ Expand-Contract Pattern — Zero Downtime Migrations</h1>
+    <p>System Design Interview Roadmap · Article 212 · Live Database Migration Demo</p>
+  </header>
+
+  <div class="container">
+
+    <!-- Phase Progress Bar -->
+    <div class="phase-bar" id="phaseBar">
+      <div class="phase-step active" id="phase-pre">
+        <span class="step-icon">🏁</span>Pre-Migration
+      </div>
+      <div class="phase-step" id="phase-expand">
+        <span class="step-icon">📐</span>Expand
+      </div>
+      <div class="phase-step" id="phase-backfill">
+        <span class="step-icon">⚙️</span>Backfill
+      </div>
+      <div class="phase-step" id="phase-dual">
+        <span class="step-icon">✍️</span>Dual-Write
+      </div>
+      <div class="phase-step" id="phase-contract">
+        <span class="step-icon">✅</span>Contract
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Controls -->
+      <div class="card">
+        <h3>🎛️ Migration Controls</h3>
+        <div class="actions">
+          <button class="btn btn-secondary" id="btnExpand" onclick="doAction('/api/migrate/expand','POST')">
+            📐 Phase 1: Expand (ADD COLUMN)
+          </button>
+          <button class="btn btn-secondary" id="btnBackfill" onclick="doAction('/api/migrate/backfill','POST',{batchSize:5000,sleepMs:80})">
+            ⚙️ Phase 2a: Run Backfill
+          </button>
+          <button class="btn btn-secondary" id="btnDualWrite" onclick="doAction('/api/migrate/dual-write','POST')">
+            ✍️ Phase 2b: Activate Dual-Write
+          </button>
+          <button class="btn btn-primary" id="btnContract" onclick="doAction('/api/migrate/contract','POST')">
+            ✂️ Phase 3: Contract (DROP COLUMN)
+          </button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:4px 0"/>
+          <button class="btn btn-green" onclick="doAction('/api/simulate/write','POST')">
+            💾 Simulate App Write
+          </button>
+          <button class="btn btn-warn" onclick="doAction('/api/simulate/naive','POST')">
+            ⚠️ Simulate Naive Migration
+          </button>
+          <button class="btn btn-danger" onclick="if(confirm('Reset demo to initial state?'))doAction('/api/reset','POST')">
+            🔄 Reset Demo
+          </button>
+        </div>
+      </div>
+
+      <!-- Schema State -->
+      <div class="card">
+        <h3>📋 Live Schema State <span class="badge" id="schemaBadge">pre-migration</span></h3>
+        <table class="schema-table" id="schemaTable">
+          <thead>
+            <tr><th>Column</th><th>Type</th><th>Nullable</th><th>Status</th></tr>
+          </thead>
+          <tbody id="schemaTbody">
+            <tr><td colspan="4" style="color:var(--muted);text-align:center;padding:16px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Column Population Stats -->
+      <div class="card">
+        <h3>📊 Column Population</h3>
+        <div id="colStats">
+          <div class="stat-row">
+            <span class="stat-label">full_name rows</span>
+            <span class="stat-value" id="stat-fullname">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">first_name rows</span>
+            <span class="stat-value" id="stat-firstname">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">last_name rows</span>
+            <span class="stat-value" id="stat-lastname">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Current Phase</span>
+            <span class="stat-value amber" id="stat-phase">pre_migration</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Dual-Write Active</span>
+            <span class="stat-value" id="stat-dual">false</span>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px">Backfill Progress</div>
+            <div class="progress-wrap">
+              <div class="progress-fill" id="backfillProgress" style="width:0%">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div style="font-size:0.8rem;font-weight:600;color:var(--blue-900);margin-bottom:8px">Lock Duration Comparison</div>
+          <div class="lock-bar-wrap">
+            <div class="lock-bar-label"><span>Expand (ADD COLUMN)</span><span id="expandLockMs">—</span></div>
+            <div class="lock-bar-track">
+              <div class="lock-bar-fill safe" style="width:2%" id="expandLockBar">~0ms</div>
+            </div>
+          </div>
+          <div class="lock-bar-wrap">
+            <div class="lock-bar-label"><span>Contract (DROP COLUMN)</span><span id="contractLockMs">—</span></div>
+            <div class="lock-bar-track">
+              <div class="lock-bar-fill safe" style="width:1%" id="contractLockBar">~1ms</div>
+            </div>
+          </div>
+          <div class="lock-bar-wrap">
+            <div class="lock-bar-label"><span>Naive Migration (simulated)</span><span id="naiveLockMs">not run</span></div>
+            <div class="lock-bar-track">
+              <div class="lock-bar-fill dangerous" id="naiveLockBar">2-5s+ (scales to minutes)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Sample Data -->
+      <div class="card">
+        <h3>🗄️ Sample Data <span class="badge">users table — 5 rows</span></h3>
+        <div style="overflow-x:auto">
+          <table class="data-table" id="sampleTable">
+            <thead><tr id="sampleHeader"></tr></thead>
+            <tbody id="sampleTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="card">
+        <h3>📝 Event Log <span class="badge" id="logCount">0 events</span></h3>
+        <div class="event-log" id="eventLog">
+          <div class="log-entry log-info">
+            <span class="log-time">init</span>
+            <span class="log-msg">Demo ready — click Phase 1: Expand to begin migration</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Migration History -->
+    <div class="card">
+      <h3>📜 Migration History</h3>
+      <table class="schema-table" id="migTable">
+        <thead>
+          <tr>
+            <th>Phase</th><th>Description</th>
+            <th>Started</th><th>Completed</th>
+            <th>Rows</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="migTbody">
+          <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:16px">No migrations run yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const API = 'http://localhost:3001';
+    let eventCount = 0;
+
+    // WebSocket
+    const ws = new WebSocket('ws://localhost:3001');
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      handleWsMessage(data);
+    };
+    ws.onerror = () => addLog('warn', 'WebSocket connection issue — retrying on next poll');
+
+    function handleWsMessage(data) {
+      switch(data.type) {
+        case 'phase_change':
+          addLog('success', `Phase changed to: ${data.phase}${data.lockMs !== undefined ? ` (lock: ${data.lockMs}ms)` : ''}`);
+          break;
+        case 'backfill_progress':
+          document.getElementById('backfillProgress').style.width = data.progress + '%';
+          document.getElementById('backfillProgress').textContent = data.progress + '%';
+          addLog('info', `Backfill: ${data.processed.toLocaleString()} / ${data.total.toLocaleString()} rows (${data.progress}%) — batch: ${data.batchUpdated}`);
+          break;
+        case 'backfill_complete':
+          addLog('success', `✅ Backfill complete! ${data.totalProcessed.toLocaleString()} rows processed`);
+          break;
+        case 'write':
+          addLog('info', `App write: "${data.name}" — dual-write: ${data.dualWrite}`);
+          break;
+        case 'naive_migration':
+          document.getElementById('naiveLockMs').textContent = `${Math.round(data.simulatedLockMs)}ms simulated`;
+          addLog('warn', `⚠️ Naive migration simulated: ${Math.round(data.simulatedLockMs)}ms lock on 50K rows — scales to 47+ minutes at 200M rows`);
+          break;
+        case 'reset':
+          addLog('info', '🔄 Demo reset to initial state');
+          document.getElementById('backfillProgress').style.width = '0%';
+          document.getElementById('backfillProgress').textContent = '0%';
+          break;
+      }
+      refreshState();
+    }
+
+    async function doAction(url, method, body) {
+      try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(API + url, opts);
+        const data = await res.json();
+        if (data.error) {
+          showToast('❌ ' + data.error, 'error');
+          addLog('error', data.error);
+        } else {
+          showToast(data.message || 'Done', 'success');
+        }
+        refreshState();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+        addLog('error', err.message);
+      }
+    }
+
+    async function refreshState() {
+      try {
+        const res = await fetch(API + '/api/state');
+        const data = await res.json();
+        updateUI(data);
+      } catch (e) {
+        // silent
+      }
+    }
+
+    function updateUI(data) {
+      if (!data) return;
+      const state = data.state || {};
+      const columns = data.columns || [];
+      const migrations = data.migrations || [];
+      const lockEvents = data.lockEvents || [];
+      const colCounts = data.colCounts || { full_name: 0, first_name: 0, last_name: 0 };
+      const sampleRows = data.sampleRows || [];
+
+      // Phase bar
+      const phaseMap = {
+        'pre_migration': 'pre',
+        'expand': 'expand',
+        'backfill_complete': 'backfill',
+        'dual_write': 'dual',
+        'contract_complete': 'contract',
+      };
+      const phases = ['pre','expand','backfill','dual','contract'];
+      const currentIdx = phases.indexOf(phaseMap[state.current_phase] || 'pre');
+      phases.forEach((p, i) => {
+        const el = document.getElementById('phase-' + p);
+        el.className = 'phase-step' + (i < currentIdx ? ' done' : i === currentIdx ? ' active' : '');
+      });
+
+      // Schema badge
+      document.getElementById('schemaBadge').textContent = state.current_phase.replace(/_/g,' ');
+
+      // Schema table
+      const tbody = document.getElementById('schemaTbody');
+      if (columns.length) {
+        tbody.innerHTML = columns.map(c => {
+          const isNew = ['first_name','last_name'].includes(c.column_name);
+          const cls = isNew ? 'class="col-new"' : '';
+          const tag = isNew
+            ? '<span class="pill pill-amber">new</span>'
+            : '<span class="pill pill-blue">original</span>';
+          return `<tr ${cls}>
+            <td><strong>${c.column_name}</strong></td>
+            <td>${c.data_type}</td>
+            <td>${c.is_nullable === 'YES' ? '<span class="pill pill-amber">nullable</span>' : '<span class="pill pill-green">NOT NULL</span>'}</td>
+            <td>${tag}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Col stats
+      document.getElementById('stat-fullname').textContent =
+        colCounts.full_name > 0 ? colCounts.full_name.toLocaleString() : '—';
+      document.getElementById('stat-firstname').textContent =
+        colCounts.first_name > 0 ? colCounts.first_name.toLocaleString() : (
+          columns.some(c => c.column_name === 'first_name') ? '0' : '—'
+        );
+      document.getElementById('stat-lastname').textContent =
+        colCounts.last_name > 0 ? colCounts.last_name.toLocaleString() : (
+          columns.some(c => c.column_name === 'last_name') ? '0' : '—'
+        );
+      document.getElementById('stat-phase').textContent = state.current_phase;
+      const dualEl = document.getElementById('stat-dual');
+      dualEl.textContent = state.dual_write_active;
+      dualEl.className = 'stat-value ' + (state.dual_write_active === 'true' ? 'green' : 'red');
+
+      // Backfill
+      const progress = parseInt(state.backfill_progress) || 0;
+      document.getElementById('backfillProgress').style.width = progress + '%';
+      document.getElementById('backfillProgress').textContent = progress + '%';
+
+      // Lock events
+      const expandEvent = lockEvents.find(e => e.phase === 'expand');
+      const contractEvent = lockEvents.find(e => e.phase === 'contract');
+      const naiveEvent = lockEvents.find(e => e.phase === 'naive');
+      if (expandEvent) {
+        const ms = Number(expandEvent.duration_ms) || 0;
+        document.getElementById('expandLockMs').textContent = ms.toFixed(1) + 'ms';
+        document.getElementById('expandLockBar').style.width = Math.min(ms / 10, 15) + '%';
+        document.getElementById('expandLockBar').textContent = ms.toFixed(1) + 'ms';
+      }
+      if (contractEvent) {
+        const ms = Number(contractEvent.duration_ms) || 0;
+        document.getElementById('contractLockMs').textContent = ms.toFixed(1) + 'ms';
+        document.getElementById('contractLockBar').style.width = Math.min(ms / 10, 15) + '%';
+        document.getElementById('contractLockBar').textContent = ms.toFixed(1) + 'ms';
+      }
+      if (naiveEvent) {
+        const ms = Number(naiveEvent.duration_ms) || 0;
+        document.getElementById('naiveLockMs').textContent = ms.toFixed(0) + 'ms (sim)';
+      }
+
+      // Sample data
+      if (sampleRows.length) {
+        const cols = Object.keys(sampleRows[0]);
+        document.getElementById('sampleHeader').innerHTML = cols.map(c => `<th>${c}</th>`).join('');
+        document.getElementById('sampleTbody').innerHTML = sampleRows.map(row =>
+          `<tr>${cols.map(c => `<td>${row[c] === null ? '<span class="null-val">NULL</span>' : row[c]}</td>`).join('')}</tr>`
+        ).join('');
+      }
+
+      // Migrations
+      if (migrations.length) {
+        document.getElementById('migTbody').innerHTML = migrations.map(m => `
+          <tr>
+            <td><span class="pill pill-blue">${m.phase}</span></td>
+            <td style="font-size:0.78rem">${m.description}</td>
+            <td style="font-size:0.75rem;color:var(--muted)">${new Date(m.started_at).toLocaleTimeString()}</td>
+            <td style="font-size:0.75rem;color:var(--muted)">${m.completed_at ? new Date(m.completed_at).toLocaleTimeString() : '…'}</td>
+            <td>${(m.rows_processed != null ? m.rows_processed : 0).toLocaleString()}</td>
+            <td><span class="pill ${m.status === 'completed' ? 'pill-green' : m.status === 'running' ? 'pill-amber' : 'pill-red'}">${m.status}</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function addLog(type, msg) {
+      eventCount++;
+      document.getElementById('logCount').textContent = eventCount + ' events';
+      const log = document.getElementById('eventLog');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      const now = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="log-time">${now}</span><span class="log-msg">${msg}</span>`;
+      log.insertBefore(entry, log.firstChild);
+      if (log.children.length > 50) log.removeChild(log.lastChild);
+    }
+
+    let toastTimer;
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.background = type === 'error' ? '#DC2626' : type === 'success' ? '#166534' : 'var(--blue-700)';
+      t.className = 'show';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.className = ''; }, 3500);
+    }
+
+    // Poll for state
+    refreshState();
+    setInterval(refreshState, 3000);
+  </script>
+</body>
+</html>
