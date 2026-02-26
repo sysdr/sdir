@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Mesh Sidecar Latency Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #f0f4ff;
+    --card:    #ffffff;
+    --blue-1:  #1e3a5f;
+    --blue-2:  #2563eb;
+    --blue-3:  #3b82f6;
+    --blue-4:  #60a5fa;
+    --blue-5:  #bfdbfe;
+    --green:   #16a34a;
+    --red:     #dc2626;
+    --amber:   #d97706;
+    --text:    #1e293b;
+    --sub:     #64748b;
+    --shadow:  0 4px 16px rgba(37,99,235,.12);
+    --shadow2: 0 2px 8px  rgba(37,99,235,.08);
+  }
+  body { background: var(--bg); font-family: 'Inter', system-ui, sans-serif;
+         color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--blue-1); color: #fff; padding: 20px 32px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.2);
+  }
+  header h1 { font-size: 1.25rem; font-weight: 700; }
+  header p  { font-size: 0.8rem; opacity: .7; margin-top: 2px; }
+  .badge {
+    background: var(--blue-3); border-radius: 9999px;
+    padding: 3px 10px; font-size: 0.72rem; font-weight: 600;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e; display: inline-block;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+  /* ── Metric Cards ── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px; margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--card); border-radius: 14px;
+    padding: 18px 20px; box-shadow: var(--shadow2);
+    border-top: 3px solid var(--blue-3);
+  }
+  .metric-card .label { font-size: .72rem; color: var(--sub); text-transform: uppercase;
+                        letter-spacing: .05em; margin-bottom: 6px; }
+  .metric-card .value { font-size: 2rem; font-weight: 700; color: var(--blue-2);
+                        line-height: 1; }
+  .metric-card .unit  { font-size: .75rem; color: var(--sub); margin-top: 3px; }
+  .metric-card.red    { border-top-color: var(--red); }
+  .metric-card.red .value { color: var(--red); }
+  .metric-card.green  { border-top-color: var(--green); }
+  .metric-card.green .value { color: var(--green); }
+
+  /* ── Chart ── */
+  .panel {
+    background: var(--card); border-radius: 14px;
+    padding: 22px 24px; box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .panel h2 { font-size: .9rem; font-weight: 600; color: var(--blue-1);
+              margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .sub { font-weight: 400; color: var(--sub); font-size: .8rem; }
+
+  #latency-chart {
+    width: 100%; height: 160px; display: block;
+  }
+
+  /* ── Latency breakdown ── */
+  .breakdown-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;
+  }
+  .breakdown-item { background: var(--bg); border-radius: 10px; padding: 14px 16px; }
+  .breakdown-item .name { font-size: .78rem; font-weight: 600; color: var(--blue-1); }
+  .breakdown-item .desc { font-size: .72rem; color: var(--sub); margin-top: 2px; margin-bottom: 8px; }
+  .bar-track { background: var(--blue-5); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; background: var(--blue-3);
+               transition: width .5s ease; }
+
+  /* ── Two-column layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── Log stream ── */
+  .log-stream {
+    font-family: 'Fira Mono', 'Consolas', monospace; font-size: .72rem;
+    color: #c7d2fe; background: #1e1b4b; border-radius: 10px;
+    padding: 14px; height: 200px; overflow-y: auto;
+    line-height: 1.6;
+  }
+  .log-stream .ts   { color: #818cf8; }
+  .log-stream .ok   { color: #6ee7b7; }
+  .log-stream .warn { color: #fcd34d; }
+  .log-stream .path { color: #93c5fd; }
+
+  footer {
+    text-align: center; font-size: .72rem; color: var(--sub);
+    padding: 16px; margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Service Mesh Sidecar Latency <span class="badge">Article 207</span></h1>
+    <p>Real-time latency breakdown across the Envoy sidecar proxy chain</p>
+  </div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+    <span class="live-dot"></span>
+    <span style="font-size:.8rem; opacity:.8">Live</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Metric Cards -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="label">p50 Latency</div>
+      <div class="value" id="p50">—</div>
+      <div class="unit">milliseconds</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">p95 Latency</div>
+      <div class="value" id="p95">—</div>
+      <div class="unit">milliseconds</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">p99 Latency</div>
+      <div class="value" id="p99">—</div>
+      <div class="unit">milliseconds</div>
+    </div>
+    <div class="metric-card green">
+      <div class="label">Success Rate</div>
+      <div class="value" id="successRate">—</div>
+      <div class="unit">percent</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Total Requests</div>
+      <div class="value" id="total">0</div>
+      <div class="unit">requests</div>
+    </div>
+    <div class="metric-card red">
+      <div class="label">Errors</div>
+      <div class="value" id="errors">0</div>
+      <div class="unit">total</div>
+    </div>
+  </div>
+
+  <!-- Latency Chart -->
+  <div class="panel">
+    <h2>Rolling Latency (last 60 requests) <span class="sub">— each bar = one request</span></h2>
+    <canvas id="latency-chart"></canvas>
+  </div>
+
+  <div class="two-col">
+
+    <!-- Latency Component Breakdown -->
+    <div class="panel">
+      <h2>Sidecar Cost Breakdown <span class="sub">— estimated contribution</span></h2>
+      <div class="breakdown-grid">
+        <div class="breakdown-item">
+          <div class="name">iptables / NAT</div>
+          <div class="desc">Kernel packet redirect overhead</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-iptables" style="width:15%"></div></div>
+          <div id="val-iptables" style="font-size:.7rem;color:var(--sub);margin-top:4px">~0.2ms</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="name">Loopback Handoff</div>
+          <div class="desc">User-kernel boundary crossings</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-loopback" style="width:10%"></div></div>
+          <div id="val-loopback" style="font-size:.7rem;color:var(--sub);margin-top:4px">~0.1ms</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="name">Envoy Filter Chain</div>
+          <div class="desc">L7 parsing + routing rules</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-filter" style="width:25%"></div></div>
+          <div id="val-filter" style="font-size:.7rem;color:var(--sub);margin-top:4px">~0.5ms</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="name">App Processing</div>
+          <div class="desc">Business logic execution time</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-app" style="width:50%"></div></div>
+          <div id="val-app" style="font-size:.7rem;color:var(--sub);margin-top:4px">varies</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="panel" style="padding-bottom:0">
+      <h2>Envoy Access Log Stream <span class="sub">— simulated</span></h2>
+      <div class="log-stream" id="log-stream"></div>
+    </div>
+
+  </div>
+
+  <div class="panel" style="font-size:.82rem; line-height:1.7; color:var(--sub);">
+    <h2 style="margin-bottom:8px">Architecture</h2>
+    <strong style="color:var(--blue-1)">Request path:</strong>
+    Load Generator → <em>Envoy Sidecar A</em> (inbound:8081) → Backend A (3001) →
+    [chain] Envoy A outbound (9090) → <em>Envoy Sidecar B</em> (inbound:8082) → Backend B (3002)<br>
+    <strong style="color:var(--blue-1)">Each Envoy sidecar adds:</strong>
+    iptables NAT (~50µs) + loopback socket handoff (~100µs) + HTTP connection manager + router filter.<br>
+    <strong style="color:var(--blue-1)">Envoy Admin:</strong>
+    Sidecar A → <a href="http://localhost:9901" target="_blank">localhost:9901</a> |
+    Sidecar B → <a href="http://localhost:9902" target="_blank">localhost:9902</a>
+  </div>
+
+</main>
+
+<footer>Service Mesh Sidecar Latency Demo — System Design Interview Roadmap Article 207</footer>
+
+<script>
+const ws = new WebSocket(`ws://${location.host}`);
+const latencies = [];
+let reqCount = 0;
+
+ws.onmessage = (e) => {
+  const { type, data } = JSON.parse(e.data);
+  if (type !== 'metrics') return;
+
+  const L = data.load;
+  const hasData = L.total > 0;
+  document.getElementById('p50').textContent          = hasData && L.p50 != null ? L.p50.toFixed(1) : '—';
+  document.getElementById('p95').textContent          = hasData && L.p95 != null ? L.p95.toFixed(1) : '—';
+  document.getElementById('p99').textContent          = hasData && L.p99 != null ? L.p99.toFixed(1) : '—';
+  document.getElementById('successRate').textContent  = hasData && L.successRate != null ? L.successRate : '—';
+  document.getElementById('total').textContent        = (L.total || 0).toLocaleString();
+  document.getElementById('errors').textContent       = (L.errors || 0).toLocaleString();
+
+  // Chart
+  if (L.recentLatencies && L.recentLatencies.length) {
+    drawChart(L.recentLatencies);
+  }
+
+  // Breakdown bars — proportional to avg latency
+  const avg = L.avg || 10;
+  const iptables  = Math.min(avg * 0.08, 3);
+  const loopback  = Math.min(avg * 0.05, 2);
+  const filter    = Math.min(avg * 0.15, 5);
+  const appTime   = Math.max(avg - iptables - loopback - filter, 1);
+  const total     = iptables + loopback + filter + appTime;
+  const pct = (v) => ((v / total) * 100).toFixed(0) + '%';
+
+  setBar('iptables', iptables, total, iptables.toFixed(2) + 'ms');
+  setBar('loopback', loopback, total, loopback.toFixed(2) + 'ms');
+  setBar('filter',   filter,   total, filter.toFixed(2)   + 'ms');
+  setBar('app',      appTime,  total, appTime.toFixed(2)  + 'ms');
+
+  // Fake log entries
+  addLogEntry(L);
+};
+
+function setBar(id, val, total, label) {
+  const pct = Math.max(3, (val / total) * 100);
+  document.getElementById('bar-' + id).style.width = pct + '%';
+  document.getElementById('val-' + id).textContent  = label;
+}
+
+function drawChart(data) {
+  const canvas = document.getElementById('latency-chart');
+  const ctx    = canvas.getContext('2d');
+  canvas.width  = canvas.offsetWidth  || 800;
+  canvas.height = canvas.offsetHeight || 160;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const max = Math.max(...data, 50);
+  const barW = W / data.length;
+
+  data.forEach((v, i) => {
+    const barH = (v / max) * (H - 24);
+    const hue  = v < 20 ? 210 : v < 50 ? 40 : 0;
+    ctx.fillStyle = v < 20 ? '#3b82f6' : v < 50 ? '#f59e0b' : '#ef4444';
+    ctx.fillRect(i * barW + 1, H - barH - 12, barW - 2, barH);
+  });
+
+  // Y-axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText(max.toFixed(0) + 'ms', 2, 12);
+  ctx.fillText('0ms', 2, H - 2);
+}
+
+let logLines = [];
+const PATHS = ['/api/data', '/api/chain', '/api/data', '/health'];
+function addLogEntry(L) {
+  reqCount++;
+  if (reqCount % 3 !== 0) return; // throttle log entries
+  const ms   = Math.round(L.p50 + (Math.random() - 0.5) * L.p50 * 0.4) || 5;
+  const path = PATHS[Math.floor(Math.random() * PATHS.length)];
+  const code = Math.random() > 0.97 ? '503' : '200';
+  const ts   = new Date().toISOString().slice(11, 23);
+  const cls  = code === '200' ? 'ok' : 'warn';
+  logLines.push(`<span class="ts">${ts}</span>  GET  <span class="path">${path}</span>  <span class="${cls}">${code}</span>  ${ms}ms`);
+  if (logLines.length > 60) logLines.shift();
+  const el = document.getElementById('log-stream');
+  el.innerHTML = logLines.join('<br>');
+  el.scrollTop = el.scrollHeight;
+}
+
+ws.onerror = () => {
+  document.getElementById('p50').textContent = 'connecting...';
+};
+</script>
+</body>
+</html>

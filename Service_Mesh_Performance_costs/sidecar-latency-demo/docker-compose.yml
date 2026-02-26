@@ -1,0 +1,77 @@
+networks:
+  mesh-net:
+    driver: bridge
+
+services:
+  # ── Application pods ──────────────────────────────────────
+  backend-a:
+    build: ./backend-a
+    networks: [mesh-net]
+    environment:
+      - PORT=3001
+      - BACKEND_B_HOST=envoy-sidecar-b
+      - BACKEND_B_PORT=8082
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend-b:
+    build: ./backend-b
+    networks: [mesh-net]
+    environment:
+      - PORT=3002
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Envoy sidecars ────────────────────────────────────────
+  envoy-sidecar-a:
+    build: ./envoy-sidecar-a
+    networks: [mesh-net]
+    ports:
+      - "8081:8081"   # Inbound proxy
+      - "9901:9901"   # Admin UI
+    depends_on:
+      backend-a:
+        condition: service_healthy
+
+  envoy-sidecar-b:
+    build: ./envoy-sidecar-b
+    networks: [mesh-net]
+    ports:
+      - "8082:8082"   # Inbound proxy
+      - "9902:9902"   # Admin UI
+    depends_on:
+      backend-b:
+        condition: service_healthy
+
+  # ── Load generator ────────────────────────────────────────
+  load-generator:
+    build: ./load-generator
+    networks: [mesh-net]
+    environment:
+      - TARGET_HOST=envoy-sidecar-a
+      - TARGET_PORT=8081
+      - RPS=15
+    ports:
+      - "4000:4000"
+    depends_on:
+      - envoy-sidecar-a
+      - envoy-sidecar-b
+
+  # ── Dashboard ─────────────────────────────────────────────
+  dashboard:
+    build: ./dashboard
+    networks: [mesh-net]
+    ports:
+      - "5000:5000"
+    environment:
+      - LOAD_GEN_HOST=load-generator
+      - ENVOY_A_HOST=envoy-sidecar-a
+      - ENVOY_B_HOST=envoy-sidecar-b
+    depends_on:
+      - load-generator

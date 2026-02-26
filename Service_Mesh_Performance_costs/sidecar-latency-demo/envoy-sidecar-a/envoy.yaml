@@ -1,0 +1,98 @@
+static_resources:
+  listeners:
+    # Inbound: intercept traffic destined for backend-a
+    - name: inbound_listener
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 8081 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: inbound_a
+                codec_type: AUTO
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                      log_format:
+                        json_format:
+                          timestamp: "%START_TIME%"
+                          direction: "inbound"
+                          method: "%REQ(:METHOD)%"
+                          path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+                          duration_ms: "%DURATION%"
+                          response_code: "%RESPONSE_CODE%"
+                          request_id: "%REQ(X-REQUEST-ID)%"
+                http_filters:
+                  # Filter 1: Router metrics
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config:
+                  name: inbound_route
+                  virtual_hosts:
+                    - name: backend_a
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route:
+                            cluster: backend_a_local
+                            timeout: 30s
+
+    # Outbound: intercept outgoing traffic from backend-a
+    - name: outbound_listener
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 9090 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: outbound_a
+                codec_type: AUTO
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config:
+                  name: outbound_route
+                  virtual_hosts:
+                    - name: outbound_all
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route:
+                            cluster: backend_b_sidecar
+                            timeout: 30s
+
+  clusters:
+    # Upstream: local backend-a application (STRICT_DNS for hostname resolution)
+    - name: backend_a_local
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: backend_a_local
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address: { address: backend-a, port_value: 3001 }
+
+    # Upstream: backend-b through its sidecar
+    - name: backend_b_sidecar
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: backend_b_sidecar
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address: { address: envoy-sidecar-b, port_value: 8082 }
+
+admin:
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
