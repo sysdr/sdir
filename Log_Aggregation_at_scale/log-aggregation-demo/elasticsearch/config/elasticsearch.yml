@@ -1,0 +1,8 @@
+cluster.name: "log-demo"
+network.host: 0.0.0.0
+discovery.type: single-node
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+# Demo: reduced resource usage
+indices.memory.index_buffer_size: 10%
+thread_pool.write.queue_size: 200

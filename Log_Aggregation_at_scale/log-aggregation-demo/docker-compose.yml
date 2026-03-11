@@ -1,0 +1,104 @@
+# Compose v3.9+ (version attribute obsolete)
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ── Loki: Label-based log storage
+  loki:
+    image: grafana/loki:3.1.0
+    user: "0"
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki:/etc/loki
+      - loki-data:/tmp/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ── Promtail: Ships logs to Loki
+  promtail:
+    image: grafana/promtail:3.1.0
+    volumes:
+      - ./promtail:/etc/promtail
+      - app-logs:/var/log/app
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      loki:
+        condition: service_healthy
+    logging: *default-logging
+
+  # ── Elasticsearch: Full inverted index
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    logging: *default-logging
+
+  # ── Load Generator: Synthetic structured logs
+  load-generator:
+    build: ./load-generator
+    volumes:
+      - app-logs:/var/log/app
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      promtail:
+        condition: service_started
+    logging: *default-logging
+
+  # ── Grafana: Full dashboard + LogQL + ES queries
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=demo123
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_FEATURE_TOGGLES_ENABLE=lokiExperimentalEditor
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    logging: *default-logging
+
+  # ── Frontend: Article 214 Dashboard
+  frontend:
+    image: nginx:1.27-alpine
+    ports:
+      - "8214:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    logging: *default-logging
+
+volumes:
+  loki-data:
+  es-data:
+  grafana-data:
+  app-logs:

@@ -1,0 +1,63 @@
+# Log Aggregation at Scale — .gitignore
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+.env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Istio
+istio/
+.istio/
+*istio*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Env / secrets (do not commit API keys or passwords)
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# Docker
+.docker/
+
+# Logs and temp
+*.log
+tmp/
+temp/
+.cache/
+
+# Optional: uncomment to ignore generated demo content (keep setup.sh)
+# loki/
+# promtail/
+# grafana/
+# load-generator/
+# frontend/
+# nginx/
+# elasticsearch/
+# scripts/
+# docker-compose.yml

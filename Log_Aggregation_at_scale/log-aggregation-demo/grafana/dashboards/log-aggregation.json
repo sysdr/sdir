@@ -1,0 +1,55 @@
+{
+  "title": "Log Aggregation Demo — Article 214",
+  "uid": "log-agg-demo",
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Volume by Service (Loki)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "loki" },
+      "targets": [{
+        "expr": "sum by (service) (rate({job=\"app_logs\"}[1m]))",
+        "legendFormat": "{{service}}"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "Error Rate by Service (Loki)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "loki" },
+      "targets": [{
+        "expr": "sum by (service) (rate({job=\"app_logs\", level=\"error\"}[1m]))",
+        "legendFormat": "{{service}} errors"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "Live Log Stream (All Services)",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 10 },
+      "datasource": { "uid": "loki" },
+      "options": { "showTime": true, "showLabels": true, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true },
+      "targets": [{
+        "expr": "{job=\"app_logs\"}",
+        "legendFormat": ""
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Cardinality Explosion Test (Loki)",
+      "type": "logs",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 8 },
+      "datasource": { "uid": "loki" },
+      "options": { "showTime": true, "showLabels": true },
+      "targets": [{
+        "expr": "{job=\"cardinality_test\"}",
+        "legendFormat": ""
+      }]
+    }
+  ]
+}

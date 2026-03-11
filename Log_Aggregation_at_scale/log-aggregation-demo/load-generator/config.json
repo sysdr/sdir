@@ -1,0 +1,10 @@
+{
+  "services": ["payments", "auth", "inventory", "notifications", "search", "checkout"],
+  "log_rate_per_second": 20,
+  "error_rate_percent": 8,
+  "cardinality_test": {
+    "enabled": true,
+    "add_user_id_as_label": false,
+    "note": "Set add_user_id_as_label to true to simulate cardinality explosion"
+  }
+}
