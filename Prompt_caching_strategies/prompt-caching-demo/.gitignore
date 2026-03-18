@@ -1,0 +1,52 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# API keys / secrets (never commit)
+*api*key*
+*secret*
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# IDE and OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Istio / k8s local
+*istio*
+*.kubeconfig
+
+# Logs and temp
+*.log
+tmp/
+temp/
+.cache/

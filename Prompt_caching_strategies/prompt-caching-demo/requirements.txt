@@ -1,0 +1,5 @@
+# Prompt Caching Demo — project dependencies
+# Backend and frontend are Node.js (see backend/package.json and frontend/package.json).
+# Add Python deps here if you add scripts or tooling.
+
+# (none required for base demo; Docker runs Node containers)
