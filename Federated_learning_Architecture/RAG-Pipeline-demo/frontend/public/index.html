@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Pipeline — Article 222</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue-900: #1e3a5f;
+      --blue-700: #1d4ed8;
+      --blue-500: #3b82f6;
+      --blue-300: #93c5fd;
+      --blue-100: #dbeafe;
+      --blue-50:  #eff6ff;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --green-500: #22c55e;
+      --amber-500: #f59e0b;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.10), 0 4px 6px rgba(0,0,0,0.05);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #f0f4f8; color: var(--slate-700); min-height: 100vh; }
+    #root { display: flex; flex-direction: column; min-height: 100vh; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+const API = `http://${window.location.hostname}:8000`;
+const WS  = `ws://${window.location.hostname}:8000/ws`;
+
+const css = {
+  header: {
+    background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)',
+    padding: '20px 32px', color: '#fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+  },
+  main: { flex: 1, padding: '28px 32px', maxWidth: 1200, margin: '0 auto', width: '100%' },
+  card: {
+    background: '#fff', borderRadius: 12,
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05)',
+    padding: 24, marginBottom: 20,
+  },
+  searchBox: {
+    display: 'flex', gap: 12, alignItems: 'center',
+    background: '#fff', borderRadius: 12, padding: '14px 20px',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,.08)',
+    marginBottom: 20,
+  },
+  input: {
+    flex: 1, border: '1.5px solid #93c5fd', borderRadius: 8,
+    padding: '10px 16px', fontSize: 15, outline: 'none',
+    transition: 'border-color .2s',
+  },
+  btn: {
+    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+    color: '#fff', border: 'none', borderRadius: 8,
+    padding: '10px 22px', fontSize: 15, cursor: 'pointer',
+    fontWeight: 600, transition: 'opacity .15s',
+    boxShadow: '0 2px 6px rgba(29,78,216,.35)',
+  },
+  pill: (color) => ({
+    display: 'inline-block', padding: '2px 10px', borderRadius: 99,
+    fontSize: 11, fontWeight: 700, background: color + '22', color: color,
+  }),
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 },
+  statCard: {
+    background: '#fff', borderRadius: 10, padding: '16px 20px',
+    boxShadow: '0 2px 6px rgba(0,0,0,.07)',
+    borderTop: '3px solid #3b82f6',
+  },
+  resultCard: {
+    background: '#fff', borderRadius: 10, padding: 20,
+    boxShadow: '0 2px 6px rgba(0,0,0,.07)',
+    marginBottom: 12, borderLeft: '4px solid #3b82f6',
+    transition: 'box-shadow .2s',
+  },
+  log: {
+    background: '#0f172a', borderRadius: 10, padding: '16px 20px',
+    fontFamily: 'monospace', fontSize: 12.5, color: '#94a3b8',
+    maxHeight: 180, overflowY: 'auto',
+  },
+  contextBox: {
+    background: '#f8fafc', borderRadius: 8, padding: 16,
+    fontFamily: 'monospace', fontSize: 12.5, whiteSpace: 'pre-wrap',
+    maxHeight: 300, overflowY: 'auto', border: '1px solid #e2e8f0',
+  },
+};
+
+const SAMPLE_QUERIES = [
+  "how does consistent hashing work?",
+  "what causes split-brain in distributed systems?",
+  "explain two-phase commit failure modes",
+  "how do bloom filters reduce disk reads?",
+  "what is backpressure in reactive systems?",
+  "how does RAFT leader election work?",
+];
+
+function ScoreBar({ score }) {
+  const pct = Math.round(score * 100);
+  const color = score > 0.7 ? '#22c55e' : score > 0.5 ? '#3b82f6' : '#f59e0b';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 3 }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3,
+                      transition: 'width .6s ease' }} />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 700, color }}>{pct}%</span>
+    </div>
+  );
+}
+
+function App() {
+  const [query, setQuery]       = useState('');
+  const [results, setResults]   = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [indexStats, setStats]  = useState(null);
+  const [logs, setLogs]         = useState([]);
+  const [showCtx, setShowCtx]   = useState(false);
+  const logRef = useRef(null);
+  const wsRef  = useRef(null);
+
+  const addLog = useCallback((msg, color='#94a3b8') => {
+    const ts = new Date().toLocaleTimeString();
+    setLogs(l => [...l.slice(-60), { ts, msg, color }]);
+  }, []);
+
+  useEffect(() => {
+    const connect = () => {
+      const ws = new WebSocket(WS);
+      wsRef.current = ws;
+      ws.onopen    = () => addLog('WebSocket connected', '#60a5fa');
+      ws.onclose   = () => { addLog('WebSocket closed — retrying…', '#f59e0b'); setTimeout(connect, 2000); };
+      ws.onerror   = () => addLog('WebSocket error', '#f87171');
+      ws.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+        if (d.stats && d.stats.status === 'ready') {
+          setStats(d.stats);
+        }
+        if (d.event === 'ready')   addLog('✓ ' + d.message, '#4ade80');
+        if (d.event === 'status')  addLog('⚙ ' + d.message, '#fbbf24');
+        if (d.status === 'embedding' && d.message) addLog('🔢 ' + d.message, '#a78bfa');
+      };
+    };
+    connect();
+    return () => wsRef.current?.close();
+  }, []);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [logs]);
+
+  const runSearch = async (q) => {
+    if (!q.trim()) return;
+    setLoading(true); setResults(null); setShowCtx(false);
+    addLog(`🔍 Query: "${q}"`, '#93c5fd');
+    try {
+      const res = await fetch(`${API}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, top_k: 5 }),
+      });
+      if (!res.ok) { addLog('⚠ Index not ready yet — wait a moment', '#f59e0b'); return; }
+      const data = await res.json();
+      setResults(data);
+      addLog(`✓ Retrieved ${data.results.length} chunks in ${data.latency_ms}ms`, '#4ade80');
+    } catch (err) {
+      addLog('✗ Search failed: ' + err.message, '#f87171');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isReady = indexStats?.status === 'ready';
+
+  return (
+    <div id="root">
+      {/* Header */}
+      <div style={css.header}>
+        <div>
+          <div style={{ fontSize: 11, opacity: .7, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>
+            Article 222 · Section 9: AI &amp; LLM Infrastructure
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>RAG Pipeline Architecture</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 9, height: 9, borderRadius: '50%',
+                        background: isReady ? '#4ade80' : '#fbbf24',
+                        boxShadow: `0 0 8px ${isReady ? '#4ade80' : '#fbbf24'}` }} />
+          <span style={{ fontSize: 13, opacity: .85 }}>
+            {isReady ? 'Index Ready' : 'Building Index…'}
+          </span>
+        </div>
+      </div>
+
+      <div style={css.main}>
+        {/* Stats row */}
+        <div style={css.statGrid}>
+          {[
+            { label: 'Documents', value: isReady ? indexStats.num_docs : '—' },
+            { label: 'Chunks',    value: isReady ? indexStats.num_chunks : '—' },
+            { label: 'Dimensions', value: isReady ? indexStats.dim : '—' },
+            { label: 'Index Build', value: isReady ? `${indexStats.build_time_ms}ms` : '—' },
+          ].map(s => (
+            <div key={s.label} style={css.statCard}>
+              <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase',
+                            letterSpacing: .5, marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#1d4ed8' }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div style={css.searchBox}>
+          <input
+            style={css.input}
+            placeholder="Ask a distributed systems question…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && runSearch(query)}
+          />
+          <button style={{ ...css.btn, opacity: loading || !isReady ? .6 : 1 }}
+                  onClick={() => runSearch(query)}
+                  disabled={loading || !isReady}>
+            {loading ? 'Searching…' : 'Search'}
+          </button>
+        </div>
+
+        {/* Sample queries */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {SAMPLE_QUERIES.map(q => (
+            <button key={q} style={{
+              background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 20,
+              padding: '5px 14px', fontSize: 12.5, color: '#1d4ed8', cursor: 'pointer',
+            }} onClick={() => { setQuery(q); runSearch(q); }}>
+              {q}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+          <div>
+            {/* Results */}
+            {results && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              marginBottom: 14 }}>
+                  <h3 style={{ color: '#1e3a5f', fontSize: 15 }}>
+                    Retrieved Chunks
+                    <span style={{ ...css.pill('#3b82f6'), marginLeft: 8 }}>
+                      {results.results.length} results · {results.latency_ms}ms
+                    </span>
+                  </h3>
+                  <button style={{ ...css.btn, padding: '6px 14px', fontSize: 12.5,
+                                   background: showCtx ? '#334155' : undefined }}
+                          onClick={() => setShowCtx(v => !v)}>
+                    {showCtx ? 'Hide Context' : 'Show LLM Context'}
+                  </button>
+                </div>
+
+                {showCtx && (
+                  <div style={{ ...css.card, borderTop: '3px solid #8b5cf6' }}>
+                    <div style={{ fontSize: 12, color: '#7c3aed', fontWeight: 700, marginBottom: 8,
+                                  textTransform: 'uppercase', letterSpacing: .5 }}>
+                      Assembled RAG Context (injected into LLM prompt)
+                    </div>
+                    <div style={css.contextBox}>{results.context}</div>
+                  </div>
+                )}
+
+                {results.results.map((r, i) => (
+                  <div key={i} style={css.resultCard}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between',
+                                  alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ background: '#1d4ed8', color: '#fff', width: 22, height: 22,
+                                       borderRadius: '50%', display: 'flex', alignItems: 'center',
+                                       justifyContent: 'center', fontSize: 11, fontWeight: 700,
+                                       flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontWeight: 600, fontSize: 13.5, color: '#1e3a5f' }}>
+                          {r.source.replace(/-/g, ' ')}
+                        </span>
+                        <span style={css.pill('#3b82f6')}>chunk #{r.chunk_idx}</span>
+                      </div>
+                    </div>
+                    <ScoreBar score={r.score} />
+                    <p style={{ marginTop: 10, lineHeight: 1.6, fontSize: 13.5, color: '#475569' }}>
+                      {r.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!results && isReady && (
+              <div style={{ ...css.card, textAlign: 'center', padding: '48px 24px', color: '#94a3b8' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+                <div style={{ fontSize: 15 }}>Enter a query or click a sample question above</div>
+                <div style={{ fontSize: 12.5, marginTop: 6 }}>
+                  The pipeline embeds your query and finds the most semantically similar chunks
+                </div>
+              </div>
+            )}
+
+            {!isReady && (
+              <div style={{ ...css.card, textAlign: 'center', padding: '48px 24px' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>⚙️</div>
+                <div style={{ color: '#1d4ed8', fontSize: 15, fontWeight: 600 }}>
+                  Building vector index…
+                </div>
+                <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 6 }}>
+                  Downloading model, embedding {''} chunks, building FAISS index
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div>
+            <div style={{ ...css.card, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 10,
+                            textTransform: 'uppercase', letterSpacing: .5 }}>Pipeline Config</div>
+              {[
+                { k: 'Model', v: 'all-MiniLM-L6-v2' },
+                { k: 'Index', v: 'FAISS IndexFlatIP' },
+                { k: 'Similarity', v: 'Cosine (IP on L2-norm)' },
+                { k: 'Top-K', v: TOP_K },
+                { k: 'Chunk Size', v: CHUNK_SIZE + ' words' },
+                { k: 'Overlap', v: OVERLAP + ' words' },
+              ].map(({k, v}) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between',
+                                      fontSize: 13, padding: '5px 0',
+                                      borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ color: '#64748b' }}>{k}</span>
+                  <span style={{ fontWeight: 600, color: '#1e3a5f' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Event log */}
+            <div style={{ ...css.card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9',
+                            fontSize: 12, fontWeight: 700, color: '#475569',
+                            textTransform: 'uppercase', letterSpacing: .5 }}>
+                Pipeline Events
+              </div>
+              <div style={css.log} ref={logRef}>
+                {logs.map((l, i) => (
+                  <div key={i} style={{ marginBottom: 3 }}>
+                    <span style={{ color: '#475569' }}>{l.ts} </span>
+                    <span style={{ color: l.color }}>{l.msg}</span>
+                  </div>
+                ))}
+                {logs.length === 0 && <span style={{ color: '#4b5563' }}>Connecting…</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const TOP_K = 5;
+const CHUNK_SIZE = 150;
+const OVERLAP = 20;
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
