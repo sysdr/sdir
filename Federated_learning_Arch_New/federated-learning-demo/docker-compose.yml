@@ -1,0 +1,63 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  client-1:
+    build: ./client
+    environment:
+      - CLIENT_ID=1
+      - POS_X=2.0
+      - POS_Y=2.0
+      - NEG_X=-2.0
+      - NEG_Y=-2.0
+      - N_SAMPLES=120
+      - LOCAL_EPOCHS=15
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: on-failure
+
+  client-2:
+    build: ./client
+    environment:
+      - CLIENT_ID=2
+      - POS_X=-1.0
+      - POS_Y=2.5
+      - NEG_X=2.0
+      - NEG_Y=-1.0
+      - N_SAMPLES=80
+      - LOCAL_EPOCHS=15
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: on-failure
+
+  client-3:
+    build: ./client
+    environment:
+      - CLIENT_ID=3
+      - POS_X=0.5
+      - POS_Y=-2.0
+      - NEG_X=-1.5
+      - NEG_Y=1.5
+      - N_SAMPLES=100
+      - LOCAL_EPOCHS=15
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: on-failure
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3001:80"
+    depends_on:
+      - server
+    restart: unless-stopped

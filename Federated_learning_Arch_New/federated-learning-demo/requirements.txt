@@ -1,0 +1,7 @@
+# Root-level requirements for local validation scripts.
+# Service-specific dependencies are maintained in:
+# - federated-learning-demo/server/requirements.txt
+# - federated-learning-demo/client/requirements.txt
+
+requests==2.31.0
+numpy==1.26.3

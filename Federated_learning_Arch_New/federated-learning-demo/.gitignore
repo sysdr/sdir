@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Build and runtime artifacts
+dist/
+build/
+*.log
+
+# Docker/demo-generated folders
+federated-learning-demo/dashboard/dist/
+federated-learning-demo/dashboard/node_modules/
+
+# IDE/system
+.DS_Store
+.idea/
+.vscode/
