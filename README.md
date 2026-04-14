@@ -2,7 +2,7 @@
 
 > **Stop jumping between random tutorials.** The **System Design Roadmap** newsletter is your definitive, structured guide to mastering the architecture of large-scale, distributed systems.
 
-Subscribe to the newsletter for detailed articles -> https://systemdr.substack.com/
+Subscribe to the newsletter for detailed articles -> https://systemdr.substack.com/   & Get free access to "System Design Fundamentals", ebook --> https://systemdrd.com/ebooks/system-design-guide/
 
 
 Designed for ambitious **Software Engineers, Tech Leads, and System Architects** preparing for their next big interview or striving to build world-class products, we provide the clarity and depth you need to move from theory to implementation.
