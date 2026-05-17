@@ -1,3 +1,10 @@
+# Note:
+> ### Moved source code to https://github.com/sysdr/sdir-p.git
+> 
+> ### Upgrade to acess all  code -> https://systemdr.systemdrd.com/subscribe
+----
+
+
 # The Complete Roadmap to System Design Mastery
 
 > **Stop jumping between random tutorials.** The **System Design Roadmap** newsletter is your definitive, structured guide to mastering the architecture of large-scale, distributed systems.
