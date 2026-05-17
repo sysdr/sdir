@@ -1,9 +1,0 @@
-{
-  "name": "query-service",
-  "version": "1.0.0",
-  "dependencies": {
-    "express": "^4.18.2",
-    "redis": "^4.6.12",
-    "cors": "^2.8.5"
-  }
-}

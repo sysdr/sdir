@@ -1,7 +1,0 @@
-{
-  "name": "loadgen",
-  "version": "1.0.0",
-  "main": "loadgen.js",
-  "scripts": { "start": "node loadgen.js" },
-  "dependencies": {}
-}

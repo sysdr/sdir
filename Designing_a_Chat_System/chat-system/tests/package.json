@@ -1,8 +1,0 @@
-{
-  "name": "chat-tests",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "ws": "^8.14.2"
-  }
-}
